@@ -22,7 +22,6 @@ export const testimonials: Testimonial[] = [
     quote:
       'Mohamed is a really motivated person — patient and kind, able to take advice and learn from it. I enjoyed my experience as a student fellow with Mohamed while learning Ruby at the Microverse program. Mohamed can be a great asset for any software development company.',
     name: 'Santiago Andrés Rodríguez',
-    context: 'Microverse Ruby cohort',
     image: '/images/testimonials/santiago.jpeg',
   },
   {
@@ -35,7 +34,6 @@ export const testimonials: Testimonial[] = [
     quote:
       'Naser is one of the best web developers I have worked with — a geek in Yii and other frameworks. You will enjoy working with him.',
     name: 'Mohamed Saeed Othman',
-    context: 'Microverse Ruby cohort',
     image: '/images/testimonials/Saeed.jpeg',
   },
   {

@@ -3,7 +3,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main, chore/GH-3-scaffold-astro-tailwind-ci]
+    branches: [master]
   workflow_dispatch:
 
 permissions:

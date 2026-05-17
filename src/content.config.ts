@@ -4,10 +4,24 @@ const blog = defineCollection({
   type: 'content',
   schema: z.object({
     title: z.string(),
+    /** Listing snippet and meta description (keep under ~160 chars for SEO). */
     description: z.string(),
+    /** Optional longer teaser for the blog index card. Falls back to description. */
+    excerpt: z.string().optional(),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     draft: z.boolean().optional().default(false),
+    /** Path under /public, e.g. /images/blog/my-post.png */
+    coverImage: z.string().optional(),
+    /** SEO / JSON-LD keywords */
+    keywords: z.array(z.string()).default([]),
+    /** When true, on-site page is a teaser + outbound links (no full article body). */
+    external: z.boolean().optional().default(false),
+    mediumUrl: z.string().url().optional(),
+    linkedinUrl: z.string().url().optional(),
+    /** Canonical URL when the primary publication is elsewhere (e.g. Medium). */
+    canonicalUrl: z.string().url().optional(),
+    readingTime: z.string().optional(),
   }),
 });
 
@@ -22,4 +36,46 @@ const caseStudies = defineCollection({
   }),
 });
 
-export const collections = { blog, 'case-studies': caseStudies };
+const projectLink = z.object({
+  label: z.string(),
+  href: z.string().url(),
+});
+
+const companyIds = [
+  'lynk',
+  'carefer',
+  'mitch-designs',
+  'microverse',
+  'nile-code',
+  'brilliance-tech',
+  'integrated-development',
+  'ynmo',
+  'johnson-johnson',
+  'total',
+  'okhtein',
+  'personal',
+] as const;
+
+const projects = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    company: z.enum(companyIds),
+    /** When false, project is omitted from listings and has no public page. */
+    published: z.boolean().default(true),
+    /** Employer when client logo is shown (e.g. J&J work done at Nile Code). */
+    employer: z.enum(companyIds).optional(),
+    order: z.number().default(99),
+    featured: z.boolean().default(true),
+    period: z.string().optional(),
+    role: z.string().optional(),
+    status: z.enum(['active', 'paused', 'archived']).default('active'),
+    stack: z.array(z.string()).default([]),
+    achievements: z.array(z.string()).default([]),
+    links: z.array(projectLink).default([]),
+    tags: z.array(z.string()).default([]),
+  }),
+});
+
+export const collections = { blog, 'case-studies': caseStudies, projects };

@@ -7,11 +7,13 @@
     scroll-behavior: smooth;
   }
 
-  html.dark {
+  html.dark,
+  html[data-theme='dark'] {
     color-scheme: dark;
   }
 
-  html:not(.dark) {
+  html:not(.dark),
+  html[data-theme='light'] {
     color-scheme: light;
   }
 }
@@ -31,5 +33,43 @@
 
   .card {
     @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .marquee__viewport,
+  .testimonials-marquee__viewport {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .marquee__viewport::-webkit-scrollbar,
+  .testimonials-marquee__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .marquee__btn,
+  .testimonials-marquee__btn {
+    @apply absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:border-emerald-500 hover:text-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:text-emerald-400;
+  }
+
+  .marquee__btn--prev,
+  .testimonials-marquee__btn--prev {
+    @apply left-0;
+  }
+
+  .marquee__btn--next,
+  .testimonials-marquee__btn--next {
+    @apply right-0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee__viewport,
+    .testimonials-marquee__viewport {
+      overflow-x: auto;
+    }
+
+    .marquee__track,
+    .testimonials-marquee__track {
+      flex-wrap: nowrap;
+    }
   }
 }

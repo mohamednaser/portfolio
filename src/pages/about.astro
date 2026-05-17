@@ -1,23 +1,38 @@
 ---
-import TestimonialCard from '../components/TestimonialCard.astro';
+import SocialLinks from '../components/SocialLinks.astro';
+import TestimonialsMarquee from '../components/TestimonialsMarquee.astro';
 import { testimonials } from '../data/testimonials';
-import { education, experience } from '../data/experience';
+import {
+  certifications,
+  education,
+  experience,
+  languages,
+} from '../data/experience';
+import { skillGroups, topSkills } from '../data/skills';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../site.config';
 ---
 
 <BaseLayout
   title="About"
-  description="Bio and experience — from Microverse Ruby fellow and Yii backend work to technical lead focused on AI-augmented engineering."
+  description="Technical Lead with 10+ years — fintech at Lynk, Carefer, Tazhub, and AI-augmented engineering."
 >
   <article class="mx-auto max-w-5xl px-6 py-16">
     <header class="max-w-3xl">
       <h1 class="section-heading">About</h1>
       <p class="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-        I am a technical lead who helps engineering teams adopt AI tooling without
-        sacrificing quality. My path runs from PHP/Yii backends and remote full-stack
-        work (Microverse Ruby fellow, Nile Code, Mitch Designs, Carefer) to governing
-        multi-repo portfolios with <a href="https://github.com/me2resh/apexyard" class="text-emerald-600 underline dark:text-emerald-400">ApexYard</a> and Claude Code.
+        I am an experienced developer and problem solver with 10+ years across fintech, mobility,
+        e-commerce, government, and education — currently leading architecture at Lynk. I am especially
+        interested in empowering teams and products with AI, and I share what I learn on{' '}
+        <a
+          href={site.social.medium}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-emerald-600 underline dark:text-emerald-400"
+        >
+          Medium
+        </a>
+        .
       </p>
     </header>
 
@@ -30,29 +45,58 @@ import { site } from '../site.config';
         class="rounded-2xl object-cover"
         loading="lazy"
       />
-      <div class="space-y-4 text-slate-600 leading-relaxed dark:text-slate-300">
+      <div class="space-y-4 leading-relaxed text-slate-600 dark:text-slate-300">
         <p>
-          I have spent more than a decade in web development — APIs, e-commerce,
-          push-notification systems, and remote team delivery. Early work included
-          network-quality tooling and government archiving systems in Egypt; later roles
-          delivered financial reporting for Johnson &amp; Johnson and mobility products
-          at Carefer.
+          My journey spans finance, e-commerce, mobility, education, and government — from network
+          signal analysis and government archiving in Egypt to financial reporting for Johnson &amp;
+          Johnson, notification systems for TOTAL, and the Tazhub public-transport ticketing platform.
         </p>
         <p>
-          Microverse sharpened remote collaboration and Ruby fundamentals. Today my
-          focus is <strong>AI-augmented SDLC</strong>: hooks that enforce tickets before
-          code, automated code review, security triggers on auth paths, and explicit
-          merge approval — so agents accelerate delivery instead of bypassing process.
+          At <strong>Carefer</strong> I led a platform processing 50K+ monthly car-maintenance orders
+          across five applications and scaled the team from 3 to 20+ engineers. At <strong>Lynk</strong> I
+          architect multi-ledger fintech with ZATCA compliance and commodity exchange integrations.
         </p>
         <p>
-          Public artefacts: ApexYard (ops forge), <a href="https://github.com/mohamednaser/blog-generator" class="text-emerald-600 underline dark:text-emerald-400">blog-generator</a>, and this portfolio rebuild on Astro.
+          Microverse sharpened remote collaboration and full-stack fundamentals. Today I bridge
+          business objectives and technical implementation — plus <strong>AI-augmented SDLC</strong>:
+          hooks that enforce tickets before code, automated review, and explicit merge approval.
+        </p>
+        <p>
+          <a href="/projects" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+            Browse all projects →
+          </a>
         </p>
       </div>
     </section>
 
     <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Top skills</h2>
+      <ul class="mt-4 flex flex-wrap gap-2">
+        {
+          topSkills.map((skill) => (
+            <li class="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {skill}
+            </li>
+          ))
+        }
+      </ul>
+      <div class="mt-8 grid gap-6 sm:grid-cols-2">
+        {
+          skillGroups.map((group) => (
+            <div class="card">
+              <h3 class="font-semibold text-slate-900 dark:text-slate-50">{group.label}</h3>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                {group.items.join(' · ')}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-16">
       <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Experience</h2>
-      <ol class="mt-8 space-y-6 border-l border-slate-200 pl-6 dark:border-slate-700">
+      <ol class="mt-8 space-y-8 border-l border-slate-200 pl-6 dark:border-slate-700">
         {
           experience.map((job) => (
             <li class="relative">
@@ -69,6 +113,13 @@ import { site } from '../site.config';
               </h3>
               <p class="text-slate-600 dark:text-slate-400">{job.role}</p>
               {job.location && <p class="text-sm text-slate-500">{job.location}</p>}
+              {
+                job.highlights && job.highlights.length > 0 && (
+                  <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-400">
+                    {job.highlights.map((item) => <li>{item}</li>)}
+                  </ul>
+                )
+              }
             </li>
           ))
         }
@@ -94,15 +145,24 @@ import { site } from '../site.config';
       </ul>
     </section>
 
-    <section id="testimonials" class="mt-16 scroll-mt-24">
-      <h2 class="section-heading">Testimonials</h2>
-      <div class="mt-10 grid gap-6 sm:grid-cols-2">
-        {testimonials.map((t) => <TestimonialCard item={t} />)}
-      </div>
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Certifications & languages</h2>
+      <ul class="mt-4 list-disc space-y-1 pl-5 text-slate-600 dark:text-slate-400">
+        {certifications.map((c) => <li>{c}</li>)}
+      </ul>
+      <p class="mt-4 text-slate-600 dark:text-slate-400">
+        Languages: {languages.join(', ')}
+      </p>
     </section>
 
-    <p class="mt-12">
+    <section id="testimonials" class="mt-16 scroll-mt-24">
+      <h2 class="section-heading">Testimonials</h2>
+      <TestimonialsMarquee items={testimonials} />
+    </section>
+
+    <div class="mt-12 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
       <a href="/cv.pdf" class="btn-primary" download>Download CV (PDF)</a>
-    </p>
+      <SocialLinks />
+    </div>
   </article>
 </BaseLayout>

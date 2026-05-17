@@ -1,5 +1,7 @@
 ---
+import SocialLinks from './SocialLinks.astro';
 import { site } from '../site.config';
+
 const year = new Date().getFullYear();
 ---
 
@@ -9,39 +11,11 @@ const year = new Date().getFullYear();
       <div>
         <p class="font-semibold text-slate-900 dark:text-slate-50">{site.name}</p>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Technical lead · AI-augmented engineering
+          Technical lead · Fintech &amp; scalable systems
         </p>
+        <p class="mt-1 text-sm text-slate-500">{site.location}</p>
       </div>
-      <ul class="flex flex-wrap gap-4 text-sm">
-        <li>
-          <a
-            href={site.social.github}
-            class="text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub
-          </a>
-        </li>
-        <li>
-          <a
-            href={site.social.linkedin}
-            class="text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            LinkedIn
-          </a>
-        </li>
-        <li>
-          <a
-            href="/rss.xml"
-            class="text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400"
-          >
-            RSS
-          </a>
-        </li>
-      </ul>
+      <SocialLinks includeRss class="sm:justify-end" />
     </div>
     <p class="mt-8 text-center text-xs text-slate-500">
       © {year} {site.name}. Built with Astro + Tailwind.

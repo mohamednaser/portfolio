@@ -1,0 +1,60 @@
+---
+import TestimonialCard from './TestimonialCard.astro';
+import type { Testimonial } from '../data/testimonials';
+
+interface Props {
+  items: Testimonial[];
+}
+
+const { items } = Astro.props;
+const track = [...items, ...items];
+const uid = `tm-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="marquee relative mt-10" data-marquee id={uid}>
+  <button
+    type="button"
+    class="marquee__btn marquee__btn--prev"
+    data-direction="prev"
+    aria-label="Show previous recommendations"
+    aria-controls={`${uid}-viewport`}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+    </svg>
+  </button>
+
+  <div
+    class="marquee__viewport overflow-x-auto px-12 sm:px-14"
+    data-viewport
+    id={`${uid}-viewport`}
+    tabindex="0"
+    aria-label="Recommendations carousel"
+  >
+    <div class="marquee__track flex w-max gap-6" data-track>
+      {
+        track.map((item) => (
+          <div class="marquee__item w-[min(100vw-7rem,22rem)] shrink-0 sm:w-80">
+            <TestimonialCard item={item} />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="marquee__btn marquee__btn--next"
+    data-direction="next"
+    aria-label="Show next recommendations"
+    aria-controls={`${uid}-viewport`}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+  import '../scripts/horizontal-marquee';
+</script>

@@ -1,15 +1,27 @@
 ---
-import TestimonialCard from '../components/TestimonialCard.astro';
+import CompanyLogos from '../components/CompanyLogos.astro';
+import TestimonialsMarquee from '../components/TestimonialsMarquee.astro';
 import { testimonials } from '../data/testimonials';
-import { projects } from '../data/projects';
-import { contentSlug } from '../lib/slug';
+import ProjectCard from '../components/ProjectCard.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../site.config';
+import { isPublishedProject } from '../lib/projects';
+import { contentSlug } from '../lib/slug';
 import { getCollection } from 'astro:content';
 
-const caseStudies = (await getCollection('case-studies')).sort(
-  (a, b) => a.data.order - b.data.order,
-);
+/** Homepage “Selected projects” — fixed trio; not driven by `featured` alone. */
+const homepageProjectSlugs = ['lynk', 'carefer', 'ynmo'] as const;
+
+const featuredProjects = (await getCollection('projects'))
+  .filter(isPublishedProject)
+  .filter((project) =>
+    homepageProjectSlugs.includes(contentSlug(project.id) as (typeof homepageProjectSlugs)[number]),
+  )
+  .sort(
+    (a, b) =>
+      homepageProjectSlugs.indexOf(contentSlug(a.id) as (typeof homepageProjectSlugs)[number]) -
+      homepageProjectSlugs.indexOf(contentSlug(b.id) as (typeof homepageProjectSlugs)[number]),
+  );
 ---
 
 <BaseLayout>
@@ -17,18 +29,29 @@ const caseStudies = (await getCollection('case-studies')).sort(
     <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
       <div>
         <p class="font-mono text-sm uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-          Technical lead · AI-augmented engineering
+          Problem solver · Experienced developer · AI for teams &amp; products
         </p>
         <h1 class="mt-4 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
-          I empower engineering teams and projects with AI
+          I solve hard problems across domains — then help teams ship smarter with AI
         </h1>
         <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-          From Yii backend developer to tech lead: I ship production systems and roll out
-          agentic SDLC — <strong>ApexYard</strong>, Claude Code hooks, and review automation
-          that keeps velocity without skipping security or quality gates.
+          10+ years across fintech, mobility, e-commerce, government, and education: untangling
+          complexity, building systems that scale, and leading delivery from <strong>Lynk</strong> to{' '}
+          <strong>Carefer</strong>. Today I focus on empowering teams and products with
+          AI-augmented engineering — and I write about that on{' '}
+          <a
+            href={site.social.medium}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-emerald-600 underline decoration-emerald-600/30 underline-offset-2 hover:decoration-emerald-600 dark:text-emerald-400 dark:decoration-emerald-400/30"
+          >
+            Medium
+          </a>
+          .
         </p>
         <div class="mt-10 flex flex-wrap gap-4">
-          <a href="/ai" class="btn-primary">How I work with AI</a>
+          <a href="/projects" class="btn-primary">View projects</a>
+          <a href="/blog" class="btn-secondary">Blog</a>
           <a href="/contact" class="btn-secondary">Get in touch</a>
         </div>
       </div>
@@ -43,73 +66,27 @@ const caseStudies = (await getCollection('case-studies')).sort(
     </div>
   </section>
 
-  <section class="border-y border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40">
-    <div class="mx-auto max-w-5xl px-6">
-      <h2 class="section-heading">How I empower teams with AI</h2>
-      <p class="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
-        Case studies from real engagements — frameworks and products, not slide decks.
-      </p>
-      <ul class="mt-10 grid gap-6 sm:grid-cols-2">
-        {
-          caseStudies.map((study) => (
-            <li>
-              <a href={`/ai/${contentSlug(study.id)}`} class="card block h-full transition hover:border-emerald-500">
-                <p class="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                  {study.data.context}
-                </p>
-                <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                  {study.data.title}
-                </h3>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  {study.data.description}
-                </p>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-      <p class="mt-8">
-        <a href="/ai" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
-          View all case studies →
-        </a>
-      </p>
-    </div>
-  </section>
-
   <section class="mx-auto max-w-5xl px-6 py-16">
     <h2 class="section-heading">Selected projects</h2>
+    <p class="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
+      Stack, achievements, and write-ups for each product I ship or govern.
+    </p>
     <ul class="mt-10 grid gap-6 md:grid-cols-3">
-      {
-        projects.map((p) => (
-          <li class="card">
-            <h3 class="font-semibold text-slate-900 dark:text-slate-50">
-              <a href={p.href} target="_blank" rel="noopener noreferrer" class="hover:text-emerald-600 dark:hover:text-emerald-400">
-                {p.name}
-              </a>
-            </h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{p.description}</p>
-            <ul class="mt-4 flex flex-wrap gap-2">
-              {p.tags.map((tag) => (
-                <li class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  {tag}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))
-      }
+      {featuredProjects.map((project) => <ProjectCard project={project} compact />)}
     </ul>
+    <p class="mt-8">
+      <a href="/projects" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+        View all projects →
+      </a>
+    </p>
   </section>
+
+  <CompanyLogos />
 
   <section class="border-t border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40">
     <div class="mx-auto max-w-5xl px-6">
       <h2 class="section-heading">What collaborators say</h2>
-      <p class="mt-4 text-slate-600 dark:text-slate-400">
-        Genuine testimonials from Microverse and industry peers — no template placeholders.
-      </p>
-      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {testimonials.slice(0, 6).map((t) => <TestimonialCard item={t} />)}
-      </div>
+      <TestimonialsMarquee items={testimonials} />
       <p class="mt-8 text-center">
         <a href="/about#testimonials" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
           Read all {testimonials.length} testimonials →

@@ -1,0 +1,57 @@
+---
+import SocialIcon from './SocialIcon.astro';
+import {
+  emailLink,
+  rssLink,
+  socialLinks,
+  type SocialLink,
+} from '../data/social';
+
+interface Props {
+  showLabels?: boolean;
+  includeRss?: boolean;
+  includeEmail?: boolean;
+  class?: string;
+}
+
+const {
+  showLabels = false,
+  includeRss = false,
+  includeEmail = false,
+  class: className,
+} = Astro.props;
+
+const links: SocialLink[] = [
+  ...(includeEmail ? [emailLink] : []),
+  ...socialLinks,
+  ...(includeRss ? [rssLink] : []),
+];
+
+const linkClass = showLabels
+  ? 'inline-flex min-h-[44px] items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
+  : 'social-link-icon inline-flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition hover:scale-105 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 dark:border-slate-600 dark:bg-white';
+---
+
+<ul
+  class:list={[
+    'flex flex-wrap items-center',
+    showLabels ? 'flex-col gap-1 sm:flex-row sm:gap-2' : 'gap-3',
+    className,
+  ]}
+>
+  {
+    links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class={linkClass}
+          aria-label={showLabels ? undefined : link.label}
+          {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        >
+          <SocialIcon name={link.id} class={showLabels ? 'h-6 w-6 shrink-0' : 'h-6 w-6'} />
+          {showLabels && <span>{link.label}</span>}
+        </a>
+      </li>
+    ))
+  }
+</ul>

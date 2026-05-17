@@ -27,11 +27,10 @@ npm run format
 
 | Route | Content |
 |-------|---------|
-| `/` | AI-positioning hero, case-study cards, testimonials preview |
+| `/` | Hero, selected project cards, testimonials preview |
 | `/about` | Bio arc, experience, all 9 testimonials |
-| `/ai` | ApexYard + Blog Generator case studies |
 | `/projects` | Public repos |
-| `/blog` | MDX posts + `/rss.xml` |
+| `/blog` | Article teasers (Medium-style cards), `/rss.xml` |
 | `/contact` | mailto (no PHP) |
 | Toggle theme | Header moon/sun control |
 

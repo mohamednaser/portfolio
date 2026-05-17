@@ -7,18 +7,31 @@ import { site } from '../site.config';
 
 interface Props {
   title?: string;
+  /** Raw headline for OG / JSON-LD (omit to use `title` before suffix). */
+  seoTitle?: string;
   description?: string;
   image?: string;
   type?: 'website' | 'article';
   noindex?: boolean;
+  keywords?: string[];
+  canonicalUrl?: string;
+  alternateUrl?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
 }
 
 const {
   title = site.title,
+  seoTitle,
   description = site.description,
   image,
   type,
   noindex,
+  keywords,
+  canonicalUrl,
+  alternateUrl,
+  publishedTime,
+  modifiedTime,
 } = Astro.props;
 
 const pageTitle =
@@ -30,21 +43,54 @@ const pageTitle =
   <head>
     <Seo
       title={pageTitle}
+      seoTitle={seoTitle ?? (title === site.title ? undefined : title)}
       description={description}
       image={image}
       type={type}
       noindex={noindex}
+      keywords={keywords}
+      canonicalUrl={canonicalUrl}
+      alternateUrl={alternateUrl}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
     />
     <title>{pageTitle}</title>
     <script is:inline>
       (function () {
-        const k = 'mnaser-theme';
-        const s = localStorage.getItem(k);
-        const d =
-          s === 'dark' ||
-          (s !== 'light' &&
-            window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', d);
+        const storageKey = 'mnaser-theme';
+
+        function applyTheme(isDark) {
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        }
+
+        function readStoredTheme() {
+          const stored = localStorage.getItem(storageKey);
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          return stored === 'dark' || (stored !== 'light' && prefersDark);
+        }
+
+        applyTheme(readStoredTheme());
+
+        function bindToggle() {
+          const btn = document.getElementById('theme-toggle');
+          if (!btn || btn.dataset.themeBound === 'true') return;
+          btn.dataset.themeBound = 'true';
+          btn.addEventListener('click', () => {
+            const isDark = !document.documentElement.classList.contains('dark');
+            applyTheme(isDark);
+            localStorage.setItem(storageKey, isDark ? 'dark' : 'light');
+          });
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', bindToggle, { once: true });
+        } else {
+          bindToggle();
+        }
+
+        document.addEventListener('astro:page-load', bindToggle);
       })();
     </script>
   </head>
