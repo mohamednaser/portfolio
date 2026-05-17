@@ -1,0 +1,108 @@
+---
+import TestimonialCard from '../components/TestimonialCard.astro';
+import { testimonials } from '../data/testimonials';
+import { education, experience } from '../data/experience';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../site.config';
+---
+
+<BaseLayout
+  title="About"
+  description="Bio and experience — from Microverse Ruby fellow and Yii backend work to technical lead focused on AI-augmented engineering."
+>
+  <article class="mx-auto max-w-5xl px-6 py-16">
+    <header class="max-w-3xl">
+      <h1 class="section-heading">About</h1>
+      <p class="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+        I am a technical lead who helps engineering teams adopt AI tooling without
+        sacrificing quality. My path runs from PHP/Yii backends and remote full-stack
+        work (Microverse Ruby fellow, Nile Code, Mitch Designs, Carefer) to governing
+        multi-repo portfolios with <a href="https://github.com/me2resh/apexyard" class="text-emerald-600 underline dark:text-emerald-400">ApexYard</a> and Claude Code.
+      </p>
+    </header>
+
+    <section class="mt-12 grid gap-10 lg:grid-cols-[240px_1fr]">
+      <img
+        src={site.image}
+        alt="Mohamed Naser"
+        width="240"
+        height="240"
+        class="rounded-2xl object-cover"
+        loading="lazy"
+      />
+      <div class="space-y-4 text-slate-600 leading-relaxed dark:text-slate-300">
+        <p>
+          I have spent more than a decade in web development — APIs, e-commerce,
+          push-notification systems, and remote team delivery. Early work included
+          network-quality tooling and government archiving systems in Egypt; later roles
+          delivered financial reporting for Johnson &amp; Johnson and mobility products
+          at Carefer.
+        </p>
+        <p>
+          Microverse sharpened remote collaboration and Ruby fundamentals. Today my
+          focus is <strong>AI-augmented SDLC</strong>: hooks that enforce tickets before
+          code, automated code review, security triggers on auth paths, and explicit
+          merge approval — so agents accelerate delivery instead of bypassing process.
+        </p>
+        <p>
+          Public artefacts: ApexYard (ops forge), <a href="https://github.com/mohamednaser/blog-generator" class="text-emerald-600 underline dark:text-emerald-400">blog-generator</a>, and this portfolio rebuild on Astro.
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Experience</h2>
+      <ol class="mt-8 space-y-6 border-l border-slate-200 pl-6 dark:border-slate-700">
+        {
+          experience.map((job) => (
+            <li class="relative">
+              <span class="absolute -left-[1.35rem] top-2 h-2 w-2 rounded-full bg-emerald-500" />
+              <p class="text-sm text-slate-500 dark:text-slate-400">{job.period}</p>
+              <h3 class="font-semibold text-slate-900 dark:text-slate-50">
+                {job.url ? (
+                  <a href={job.url} target="_blank" rel="noopener noreferrer" class="hover:text-emerald-600 dark:hover:text-emerald-400">
+                    {job.company}
+                  </a>
+                ) : (
+                  job.company
+                )}
+              </h3>
+              <p class="text-slate-600 dark:text-slate-400">{job.role}</p>
+              {job.location && <p class="text-sm text-slate-500">{job.location}</p>}
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">Education</h2>
+      <ul class="mt-6 space-y-4">
+        {
+          education.map((e) => (
+            <li class="card">
+              <p class="text-sm text-slate-500">{e.period}</p>
+              <h3 class="font-semibold">
+                <a href={e.url} target="_blank" rel="noopener noreferrer" class="hover:text-emerald-600 dark:hover:text-emerald-400">
+                  {e.school}
+                </a>
+              </h3>
+              <p class="text-sm text-slate-600 dark:text-slate-400">{e.detail}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section id="testimonials" class="mt-16 scroll-mt-24">
+      <h2 class="section-heading">Testimonials</h2>
+      <div class="mt-10 grid gap-6 sm:grid-cols-2">
+        {testimonials.map((t) => <TestimonialCard item={t} />)}
+      </div>
+    </section>
+
+    <p class="mt-12">
+      <a href="/cv.pdf" class="btn-primary" download>Download CV (PDF)</a>
+    </p>
+  </article>
+</BaseLayout>

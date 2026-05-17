@@ -1,25 +1,66 @@
 ---
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import Seo from '../components/Seo.astro';
+import { site } from '../site.config';
+
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
 }
 
 const {
-  title = 'Mohamed Naser',
-  description = 'Technical lead empowering engineering teams with AI.',
+  title = site.title,
+  description = site.description,
+  image,
+  type,
+  noindex,
 } = Astro.props;
+
+const pageTitle =
+  title === site.title ? title : `${title} · ${site.name}`;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title}</title>
+    <Seo
+      title={pageTitle}
+      description={description}
+      image={image}
+      type={type}
+      noindex={noindex}
+    />
+    <title>{pageTitle}</title>
+    <script is:inline>
+      (function () {
+        const k = 'mnaser-theme';
+        const s = localStorage.getItem(k);
+        const d =
+          s === 'dark' ||
+          (s !== 'light' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', d);
+      })();
+    </script>
   </head>
-  <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
-    <slot />
+  <body
+    class="min-h-screen bg-white text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100"
+  >
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white"
+    >
+      Skip to content
+    </a>
+    <Header />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>

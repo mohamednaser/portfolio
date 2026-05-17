@@ -1,0 +1,31 @@
+---
+title: 'Blog Generator — AI-augmented product delivery'
+description: 'Shipping a full-stack SaaS (auth, subscriptions, dashboard, AI detector) under ApexYard SDLC with Claude Code as the implementation partner.'
+order: 2
+context: 'Customer-facing SaaS · P0 project'
+tags: ['Next.js', 'Supabase', 'Claude Code', 'SaaS']
+---
+
+## Context
+
+Blog Generator is a revenue-facing product: landing page, authenticated dashboard, Stripe subscriptions, and an AI-content detector. It needed production-grade velocity without sacrificing review gates or security on auth paths.
+
+## What we rolled out
+
+The repo runs under ApexYard management: GitHub Issues as the tracker, one ticket per PR, golden-path CI pipelines, and automatic Security Reviewer activation when `auth/` changes.
+
+## How AI was introduced
+
+Claude Code handles implementation inside hook guardrails — `/start-ticket` before edits, Rex (Code Reviewer) on every PR, explicit `/approve-merge` per PR. Feature work is decomposed into PRD → technical design → tickets (#5–#17 style) so AI output stays reviewable in small diffs.
+
+## Outcomes
+
+- Parallel feature tracks (dashboard, subscriptions, AI detector) with shared SDLC memory
+- Auth and payment surfaces get security review by default
+- Dependency and launch-check skills run at milestone boundaries, not ad hoc
+
+## Lessons learned
+
+- **Ticket vocabulary is strict** — plan items in chat are not `#N` until `gh issue create` runs.
+- AI speed is only an asset when gates (lint, test, review, CEO merge) stay mechanical.
+- Keeping the ops fork (`apexyard`) separate preserves portfolio context across products.

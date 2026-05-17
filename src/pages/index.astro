@@ -1,21 +1,120 @@
 ---
+import TestimonialCard from '../components/TestimonialCard.astro';
+import { testimonials } from '../data/testimonials';
+import { projects } from '../data/projects';
+import { contentSlug } from '../lib/slug';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../site.config';
+import { getCollection } from 'astro:content';
+
+const caseStudies = (await getCollection('case-studies')).sort(
+  (a, b) => a.data.order - b.data.order,
+);
 ---
 
-<BaseLayout title="Mohamed Naser — Coming soon">
-  <main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-16">
-    <p class="font-mono text-sm uppercase tracking-widest text-emerald-400">
-      Portfolio refactor in progress
-    </p>
-    <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-      Technical lead empowering teams with AI
-    </h1>
-    <p class="mt-6 text-lg leading-relaxed text-slate-300">
-      mnaser.me is being rebuilt on Astro + Tailwind. The full site — case studies,
-      testimonials, blog, and contact — ships in upcoming PRs.
-    </p>
-    <p class="mt-10 text-sm text-slate-500">
-      Built with Astro {Astro.generator} · Tailwind CSS
-    </p>
-  </main>
+<BaseLayout>
+  <section class="mx-auto max-w-5xl px-6 py-16 sm:py-24">
+    <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
+      <div>
+        <p class="font-mono text-sm uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+          Technical lead · AI-augmented engineering
+        </p>
+        <h1 class="mt-4 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
+          I empower engineering teams and projects with AI
+        </h1>
+        <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+          From Yii backend developer to tech lead: I ship production systems and roll out
+          agentic SDLC — <strong>ApexYard</strong>, Claude Code hooks, and review automation
+          that keeps velocity without skipping security or quality gates.
+        </p>
+        <div class="mt-10 flex flex-wrap gap-4">
+          <a href="/ai" class="btn-primary">How I work with AI</a>
+          <a href="/contact" class="btn-secondary">Get in touch</a>
+        </div>
+      </div>
+      <img
+        src={site.image}
+        alt="Mohamed Naser"
+        width="280"
+        height="280"
+        class="mx-auto rounded-2xl object-cover shadow-lg lg:mx-0"
+        loading="eager"
+      />
+    </div>
+  </section>
+
+  <section class="border-y border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40">
+    <div class="mx-auto max-w-5xl px-6">
+      <h2 class="section-heading">How I empower teams with AI</h2>
+      <p class="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
+        Case studies from real engagements — frameworks and products, not slide decks.
+      </p>
+      <ul class="mt-10 grid gap-6 sm:grid-cols-2">
+        {
+          caseStudies.map((study) => (
+            <li>
+              <a href={`/ai/${contentSlug(study.id)}`} class="card block h-full transition hover:border-emerald-500">
+                <p class="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                  {study.data.context}
+                </p>
+                <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                  {study.data.title}
+                </h3>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                  {study.data.description}
+                </p>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="mt-8">
+        <a href="/ai" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+          View all case studies →
+        </a>
+      </p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-6 py-16">
+    <h2 class="section-heading">Selected projects</h2>
+    <ul class="mt-10 grid gap-6 md:grid-cols-3">
+      {
+        projects.map((p) => (
+          <li class="card">
+            <h3 class="font-semibold text-slate-900 dark:text-slate-50">
+              <a href={p.href} target="_blank" rel="noopener noreferrer" class="hover:text-emerald-600 dark:hover:text-emerald-400">
+                {p.name}
+              </a>
+            </h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{p.description}</p>
+            <ul class="mt-4 flex flex-wrap gap-2">
+              {p.tags.map((tag) => (
+                <li class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="border-t border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40">
+    <div class="mx-auto max-w-5xl px-6">
+      <h2 class="section-heading">What collaborators say</h2>
+      <p class="mt-4 text-slate-600 dark:text-slate-400">
+        Genuine testimonials from Microverse and industry peers — no template placeholders.
+      </p>
+      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {testimonials.slice(0, 6).map((t) => <TestimonialCard item={t} />)}
+      </div>
+      <p class="mt-8 text-center">
+        <a href="/about#testimonials" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+          Read all {testimonials.length} testimonials →
+        </a>
+      </p>
+    </div>
+  </section>
 </BaseLayout>

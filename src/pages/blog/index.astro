@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { contentSlug } from '../../lib/slug';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<BaseLayout title="Blog" description="Notes on engineering, AI adoption, and portfolio work.">
+  <div class="mx-auto max-w-5xl px-6 py-16">
+    <h1 class="section-heading">Blog</h1>
+    <p class="mt-4 text-slate-600 dark:text-slate-400">
+      <a href="/rss.xml" class="text-emerald-600 hover:underline dark:text-emerald-400">RSS feed</a>
+    </p>
+    {
+      posts.length === 0 ? (
+        <p class="mt-12 text-slate-600 dark:text-slate-400">No posts yet.</p>
+      ) : (
+        <ul class="mt-12 space-y-8">
+          {posts.map((post) => (
+            <li class="card">
+              <time
+                datetime={post.data.pubDate.toISOString()}
+                class="text-sm text-slate-500"
+              >
+                {post.data.pubDate.toLocaleDateString('en-GB', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </time>
+              <h2 class="mt-2 text-xl font-semibold">
+                <a href={`/blog/${contentSlug(post.id)}`} class="hover:text-emerald-600 dark:hover:text-emerald-400">
+                  {post.data.title}
+                </a>
+              </h2>
+              <p class="mt-2 text-slate-600 dark:text-slate-400">{post.data.description}</p>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</BaseLayout>

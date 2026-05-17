@@ -11,14 +11,29 @@ Personal portfolio for [Mohamed Naser](https://mnaser.me), rebuilt as an Astro +
 
 ## Development
 
+Use **Node 20 LTS** or **Node 22+**. Node 21 is unsupported by Astro and will show `EBADENGINE` warnings (CI uses Node 20).
+
 ```bash
+nvm use    # or: n 20 / brew link node@20
 npm install
-npm run dev      # http://localhost:4321
+npm run dev      # http://localhost:4321 — full site for local testing
 npm run build    # outputs to dist/
-npm run preview  # serve dist/ locally
+npm run preview  # serve production build locally
 npm run lint
 npm run format
 ```
+
+### Pages to smoke-test locally
+
+| Route | Content |
+|-------|---------|
+| `/` | AI-positioning hero, case-study cards, testimonials preview |
+| `/about` | Bio arc, experience, all 9 testimonials |
+| `/ai` | ApexYard + Blog Generator case studies |
+| `/projects` | Public repos |
+| `/blog` | MDX posts + `/rss.xml` |
+| `/contact` | mailto (no PHP) |
+| Toggle theme | Header moon/sun control |
 
 ## Repository layout
 
