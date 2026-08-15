@@ -1,0 +1,584 @@
+---
+// Article body for /blog/scaling-queue-workers-3-to-122/
+// Generated from murabaha-fleet-article.html — edit the canonical HTML, not this file.
+---
+
+<div class="lynk-post">
+
+<div class="prev">
+  <span class="tag">Earlier in this series</span>
+  <strong><a href="/blog/commodity-murabaha-platform/">Part 1 · Commodity Murabaha, Explained for Engineers</a></strong> — what LYNK is, how a
+  commodity Murabaha actually works step by step, and the two goals that frame everything: maximum
+  concurrent transactions, with full Sharia validity as a hard constraint.<br>
+  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · 10 Database Bottlenecks We Hit Scaling to 5,000 Orders</a></strong> — the ten
+  battles fought in the code and the database, from <strong>4-of-10 stuck</strong> to <strong>99.94% of
+  5,200 orders</strong>.
+</div>
+
+<p>
+  Part 2 ends where the code stops being the problem. Every case in it was a fix you could point at in a
+  diff: an isolation level, a missing index, a transaction boundary, a rendering engine. What follows are
+  the five battles that came after — the ones fought in the space <em>between</em> the jobs rather than
+  inside them, where the code is innocent and the topology is the product.
+</p>
+<p>
+  The cases stay numbered continuously with Part 2, because they happened in the same two years and often
+  in the same week. As before, each one tells you <strong style="color:var(--incident)">what was actually
+  going wrong</strong>, <strong style="color:var(--muted)">what we tried</strong> — including the attempts
+  that had to be reverted — and <strong style="color:var(--accent)">what the numbers said</strong>
+  afterwards.
+</p>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 11</span><h2 style="margin:0; font-size:1.35rem;">The seven seconds between the jobs</h2><span class="era-dates">May – Aug 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>By mid-2026, 5,000-order runs were routine — and the daily test showed the Borrower Ownership step
+    taking <strong>around two minutes</strong> for 4,000 of the 5,000 orders. The decisive clue came from an
+    exercise anyone can copy: we added up the actual CPU time of every job in the purchase step and got
+    <strong>521 milliseconds</strong> — inside a step that observably took <strong>seven and a half
+    seconds</strong>. The code was innocent. The other seven seconds were spent standing in line. And queue
+    wait has a cruel personality: invisible when the system is idle (~0s), noticeable under load (~7s at 91
+    orders a minute), catastrophic at peak (~118 seconds).</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-1.gif" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>Actual footage of a Borrower Ownership job, 0.5 seconds of work done, waiting its turn
+    behind the auto-sell queue.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried — and the bottleneck that moved</span>
+    <p>The fix was to stop making unrelated work share one line. Ownership transfers and auto-sales had been
+    competing for the same eight workers; each got its own dedicated queue on its own server, and the
+    two-minute wait evaporated.</p>
+    <p>Then the fix backfired — upstream. With that backpressure gone, the <em>purchase</em> step nearly
+    tripled, from 3.6 to 9.9 seconds. All the throughput we had just freed slammed into a 700,000-row table
+    that had <strong>no index on the one column every duplicate-check searched</strong> — a full table scan
+    that had been hiding behind the queue the entire time. One index later, the job was back under a
+    second.</p>
+    <p>The rest was housekeeping that only matters at this scale: fifteen log lines per order deleted
+    (about 100&nbsp;MB of logs a day at 5,000 orders), unused indexes dropped to cut write cost, and
+    explicit connection budgets after the full worker fleet exhausted the database's connections.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 240" role="img" aria-label="Before: Borrower Ownership and auto-sell jobs shared one eight-worker queue, with queue wait growing to about 118 seconds at peak. After: each job type has a dedicated queue on a separate server and wait drops to near zero.">
+      <defs>
+        <marker id="arr-q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
+        </marker>
+        <marker id="arr-qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      <line x1="360" y1="10" x2="360" y2="230" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"></line>
+      <g font-size="11" font-family="ui-monospace, Menlo, monospace" letter-spacing="1">
+        <text x="14" y="26" fill="var(--incident)">BEFORE · ONE SHARED QUEUE</text>
+        <text x="384" y="26" fill="var(--accent)">AFTER · DEDICATED QUEUES</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="14" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="14" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="89" y="70">Borrower Ownership</text>
+        <text x="89" y="130">Auto-sell to market</text>
+      </g>
+      <rect x="204" y="68" width="140" height="56" rx="3" fill="var(--incident-soft)" stroke="var(--incident)" stroke-width="1.5" class="qpulse"></rect>
+      <g fill="currentColor" font-size="11" text-anchor="middle">
+        <text x="274" y="90">shared processing queue</text>
+        <text x="274" y="107" opacity="0.7">8 workers, one host</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none" class="flow-slow">
+        <line x1="164" y1="66" x2="200" y2="86" marker-end="url(#arr-q)"></line>
+        <line x1="164" y1="126" x2="200" y2="106" marker-end="url(#arr-q)"></line>
+      </g>
+      <text x="274" y="152" font-size="10.5" fill="var(--incident)" text-anchor="middle">both job types compete</text>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="179" y="186" fill="currentColor" opacity="0.75">queue wait: ~0s idle →</text>
+        <text x="179" y="203" fill="var(--incident)" font-weight="700">~118s at sustained peak</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="384" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="384" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="459" y="70">Borrower Ownership</text>
+        <text x="459" y="130">Auto-sell to market</text>
+      </g>
+      <g fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5">
+        <rect x="572" y="48" width="136" height="36" rx="3"></rect>
+        <rect x="572" y="108" width="136" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="10" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="640" y="63">ownership queue</text>
+        <text x="640" y="77" opacity="0.7">dedicated workers</text>
+        <text x="640" y="123">sell queue</text>
+        <text x="640" y="137" opacity="0.7">dedicated workers</text>
+      </g>
+      <g stroke="var(--accent)" stroke-width="1.6" fill="none" class="flow-fast">
+        <line x1="534" y1="66" x2="568" y2="66" marker-end="url(#arr-qa)"></line>
+        <line x1="534" y1="126" x2="568" y2="126" marker-end="url(#arr-qa)"></line>
+      </g>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="546" y="186" fill="currentColor" opacity="0.75">job runtime ~1s ·</text>
+        <text x="546" y="203" fill="var(--accent)" font-weight="700">queue wait ≈ 0</text>
+      </g>
+    </svg>
+    <figcaption>The queue split at the heart of Case 11. The jobs themselves ran in
+    about one second; nearly all of the two-minute step was waiting behind auto-sell jobs in one shared
+    8-worker queue. Splitting them removed the wait — and promptly exposed the missing index upstream.</figcaption>
+  </figure>
+
+  <div class="metric">
+    <span class="tag">The result</span>
+    5,000-order runs became a <strong>routine daily test</strong>, with the order-creation API averaging
+    ~1.2 seconds while the pipeline runs at full load. Every queue split, though, leaves something new to
+    run — which is how a platform that began with three worker containers ended up with a fleet to manage.
+    That is the next case.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 12</span><h2 style="margin:0; font-size:1.35rem;">Running a fleet, not a server</h2><span class="era-dates">2025 – 2026</span></div>
+    <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Splitting queues, as Case&nbsp;11 shows, is how you stop unrelated work from queuing behind itself.
+    But every split leaves you with something new to run — and by 2026 the platform was no longer "an
+    application on a server." It was <strong>22 queues, one worker service each, and 122 worker processes
+    spread across three machines</strong>, plus a scheduler. Every one of those processes is a small daemon
+    holding database connections, consuming memory, and fully capable of ruining the others' day. And 122
+    is only the resting number: a rolling deploy brings the new generation up alongside the old one, so for
+    a few minutes on every release the fleet is <strong>244</strong>.</p>
+    <p>Nobody designs that on day one. It accumulates, and it accumulates asymmetrically: a queue that was
+    busy in March is idle in July, a queue nobody predicted becomes the bottleneck overnight, and the
+    machines you sized identically turn out to be doing wildly different amounts of work. At one point one
+    server was running <strong>63 worker processes while another ran 22</strong>. Left unmanaged, a worker
+    fleet develops exactly the problems a city does — congestion in one district, empty streets in another,
+    and infrastructure nobody remembers approving.</p>
+  </div>
+
+  <h3>Every number in the fleet is a decision</h3>
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr><th>Change</th><th>Why it changed</th><th>What it did</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dedicated queues for ownership and auto-sell<br><span class="tk">Jul 2026</span></td>
+          <td>The two highest-volume job types were blocking each other on eight shared workers.</td>
+          <td>4 replicas each, on two machines. The ~118-second wait went to ~0 (Case&nbsp;11).</td>
+        </tr>
+        <tr>
+          <td><code>trader_order_initiation</code> 5&nbsp;→&nbsp;10<br><span class="tk">Jul 2026</span></td>
+          <td>Removing the downstream backpressure exposed this queue as the next constraint — jobs waiting, not working.</td>
+          <td class="num">10 at rest, 20 mid-deploy.</td>
+        </tr>
+        <tr>
+          <td>Unit-creation queue 5&nbsp;→&nbsp;8<br><span class="tk">Jul 2026</span></td>
+          <td>It became the new tail of the purchase step once everything upstream got faster.</td>
+          <td class="num">8 per machine at rest, 16 mid-deploy.</td>
+        </tr>
+        <tr>
+          <td>Rebalance four queues across machines<br><span class="tk">Jul 2026</span></td>
+          <td>One server carried 63 worker processes while another carried 22.</td>
+          <td>35&nbsp;/&nbsp;40&nbsp;/&nbsp;36. No queue's total concurrency changed — only which machine ran it.</td>
+        </tr>
+        <tr>
+          <td>Delete two dead workers<br><span class="tk">Jul 2026</span></td>
+          <td>No producer anywhere in the codebase. Five replicas were polling a queue nothing ever wrote to.</td>
+          <td>Five processes reclaimed — and ten orphaned containers discovered still running.</td>
+        </tr>
+        <tr>
+          <td>Rename <code>…units_logging</code> → <code>…units_creation</code><br><span class="tk">Jul 2026</span></td>
+          <td>The name said logging; the worker created inventory units. Nobody could reason about the fleet from its own names.</td>
+          <td>Old queue drained to zero before the cutover, so no job was stranded under the dead name.</td>
+        </tr>
+        <tr>
+          <td>Two new certificate queues<br><span class="tk">Aug 2026</span></td>
+          <td>Bid-certificate and order-result jobs were sharing one general-purpose queue with everything else in that integration.</td>
+          <td>5 replicas each on two machines — the change that takes the fleet from 122 to 142.</td>
+        </tr>
+        <tr>
+          <td>Order initiation pinned at <strong>1</strong><br><span class="tk">standing rule</span></td>
+          <td>Parallelism at this step is not safe: concurrent workers race each other.</td>
+          <td>Never scaled, in any environment, deliberately.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">How we manage it</span>
+    <p><strong>The fleet is a file, not folklore.</strong> Every queue's worker count, per machine, is
+    declared in the deployment script — so the entire topology arrives in a pull request instead of being
+    discovered by SSH-ing into a box, and when a number changes the reason is in the commit. The catch is
+    that a queue lives in <em>four</em> places: the Compose profile list, the steady-state scale block, the
+    rolling-deploy scale block, and the service list the deploy iterates over. Miss one and the queue is
+    deployed but not scaled, or scaled but never restarted onto the new image.</p>
+    <p><strong>"Groups" are machines.</strong> The three Compose profiles map one-to-one onto physical
+    servers in pre-production and production; the deploy runs all three in parallel, one per node. In
+    development and sandbox the same file collapses onto a single box at one replica per queue. One
+    description, three shapes — which is the only reason a fleet this size stays reviewable.</p>
+    <p><strong>We add where the measurement points, not where the anxiety is.</strong> Every row in the
+    table above began as a timing measurement showing a queue whose jobs were demonstrably waiting rather
+    than working. None of them began as "this feels slow."</p>
+    <p><strong>And we remove just as deliberately.</strong> Dead workers get deleted, misleading names get
+    corrected, and a queue is drained to zero before it is renamed — because renaming a queue while jobs are
+    still sitting in it is how you lose transactions. One queue is pinned at a <em>single worker</em>
+    forever: the step where parallelism cannot be made safe. In a case study full of scaling-up decisions,
+    the most important number in the fleet is a one.</p>
+  </div>
+
+  <div class="incident">
+    <span class="tag">Where a fleet bites back</span>
+    <p><strong>A duplicate flag silently halves a queue.</strong> Compose keeps only the last value when the
+    same service is scaled twice, so merging two profile groups onto one host quietly drops one queue from
+    8 workers to 4 and another from 5 to 2. No error, no warning — just a slower system and a load-test
+    result that means nothing.</p>
+    <p><strong>One undefined YAML anchor blocks every deploy.</strong> A Compose file referenced a
+    <code>*graceful-stop</code> anchor that had never been defined on that branch. <code>docker compose
+    config</code> failed — and since every deploy command parses the file first, <em>all</em> of them broke
+    at once.</p>
+    <p><strong>Deleting a service does not stop its containers.</strong> Removing a worker from the file
+    leaves the running containers behind unless the deploy is explicitly told to remove orphans — and even
+    then, containers whose profile is no longer active survive the sweep. Five of them came back after a
+    routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
+    <p><strong>The real ceiling is connections, not CPU.</strong> In June 2026 a smaller environment was
+    running all three groups at production replicas on one server: <strong>86 worker containers against a
+    database connection limit of 151</strong>, with an unbounded pool of web processes competing for what
+    was left. The fix was a budget rather than a bigger database — web processes capped at 10 and recycled
+    every 500 requests, small environments pinned to one replica per queue, which brought the whole
+    environment to about 28 connections instead of 86.</p>
+    <p><strong>Retiring a machine can retire the scheduler.</strong> The scheduler's profile was attached to
+    the third server group, so decommissioning that group would have stopped every cron job on the platform
+    without stopping anything anyone was watching. Caught while planning the consolidation; the trigger
+    moved with it.</p>
+  </div>
+
+  <div class="metric">
+    <span class="tag">The result</span>
+    The fleet grew from <strong>3 worker containers in January 2025 to 122 processes across 3
+    machines</strong> — and unlike the platform of 2024, every one of those numbers has a commit explaining
+    it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
+    went from three machines to two with <strong>total queue concurrency unchanged</strong>, and the hardest
+    part was proving that the second number had not quietly moved (Case&nbsp;15). The goal was never
+    "more workers." It was <em>the right workers, in the right places, for reasons written down.</em>
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 13</span><h2 style="margin:0; font-size:1.35rem;">The workers were running last month's code</h2><span class="era-dates">Jun 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Jobs were finishing and their follow-up jobs were not starting. The chain simply stopped — no
+    exception, no failed job, nothing in the logs to attach blame to. The follow-up jobs existed; they were
+    sitting in a database table that nothing was reading.</p>
+    <p>The workers were running an image from an earlier deploy, and baked into that image was an old
+    environment file naming the <em>database</em> queue driver — from before the platform moved to Redis.
+    The application dispatched to Redis. The workers, still on the old build, wrote and read the database
+    table. Every follow-up job in every chain landed in a queue nobody was watching.</p>
+    <p>Deploys had been reporting success the whole time. The web container picked up new code on every
+    release; the workers had not picked up any.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>Two separate things had to be true before a worker could ever receive a build. The first was that
+    Compose cannot detect that the contents behind a fixed tag have changed — every service referenced
+    <code>:latest</code>, so <code>docker compose up</code> saw no reason to replace a container that was
+    already running. Making the build's commit hash the image tag turns "new code" into something the tool
+    can actually see.</p>
+    <p>That alone did not fix it. The rolling deploy scaled workers up with <code>--no-recreate</code>,
+    which suppresses image swaps outright, and only the web container had an explicit force-recreate — so
+    the scale up-and-down never replaced a single worker. Workers got their own force-recreate, scoped to
+    the worker profiles and with <code>--no-deps</code>, because an earlier unscoped attempt had
+    force-recreated the databases along with everything else and had to be reverted.</p>
+    <p>The same audit turned up a tax nobody had costed. Every worker was taking its full ten-second stop
+    grace and then being killed outright on each deploy — the bulk of a roughly 140-second scale-down. The
+    <code>pcntl</code> extension had never been installed, so the queue worker could not trap stop signals
+    at all, and the stop signal inherited from the base image was not one it would have handled anyway.
+    Installing the extension and sending the signal the worker actually listens for dropped idle shutdown
+    from about ten seconds to about one.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    Every deploy now replaces every worker with the build it claims to have deployed, and a fleet of 122
+    containers stops in roughly the time one used to. The lesson generalizes past this stack: <strong>a
+    deploy that only verifies the web tier is not a deploy</strong>. On a platform like this one, the web
+    tier is a thin edge in front of the queues — the workers are where the code actually runs.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 14</span><h2 style="margin:0; font-size:1.35rem;">The boring failures</h2><span class="era-dates">Throughout</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">surprises moved out of production</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Not every scale failure is clever. The stress-test program kept tripping over limits nobody had ever
+    written down: a test server's disk at 98% (December 2024), and stress-test environments filling their
+    disks with logs again in March 2026. A <code>smallint</code> column that overflowed when test data
+    pushed past <strong>32,000 registered companies</strong> — the database equivalent of an odometer
+    rolling over. The default 60-second job timeout. The day the full worker fleet exhausted the database's
+    connections. Deploys that killed whatever jobs were running.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-2.gif" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The platform at 98% disk usage, moments before our first stuck-orders investigation.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>Each one got the boring fix it deserved: standardized log rotation, wider column types, explicit
+    connection budgets per environment (smaller environments hold ~28 database connections instead of ~86 at
+    full scale), graceful worker shutdown. But the real fix is the habit around them: the stress tests run
+    <strong>daily</strong> precisely so that the next limit nobody wrote down fails in a test, in
+    pre-production, at dawn — instead of in production, at noon, with customers watching.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    The last classes of surprise moved from production incidents to test findings. What still strands at
+    5,000-order scale — a handful of orders per campaign — is handled operationally: an audited per-step
+    "Force Forward" action for admins, with automatic order expiry as the second safety net.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 15</span><h2 style="margin:0; font-size:1.35rem;">Two machines instead of three</h2><span class="era-dates">Aug 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 nodes → 2 · concurrency unchanged</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>By August 2026 the case for three application servers in pre-production was mostly historical.
+    Sizing them down was the easy part. The surprise was finding out what they had been doing.</p>
+    <p>One node was serving <strong>100% of the HTTP traffic</strong>. The second node's access log had been
+    empty since February. The third received nothing but 404s. "Three web nodes" was a fiction: two of them
+    had been worker-only for six months and nobody had noticed, because the workers kept working and the
+    site kept answering.</p>
+    <p>The cause was a few lines of web-server config. The load balancer's health check is a bare request
+    for <code>/</code> with no host header, so it lands on whichever virtual host the server treats as its
+    default. Only one node had a catch-all default vhost — serving a static welcome page — so only that node
+    answered 200. On the others the API's own hostname became the implicit default and returned 404 to a
+    probe that had never asked for it. Permanently unhealthy, permanently out of rotation.</p>
+    <p>Worth noting what that probe does <em>not</em> do: the page it hits is static. It never touches the
+    application. A completely dead app tier would have gone on reporting itself healthy.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>The consolidation was a redistribution, not a reduction. The retiring node's queues were reassigned
+    across the two survivors with <strong>every queue's total concurrency held identical</strong> — the same
+    122 worker processes, split 66 and 56, weighted so the node that also serves HTTP carries fewer.</p>
+    <p>Three things nearly went wrong and were caught in review rather than in production. The scheduler's
+    profile was attached to the group being retired, so decommissioning it would have silently stopped every
+    scheduled job on the platform; the trigger moved first. Merging two profile groups onto one host would
+    have passed a scale flag twice for the same service — and Compose keeps the last value, quietly halving
+    two queues (Case&nbsp;12). And memory had to be sized by the <strong>rolling-deploy peak rather than the
+    resting fleet</strong>: workers idle at about 82&nbsp;MiB each, but every replica doubles mid-deploy,
+    which put the peak near 11&nbsp;GiB on 8&nbsp;GB boxes. Both nodes were resized to 16&nbsp;GB before
+    anything moved.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    <p>Two nodes now run the same 122 worker processes at the concurrency three used to, on an identical
+    image, with every queue depth at zero — and the node that had been invisible to the load balancer since
+    February is back in rotation serving traffic.</p>
+    <p>One honest caveat, since this series keeps the scars visible: the worker split is still the
+    asymmetric 66/56 that was drawn on the assumption that the second node had no web tier, and the
+    three-node baseline it will be compared against had one node absorbing all the traffic. Any timing
+    comparison across that boundary conflates two changes at once. The next run is the one that will
+    mean something.</p>
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">LESSONS</span><h2 style="margin:0; font-size:1.35rem;">What two years taught us</h2></div>
+  <ul style="margin-top:1rem;">
+    <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
+      means the code is innocent; the queue topology is the product (Case 11).</li>
+    <li><strong>Every fix moves the bottleneck.</strong> Removing backpressure downstream will expose the next
+      unindexed query upstream. Budget for the second-order effect before celebrating the first (Case 11).</li>
+    <li><strong>Every job will eventually die mid-flight.</strong> Retries with escalating backoff,
+      per-order uniqueness, and self-expiring locks turned "failed job" from a stuck transaction into a
+      non-event — retrying well is how you reach zero failed transactions (Part 2, Case 10).</li>
+    <li><strong>Measurement must precede tuning.</strong> Per-step durations, weekly percentiles, and timing
+      logs turned arguments into diffs. Our worst regression was caught in one week because a baseline
+      existed (Part 2, Case 08).</li>
+    <li><strong>The best optimization is not doing the work.</strong> Two engineering attempts made PDF
+      generation faster; one business conversation made most of it unnecessary (Part 2, Case 04).</li>
+    <li><strong>A worker fleet needs an owner.</strong> Twenty-two queues and 122 worker processes only stay
+      sane if every count is justified in code review and removed as deliberately as it was added
+      (Case 12).</li>
+    <li><strong>A deploy that only verifies the web tier is not a deploy.</strong> Workers ran a stale
+      image — and a stale environment inside it — for weeks while every release reported success
+      (Case 13).</li>
+    <li><strong>Health checks lie by default.</strong> A probe that never touches your application will
+      call a dead application healthy, and a node that has been out of rotation for six months looks
+      exactly like a node doing its job (Case 15).</li>
+    <li><strong>Scale failures are usually boring.</strong> Full disks (twice), a smallint overflow, a default
+      60-second timeout, and log volume did as much damage as any deadlock (Case 14).</li>
+    <li><strong>Isolation levels and locks are product decisions in disguise.</strong> READ COMMITTED, dropped
+      foreign keys, trigger bypasses, and a deliberately single-threaded queue were all conscious trades of
+      theoretical strictness for real-world correctness under load (Part 2, Cases 02 and 09).</li>
+    <li><strong>Keep the failed experiments on the record.</strong> The caching that hurt, the fix that
+      regressed, the timeout raise that only bought time — the retries are where the understanding came
+      from.</li>
+    <li><strong>The last 0.1% needs an operational answer, not a code one.</strong> At 5,000 orders, 99.9%
+      success still strands five orders. Force-forward tooling and auto-expiry close the loop (Case 14).</li>
+  </ul>
+  <p>
+    Ten orders once broke the platform. Today, five thousand are a daily routine — and the same discipline
+    that got us here (measure, split, index, budget, re-measure) is already pointed at the next order of
+    magnitude.
+  </p>
+</section>
+
+</div>
+
+<style is:global>
+.lynk-post{--bg: #FAF9F6;
+    --ink: #1B2420;
+    --muted: #5C6A63;
+    --accent: #0E7A5F;
+    --accent-soft: #E3EFEA;
+    --incident: #A06F1F;
+    --incident-soft: #F6EEDD;
+    --line: #E2E1DA;
+    --card: #F2F1EB;}
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
+      --ink: #E5EAE6;
+      --muted: #93A29A;
+      --accent: #45C29B;
+      --accent-soft: #1A2B25;
+      --incident: #D8A24C;
+      --incident-soft: #2A2416;
+      --line: #27302B;
+      --card: #1A211D; --bg: #121815;
+    --ink: #E5EAE6;
+    --muted: #93A29A;
+    --accent: #45C29B;
+    --accent-soft: #1A2B25;
+    --incident: #D8A24C;
+    --incident-soft: #2A2416;
+    --line: #27302B;
+    --card: #1A211D;}
+.lynk-post .wrap{ max-width: 46rem; margin: 0 auto; padding: 3.5rem 0 5rem; }
+.lynk-post .serif{ font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+.lynk-post .mono{ font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.lynk-post header.hero{ border-bottom: 1px solid var(--line); padding-bottom: 2.25rem; margin-bottom: 2.75rem; }
+.lynk-post .kicker{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 1.1rem;
+  }
+.lynk-post h1{
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(2.1rem, 5.5vw, 3.15rem);
+    line-height: 1.12; font-weight: 500; margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+.lynk-post .standfirst{ font-size: 1.08rem; color: var(--muted); max-width: 40rem; margin: 0 0 2rem; }
+.lynk-post .standfirst strong{ color: var(--ink); font-weight: 600; }
+.lynk-post .stats{ display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.lynk-post .stat{ background: var(--bg); padding: 0.9rem 1rem 1rem; }
+.lynk-post .stat .n{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+    font-size: 1.45rem; font-weight: 600; color: var(--accent); display: block; line-height: 1.2;
+  }
+.lynk-post .stat .l{ font-size: 0.76rem; color: var(--muted); letter-spacing: 0.02em; }
+.lynk-post .era{ margin: 3.25rem 0 0; }
+.lynk-post .era-head{ display: flex; align-items: baseline; gap: 0.85rem; border-top: 2px solid var(--ink); padding-top: 0.85rem; }
+.lynk-post .era-no{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.lynk-post .era-dates{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+    margin-left: auto; white-space: nowrap;
+  }
+.lynk-post h2{
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.55rem; font-weight: 500; line-height: 1.25; margin: 0.35rem 0 0.9rem; text-wrap: balance;
+  }
+.lynk-post h3{ font-size: 1.02rem; font-weight: 650; margin: 1.6rem 0 0.5rem; }
+.lynk-post p{ margin: 0 0 1rem; }
+.lynk-post a{ color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.lynk-post ul{ margin: 0 0 1rem; padding-left: 1.2rem; }
+.lynk-post li{ margin-bottom: 0.45rem; }
+.lynk-post .tk{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.82em; color: var(--muted); white-space: nowrap; }
+.lynk-post code{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.86em; background: var(--card); padding: 0.1em 0.35em; border-radius: 3px; }
+.lynk-post .incident, .lynk-post .attempt, .lynk-post .metric{
+    padding: 0.85rem 1.1rem; margin: 1.25rem 0; font-size: 0.95rem;
+  }
+.lynk-post .incident{ border-left: 3px solid var(--incident); background: var(--incident-soft); }
+.lynk-post .attempt{ border-left: 3px solid var(--muted); background: var(--card); }
+.lynk-post .metric{ border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.lynk-post .incident .tag, .lynk-post .attempt .tag, .lynk-post .metric .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; margin-bottom: 0.35rem;
+  }
+.lynk-post .incident .tag{ color: var(--incident); }
+.lynk-post .attempt .tag{ color: var(--muted); }
+.lynk-post .metric .tag{ color: var(--accent); }
+.lynk-post .incident p:last-child, .lynk-post .attempt p:last-child, .lynk-post .metric p:last-child, .lynk-post .incident ul:last-child, .lynk-post .attempt ul:last-child, .lynk-post .metric ul:last-child{ margin-bottom: 0; }
+.lynk-post .tablebox{ overflow-x: auto; margin: 1.25rem 0; border: 1px solid var(--line); }
+.lynk-post table{ border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+.lynk-post th{
+    text-align: left; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line); background: var(--card);
+    white-space: nowrap;
+  }
+.lynk-post td{ padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lynk-post tr:last-child td{ border-bottom: none; }
+.lynk-post td.num{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lynk-post figure{ margin: 1.75rem 0; }
+.lynk-post figure svg{ max-width: 100%; height: auto; display: block; }
+.lynk-post figcaption{ font-size: 0.82rem; color: var(--muted); margin-top: 0.6rem; max-width: 40rem; }
+.lynk-post .impact-pill{
+    display: inline-flex; align-items: baseline; gap: 0.6rem;
+    margin: 0.9rem 0 0; padding: 0.3rem 0.9rem;
+    border: 1px solid var(--accent); border-radius: 999px; background: var(--accent-soft);
+  }
+.lynk-post .impact-pill .lab{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+  }
+.lynk-post .impact-pill .val{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+    font-size: 0.85rem; font-weight: 700; color: var(--ink);
+  }
+@media (prefers-reduced-motion: no-preference){.lynk-post .bar{ transform-box: fill-box; transform-origin: left center; animation: growbar 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }.lynk-post .blabel{ animation: fadein 0.6s ease-out backwards; }.lynk-post .flow-slow{ stroke-dasharray: 5 5; animation: dash10 6s linear infinite; }.lynk-post .flow-fast{ stroke-dasharray: 5 5; animation: dash10 0.9s linear infinite; }.lynk-post .qpulse{ animation: qpulse 2.4s ease-in-out infinite; }.lynk-post .pop-slow{ transform-box: fill-box; transform-origin: center; animation: docpop 3.3s linear infinite; }.lynk-post .pop-fast{ transform-box: fill-box; transform-origin: center; animation: docpop 0.47s linear infinite; }.lynk-post .pop-demand{ transform-box: fill-box; transform-origin: center; animation: docpop 8s linear infinite; }.lynk-post .click-ring{ transform-box: fill-box; transform-origin: center; animation: clickring 8s linear infinite; }}
+.lynk-post .prev{
+    margin: 0 0 2rem; border: 1px solid var(--line); background: var(--card);
+    padding: 0.8rem 1.1rem; font-size: 0.9rem;
+  }
+.lynk-post .prev .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.25rem;
+  }
+.lynk-post .next{
+    margin-top: 3.5rem; border: 1px solid var(--line); background: var(--card);
+    padding: 1.1rem 1.25rem;
+  }
+.lynk-post .next .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
+  }
+.lynk-post .refs{ border-top: 1px solid var(--line); margin-top: 3.5rem; padding-top: 1.5rem; font-size: 0.82rem; color: var(--muted); }
+.lynk-post .refs h2{ font-size: 1.1rem; }
+.lynk-post footer{ margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
+@keyframes growbar{ from { transform: scaleX(0); } }
+@keyframes fadein{ from { opacity: 0; } }
+@keyframes dash10{ to { stroke-dashoffset: -100; } }
+@keyframes qpulse{ 0%, 100% { fill-opacity: 1; } 50% { fill-opacity: 0.5; } }
+@keyframes docpop{ 0% { opacity: 0; transform: scale(0.85); } 8% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes clickring{ 0% { opacity: 0; transform: scale(0.6); } 3% { opacity: 0.9; } 10% { opacity: 0; transform: scale(1.7); } 100% { opacity: 0; } }
+.lynk-post{font-size:1rem}
+.lynk-post figure img{border:1px solid var(--line);border-radius:6px}
+.lynk-post figure{text-align:center}
+.lynk-post figure img,.lynk-post figure svg{margin-left:auto;margin-right:auto}
+.lynk-post figcaption{margin-left:auto;margin-right:auto;text-align:left}
+</style>

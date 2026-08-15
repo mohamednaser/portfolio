@@ -1,20 +1,20 @@
 ---
-title: 'From Ten Orders to Five Thousand: Scaling a Murabaha Pipeline'
-description: 'Thirteen engineering case files from scaling Murabaha order processing 500x: deadlocks, queue wait, PDF generation, job retries and worker fleets.'
-excerpt: "In January 2025 a stress test of ten automated orders left four of them stuck. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%. Thirteen case files on how that happened."
+title: '10 Database Bottlenecks We Hit Scaling to 5,000 Orders'
+description: 'Ten engineering case files from scaling Murabaha order processing 500×: deadlocks, lock timeouts, a missing index, PDF generation and a self-inflicted DDoS.'
+excerpt: "In January 2025 a stress test of ten automated orders left four of them stuck. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%. Ten case files on the code and database work that got it there."
 pubDate: 2026-08-15
 coverImage: '/images/blog/scaling-murabaha-10-to-5000-orders/cover.jpg'
-readingTime: '18 min read'
+readingTime: '19 min read'
 keywords:
-  - performance engineering
-  - scaling laravel
-  - queue workers
-  - database deadlocks
+  - database bottlenecks
+  - mysql lock contention
   - read committed isolation
-  - mysql performance
+  - database deadlocks
+  - database performance tuning
+  - missing index
+  - scaling laravel
+  - performance engineering
   - stress testing
-  - distributed jobs
-  - job retries
   - fintech scaling
 ---
 
