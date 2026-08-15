@@ -1,0 +1,23 @@
+---
+title: 'Scaling Queue Workers: From 3 Containers to 122 Processes'
+description: 'How a queue-worker fleet grew from 3 containers to 122 processes across 22 queues, why every one of those numbers changed, and how three machines became two.'
+excerpt: "A purchase step that took seven and a half seconds contained 521 milliseconds of actual work. The rest was queue wait. Five case files on the infrastructure half of the story: splitting queues, sizing a worker fleet, and the deploys that quietly skipped it."
+pubDate: 2026-08-15
+coverImage: '/images/blog/scaling-queue-workers-3-to-122/cover.jpg'
+readingTime: '15 min read'
+keywords:
+  - scaling queue workers
+  - queue worker fleet
+  - queue wait time
+  - docker compose scale
+  - laravel queue
+  - redis queue
+  - worker autoscaling
+  - graceful shutdown
+  - rolling deploy
+  - infrastructure consolidation
+---
+
+import Body from '../../components/posts/MurabahaQueueWorkers.astro';
+
+<Body />
