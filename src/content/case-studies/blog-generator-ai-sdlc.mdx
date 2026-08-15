@@ -1,0 +1,31 @@
+---
+title: 'Blog Generator — AI-augmented product delivery'
+description: 'Shipping a full-stack SaaS (auth, subscriptions, dashboard, AI detector) with AI-assisted development and strict review gates.'
+order: 2
+context: 'Customer-facing SaaS'
+tags: ['Next.js', 'Supabase', 'Claude Code', 'SaaS']
+---
+
+## Context
+
+Blog Generator is a revenue-facing product: landing page, authenticated dashboard, Stripe subscriptions, and an AI-content detector. It needed production-grade velocity without sacrificing review gates or security on auth paths.
+
+## What we rolled out
+
+GitHub Issues as the tracker, one ticket per PR, CI pipelines with lint/test/build/security, and security review by default when `auth/` changes.
+
+## How AI was introduced
+
+AI-assisted implementation inside hook guardrails — ticket declared before edits, automated code review on every PR, explicit merge approval per PR. Feature work is decomposed into PRD → technical design → tickets so AI output stays reviewable in small diffs.
+
+## Outcomes
+
+- Parallel feature tracks (dashboard, subscriptions, AI detector) with shared SDLC discipline
+- Auth and payment surfaces get security review by default
+- Dependency and launch checks run at milestone boundaries, not ad hoc
+
+## Lessons learned
+
+- **Ticket vocabulary is strict** — plan items in chat are not `#N` until `gh issue create` runs.
+- AI speed is only an asset when gates (lint, test, review, merge approval) stay mechanical.
+- Separating product repos from shared process docs keeps context clear across products.

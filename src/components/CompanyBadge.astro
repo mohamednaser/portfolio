@@ -1,0 +1,72 @@
+---
+import { getCompany, type CompanyId } from '../data/companies';
+
+interface Props {
+  companyId: CompanyId;
+  size?: 'sm' | 'md';
+}
+
+const { companyId, size = 'md' } = Astro.props;
+const company = getCompany(companyId);
+
+const boxClass =
+  size === 'sm'
+    ? 'h-9 min-w-[2.25rem] rounded-lg px-2'
+    : 'h-11 min-w-[2.75rem] rounded-xl px-3';
+
+const imgClass = size === 'sm' ? 'max-h-6' : 'max-h-8';
+const textClass = size === 'sm' ? 'text-xs' : 'text-sm';
+---
+
+<div class="flex items-center gap-3">
+  {
+    company.src ? (
+      <div
+        class:list={[
+          boxClass,
+          'flex shrink-0 items-center justify-center',
+          !company.background &&
+            'border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900',
+        ]}
+        style={company.background ? { backgroundColor: company.background } : undefined}
+      >
+        <img
+          src={company.src}
+          alt=""
+          width="80"
+          height="32"
+          class:list={[imgClass, 'w-auto max-w-[5rem] object-contain']}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    ) : (
+      <div
+        class:list={[
+          boxClass,
+          'flex shrink-0 items-center justify-center border border-dashed border-slate-300 bg-slate-100 font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400',
+          textClass,
+        ]}
+        aria-hidden="true"
+      >
+        {company.name.slice(0, 2)}
+      </div>
+    )
+  }
+  <span class:list={['font-medium text-slate-700 dark:text-slate-300', textClass]}>
+    {
+      company.href ? (
+        <a
+          href={company.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-emerald-600 dark:hover:text-emerald-400"
+        >
+          {company.name}
+        </a>
+      ) : (
+        company.name
+      )
+    }
+  </span>
+</div>

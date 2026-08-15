@@ -1,0 +1,41 @@
+---
+interface Props {
+  mediumUrl?: string;
+  linkedinUrl?: string;
+  linkedinLabel?: string;
+  class?: string;
+}
+
+const {
+  mediumUrl,
+  linkedinUrl,
+  linkedinLabel = 'LinkedIn profile',
+  class: className = '',
+} = Astro.props;
+---
+
+{
+  (mediumUrl || linkedinUrl) && (
+    <div class:list={['flex flex-wrap gap-3', className]}>
+      {
+        mediumUrl && (
+          <a href={mediumUrl} target="_blank" rel="noopener noreferrer" class="btn-primary">
+            Read on Medium
+          </a>
+        )
+      }
+      {
+        linkedinUrl && (
+          <a
+            href={linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary"
+          >
+            {linkedinLabel}
+          </a>
+        )
+      }
+    </div>
+  )
+}

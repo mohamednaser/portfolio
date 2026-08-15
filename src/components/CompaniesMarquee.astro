@@ -1,0 +1,54 @@
+---
+import CompanyLogoCard from './CompanyLogoCard.astro';
+import type { Company } from '../data/companies';
+
+interface Props {
+  items: (Company & { src: string })[];
+}
+
+const { items } = Astro.props;
+const track = [...items, ...items];
+const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="marquee relative mt-10" data-marquee id={uid}>
+  <button
+    type="button"
+    class="marquee__btn marquee__btn--prev"
+    data-direction="prev"
+    aria-label="Show previous companies"
+    aria-controls={`${uid}-viewport`}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+    </svg>
+  </button>
+
+  <div
+    class="marquee__viewport overflow-x-auto px-12 sm:px-14"
+    data-viewport
+    id={`${uid}-viewport`}
+    tabindex="0"
+    aria-label="Companies and clients carousel"
+  >
+    <div class="marquee__track flex w-max gap-6" data-track>
+      {track.map((company) => <CompanyLogoCard company={company} />)}
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="marquee__btn marquee__btn--next"
+    data-direction="next"
+    aria-label="Show next companies"
+    aria-controls={`${uid}-viewport`}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+  import '../scripts/horizontal-marquee';
+</script>

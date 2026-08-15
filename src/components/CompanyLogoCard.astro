@@ -1,0 +1,63 @@
+---
+import type { Company } from '../data/companies';
+
+interface Props {
+  company: Company & { src: string };
+}
+
+const { company } = Astro.props;
+const label = company.subtitle ? `${company.name} — ${company.subtitle}` : company.name;
+---
+
+<article class="marquee__item w-[11.5rem] shrink-0 sm:w-48">
+  {
+    company.href ? (
+      <a
+        href={company.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+        aria-label={label}
+      >
+        <div
+          class:list={[
+            'flex h-28 w-full items-center justify-center rounded-2xl p-4 transition',
+            !company.background &&
+              'border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900',
+            'group-hover:ring-2 group-hover:ring-emerald-500/40',
+          ]}
+          style={company.background ? { backgroundColor: company.background } : undefined}
+        >
+          <img
+            src={company.src}
+            alt=""
+            width="140"
+            height="56"
+            class="max-h-14 w-auto max-w-[8.5rem] object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </a>
+    ) : (
+      <div
+        class:list={[
+          'flex h-28 w-full items-center justify-center rounded-2xl p-4',
+          !company.background &&
+            'border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900',
+        ]}
+        style={company.background ? { backgroundColor: company.background } : undefined}
+      >
+        <img
+          src={company.src}
+          alt=""
+          width="140"
+          height="56"
+          class="max-h-14 w-auto max-w-[8.5rem] object-contain"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    )
+  }
+</article>

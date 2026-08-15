@@ -1,0 +1,94 @@
+---
+import { nav } from '../site.config';
+import ThemeToggle from './ThemeToggle.astro';
+
+const current = Astro.url.pathname;
+
+function isActive(href: string): boolean {
+  return href === '/' ? current === '/' : current.startsWith(href);
+}
+---
+
+<header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90">
+  <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
+    <a
+      href="/"
+      class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50"
+    >
+      Mohamed Naser
+    </a>
+    <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
+      {
+        nav.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <a
+              href={item.href}
+              class:list={[
+                'rounded-lg px-3 py-2 text-sm font-medium transition',
+                active
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                  : 'text-slate-600 hover:text-emerald-700 dark:text-slate-300 dark:hover:text-emerald-400',
+              ]}
+              aria-current={active ? 'page' : undefined}
+            >
+              {item.label}
+            </a>
+          );
+        })
+      }
+    </nav>
+    <div class="flex items-center gap-2">
+      <ThemeToggle />
+      <button
+        type="button"
+        id="mobile-menu-btn"
+        class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-slate-300 p-2 md:hidden dark:border-slate-600"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        aria-label="Open menu"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
+  </div>
+  <nav
+    id="mobile-menu"
+    class="hidden border-t border-slate-200 px-6 py-4 md:hidden dark:border-slate-800"
+    aria-label="Mobile"
+  >
+    <ul class="flex flex-col gap-2">
+      {
+        nav.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <li>
+              <a
+                href={item.href}
+                class:list={[
+                  'block rounded-lg px-3 py-2 text-sm font-medium',
+                  active
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                ]}
+                aria-current={active ? 'page' : undefined}
+              >
+                {item.label}
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </nav>
+</header>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  btn?.addEventListener('click', () => {
+    const open = menu?.classList.toggle('hidden') === false;
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  });
+</script>

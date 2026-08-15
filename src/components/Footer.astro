@@ -1,0 +1,24 @@
+---
+import SocialLinks from './SocialLinks.astro';
+import { site } from '../site.config';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
+  <div class="mx-auto max-w-5xl px-6 py-10">
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="font-semibold text-slate-900 dark:text-slate-50">{site.name}</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Technical lead · Fintech &amp; scalable systems
+        </p>
+        <p class="mt-1 text-sm text-slate-500">{site.location}</p>
+      </div>
+      <SocialLinks includeRss class="sm:justify-end" />
+    </div>
+    <p class="mt-8 text-center text-xs text-slate-500">
+      © {year} {site.name}. Built with Astro + Tailwind.
+    </p>
+  </div>
+</footer>

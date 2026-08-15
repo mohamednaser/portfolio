@@ -1,0 +1,24 @@
+---
+import CompaniesMarquee from './CompaniesMarquee.astro';
+import { companyLogos } from '../data/companies';
+
+interface Props {
+  heading?: string;
+}
+
+const { heading = 'Proud to collaborate with' } = Astro.props;
+
+const items = companyLogos as (typeof companyLogos)[number] & { src: string }[];
+---
+
+<section
+  class="border-y border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40"
+  aria-labelledby="companies-heading"
+>
+  <div class="mx-auto max-w-5xl px-6">
+    <h2 id="companies-heading" class="section-heading text-center">
+      {heading}
+    </h2>
+    <CompaniesMarquee items={items} />
+  </div>
+</section>
