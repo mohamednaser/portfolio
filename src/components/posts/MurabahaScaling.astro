@@ -1,0 +1,919 @@
+---
+// Article body for /blog/scaling-murabaha-10-to-5000-orders/
+---
+
+<div class="lynk-post">
+
+<div class="prev">
+  <span class="tag">Part 1 of this series</span>
+  <strong><a href="/blog/commodity-murabaha-platform/">The Murabaha Machine</a></strong> —
+  what LYNK is, its financial products, how the commodity Murabaha process works step by step, and the two
+  goals that frame everything below: maximum concurrent transactions, with full Sharia validity as a hard
+  constraint.
+</div>
+<p>
+  As Part 1 explains, a Murabaha order is not one transaction but a strict legal sequence — purchase real
+  commodity units, transfer ownership to the borrower, sell to the open market, complete — none of which
+  may be skipped, faked, or reordered. Each order fans out into a chain of queued jobs touching the hottest
+  tables in the system: market orders, inventories, and millions of individually coded units. Making one
+  such pipeline correct is ordinary engineering. Making five thousand of them run concurrently, with every
+  legal constraint intact, is where the last two years of work went.
+</p>
+<p>
+  What follows are the thirteen battles that made the difference, in the order we fought them. We have kept
+  the scars visible. Each case tells you <strong style="color:var(--incident)">what was actually going
+  wrong</strong>, <strong style="color:var(--muted)">what we tried</strong> — including the ideas that did
+  not survive contact with production — and <strong style="color:var(--accent)">what the numbers said</strong>
+  when the dust settled.
+</p>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 01</span><h2 style="margin:0; font-size:1.35rem;">Everything waits for everything</h2><span class="era-dates">Aug 2024 – Jan 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">ceiling: tens → hundreds of orders</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Our first real batch test, in December 2024, was humbling. We created 31 orders at once and watched
+    three of them freeze for more than twenty minutes. When we retried with just <strong>ten orders</strong>,
+    everything passed — and that, honestly, was the platform's ceiling at the time. A few weeks later a
+    test run confirmed it the hard way: ten automated trade requests, <strong>four stuck</strong> in
+    Purchasing Commodity.</p>
+    <p>Digging in, we found a platform designed for one order at a time, politely queuing the whole world
+    behind it. Fifty simultaneous orders were processed strictly stage by stage — the first order could not
+    buy its commodity until all forty-nine others had finished searching for theirs. Certificates rendered
+    through a headless browser that fell over under load and took whole orders down with it. Stuck orders
+    kept their commodity units reserved forever, so even cancelling them failed. And our very first
+    "stuck orders" investigation ended somewhere nobody expected: <strong>the server disk was 98% full</strong>
+    — 44 of 45 GB. Not a race condition, not a deadlock. A full disk.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-1.gif" alt="A dense traffic jam, cars barely moving."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The order pipeline, late 2024: every order waiting for every other order (dramatization).</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>We fixed the unglamorous things first: bigger disks. Then we gave the PDF service room to breathe —
+    longer timeouts, more browser sessions, Chrome kept warm — which helped, though in hindsight we were
+    treating a symptom we would only cure properly a year later (Case&nbsp;04). The changes that mattered
+    were structural. Work that ran synchronously inside requests moved into queued jobs. Jobs started
+    carrying lightweight record IDs instead of whole serialized objects, because one stuck serialization
+    had been pinning entire orders. And the single shared queue became <strong>three dedicated worker
+    containers</strong>. Three. It felt like a fleet at the time.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    By mid-2025 the platform was surviving real volume: <strong>388 orders in one hour</strong> in May, then
+    <strong>534 of 535 completed</strong> in June — the first run where the entire cycle finished unattended,
+    with no human touching a single order. The ceiling had moved from ten orders to hundreds, and we finally
+    had a platform worth stress-testing.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 02</span><h2 style="margin:0; font-size:1.35rem;">The database fights back</h2><span class="era-dates">Aug 2024 – Aug 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">P95 28s → 13s · slow tail 21.9% → 0</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Then production started sending a new kind of message: <code>Lock wait timeout exceeded</code>.
+    Orders that should have flown were standing in line behind a single <code>SELECT … FOR UPDATE</code>,
+    like shoppers queuing at the one open till. Underneath it sat something subtler: the database's default
+    isolation level — <em>REPEATABLE READ</em>, safe and strict — quietly locks the <em>gaps between</em>
+    rows, and when many transactions touch neighbouring inventory rows, those gap locks collide into
+    deadlocks. We had the strange experience of adding capacity and watching throughput fall. More
+    concurrency meant more waiting.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried — three rounds</span>
+    <p>It took three rounds to actually win. In the first, we treated each incident as it came: remove this
+    lock, log that deadlock (<code>innodb_print_all_deadlocks</code> on, so at least the next one would
+    leave a confession). Every individual fix worked — and the class of problem kept coming back with a new
+    address.</p>
+    <p>In the second round, April 2025, we went after the class itself and switched the platform to
+    <strong>READ COMMITTED</strong>: giving up a strictness the Murabaha flow never actually needed, in
+    exchange for dramatically less lock contention.</p>
+    <p>The third round came during the summer stress tests, when the sell path deadlocked anyway — the
+    global setting was not reaching every transaction, so the hottest services got it explicitly. And the
+    last deadlocks were removed the cheapest way of all: not by locking more, but by making every code path
+    <strong>write to tables in the same order</strong>, so transactions could no longer meet head-on.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result — 1,000-order stress test, Aug 2025</span>
+    We ran 1,000 orders through the fixed pipeline and measured. Average purchase time fell from
+    <strong>11.81s to 7.8s</strong>. P95 from <strong>28s to 13s</strong>. The worst order of the entire
+    run: <strong>14 seconds, down from 65</strong>. And the slow tail — the 21.9% of orders that used to
+    take over 15 seconds — vanished entirely. Every one of the thousand finished within 3–14 seconds.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 03</span><h2 style="margin:0; font-size:1.35rem;">The purchase-path campaign</h2><span class="era-dates">Jul – Sep 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">1,000 orders, all within 14s</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>That summer we set ourselves a target — 500 orders without a single error — launched a 300-order run,
+    and watched the first eleven orders die before doing anything at all. The culprit was a setting nobody
+    had ever had a reason to think about: the framework's <em>default 60-second job timeout</em>. No job was
+    ever supposed to run for a minute. The timeout was not the disease; it was the thermometer — and it was
+    telling us the purchase path simply did too much, one thing after another, for every single order.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>We raised the timeout to 120 seconds the same day — not as a fix, but as anesthesia, so testing could
+    continue while we operated. Then came the actual surgery, a deliberate summer campaign. Buying
+    commodities, creating trader orders, and holding units each got their own queue instead of sharing one
+    line. The search for eligible commodities was separated from order initiation, so five workers could do
+    in parallel what one had been doing alone. Inventory scans switched to cursors. We even dropped foreign
+    keys from the busiest join table — heresy in most engineering conversations, but their integrity checks
+    were pure cost on a table written millions of times a day, and the application already guaranteed those
+    invariants itself. And the units table finally got its first serious indexes.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    The 1,000-order August test in Case&nbsp;02 was this campaign's report card too: every order within
+    3–14 seconds. But the quieter outcome mattered more. From August 2025 the business team began running
+    <strong>weekly performance tests</strong> with recorded percentiles — the moment performance stopped
+    being a firefight and became a habit.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 04</span><h2 style="margin:0; font-size:1.35rem;">The certificate tax</h2><span class="era-dates">Dec 2024 – Aug 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">0 seconds per step</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Every legal step of a Murabaha produces its evidence — a commodity certificate, an ownership
+    certificate, a sell confirmation. For a long time nobody questioned <em>where</em> those documents were
+    made: inside the step itself, by a headless Chrome browser that opened a full browser session for every
+    single PDF and produced, at best, about <strong>18 documents a minute</strong>. It was like closing the
+    till to print each receipt on a printing press in the back room. Under load the press jammed, its queue
+    backed up, and whole orders stood still — waiting not for money or commodities, but for paperwork.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-2.gif" alt="A letterpress printing machine producing one card at a time."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The certificate press at work: one document at a time, on the critical path of every order.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried — three attempts</span>
+    <p><strong>First, we tuned the press.</strong> Longer timeouts, more concurrent sessions, Chrome kept
+    warm and ready. It bought headroom for the next test — and changed nothing about the economics. Still
+    one browser per document, still on the critical path.</p>
+    <p><strong>Then we replaced the engine.</strong> A native PHP library went head-to-head against the
+    browser and won convincingly: <strong>~128 documents a minute against ~18</strong> — seven times the
+    throughput — with no external service, no per-document fees, documents staying on our own
+    infrastructure, and proper Arabic right-to-left out of the box. Better in every way. And still seconds
+    of rendering inside every step.</p>
+    <p><strong>The winning move came from a different room.</strong> Sitting with the business and the
+    Sharia requirements, we asked what the certificate actually had to <em>be</em> — and the answer was:
+    it must exist and be obtainable, not be rendered before the step may complete. So the steps stopped
+    generating PDFs entirely; a certificate renders the first time someone downloads it. And here is the
+    quiet punchline: <strong>most certificates are never downloaded at all</strong>. Most of that work never
+    needed speeding up. It needed to stop existing.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 200" role="img" aria-label="Three attempts at PDF generation: Browserless producing about 18 documents per minute, mPDF producing about 128 per minute, and on-demand generation rendering a document only when a user downloads it.">
+      <g stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4">
+        <line x1="240" y1="14" x2="240" y2="170"></line>
+        <line x1="480" y1="14" x2="480" y2="170"></line>
+      </g>
+      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" letter-spacing="1" text-anchor="middle">
+        <text x="120" y="28" fill="var(--incident)">ATTEMPT 1 · BROWSERLESS</text>
+        <text x="360" y="28" fill="currentColor" opacity="0.7">ATTEMPT 2 · mPDF</text>
+        <text x="600" y="28" fill="var(--accent)">ATTEMPT 3 · ON DEMAND</text>
+      </g>
+      
+      <g class="pop-slow">
+        <rect x="102" y="58" width="36" height="46" rx="3" fill="var(--card)" stroke="currentColor" stroke-opacity="0.6"></rect>
+        <path d="M126,58 l12,12 l-12,0 z" fill="currentColor" opacity="0.25"></path>
+        <g stroke="currentColor" stroke-opacity="0.45"><line x1="109" y1="80" x2="131" y2="80"></line><line x1="109" y1="88" x2="131" y2="88"></line><line x1="109" y1="96" x2="123" y2="96"></line></g>
+      </g>
+      <g class="pop-fast">
+        <rect x="342" y="58" width="36" height="46" rx="3" fill="var(--card)" stroke="currentColor" stroke-opacity="0.6"></rect>
+        <path d="M366,58 l12,12 l-12,0 z" fill="currentColor" opacity="0.25"></path>
+        <g stroke="currentColor" stroke-opacity="0.45"><line x1="349" y1="80" x2="371" y2="80"></line><line x1="349" y1="88" x2="371" y2="88"></line><line x1="349" y1="96" x2="363" y2="96"></line></g>
+      </g>
+      <g class="pop-demand">
+        <rect x="582" y="58" width="36" height="46" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"></rect>
+        <path d="M606,58 l12,12 l-12,0 z" fill="var(--accent)" opacity="0.35"></path>
+        <g stroke="var(--accent)" stroke-opacity="0.6"><line x1="589" y1="80" x2="611" y2="80"></line><line x1="589" y1="88" x2="611" y2="88"></line><line x1="589" y1="96" x2="603" y2="96"></line></g>
+      </g>
+      <circle class="click-ring" cx="600" cy="81" r="16" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0"></circle>
+      
+      <g font-size="12" font-family="ui-monospace, Menlo, monospace" font-weight="700" text-anchor="middle">
+        <text x="120" y="132" fill="var(--incident)">~18 docs/min</text>
+        <text x="360" y="132" fill="currentColor">~128 docs/min</text>
+        <text x="600" y="132" fill="var(--accent)">0s on the step</text>
+      </g>
+      <g font-size="10.5" fill="currentColor" opacity="0.65" text-anchor="middle">
+        <text x="120" y="152">one Chrome session per document,</text>
+        <text x="120" y="166">on the critical path</text>
+        <text x="360" y="152">native PHP engine, 7× throughput —</text>
+        <text x="360" y="166">still seconds inside each step</text>
+        <text x="600" y="152">rendered only when someone</text>
+        <text x="600" y="166">actually downloads it</text>
+      </g>
+    </svg>
+    <figcaption>The three attempts at the certificate tax, at their true relative speeds: a browser session
+    per document (~18/minute), a native PHP engine (~128/minute) — and finally no render at all unless a
+    user asks for the document. The fastest PDF is the one you never generate.</figcaption>
+  </figure>
+
+  <div class="metric">
+    <span class="tag">The result</span>
+    The certificate cost on the pipeline dropped to effectively <strong>zero seconds per step</strong> —
+    you can see it in any order today, where Borrower Ownership and Murabaha Completed finish in
+    <strong>0 seconds</strong> (the live order in Part&nbsp;1 shows exactly this). When someone does request
+    a certificate, it renders in about 3 seconds at seven times the old throughput. At 5,000 orders and five
+    certificates each, the on-demand decision removed tens of thousands of renders from every test run —
+    the largest single time sink we ever took off the critical path. And it came out of a business
+    conversation, not a profiler.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 05</span><h2 style="margin:0; font-size:1.35rem;">Which units can you even buy?</h2><span class="era-dates">Dec 2024 – 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">scan millions of rows → read a counter</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Before a single unit can be purchased, the platform has to answer a question that sounds like a
+    database query and is actually a small legal investigation: <em>which of the millions of units is this
+    particular customer allowed to buy, right now?</em> A unit qualifies only if it is free, its supplier is
+    active, and buying it would not violate the trade-rotation rules for that specific buyer — a unit you
+    recently owned cannot rotate straight back to you.</p>
+    <p>In the early days we answered honestly and expensively: scan the units table, per order, with that
+    customer's conditions. Millions of rows, thousands of concurrent orders, the same question over and
+    over. For a long time, if you asked where the platform's time was going, a large part of the answer was:
+    <em>re-deriving an answer that had barely changed since the last time we derived it.</em></p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried — three generations</span>
+    <p><strong>Generation one: compute the truth on demand.</strong> Correct, simple, and ruinously
+    expensive — every order paid the full scan, and those scans were most of the read pressure behind the
+    94-million-read index in Case&nbsp;09.</p>
+    <p><strong>Generation two: the "settled" feature.</strong> When an order completes, mark its units as
+    settled back to the market — in bulk, with a cheap flag — so eligibility queries can skip whole classes
+    of units without inspecting them. The scans shrank. But the settlement chain groaned under its own
+    weight (its jobs kept blowing past their time limits and eventually needed a full bulk rewrite), and the
+    per-order scan was still there. Smaller, not gone.</p>
+    <p><strong>Generation three: stop scanning altogether.</strong> If the question is always the same, keep
+    the answer written down. A dedicated table now holds an <strong>eligible-quantity counter for every
+    (customer, inventory) pair</strong>, and every event that changes the answer — a purchase, a settlement,
+    a supplier switching on — updates the counter in that same moment, atomically. The schema itself refuses
+    to let a counter go negative, and rebuild jobs can reconstruct any counter from the ground truth
+    whenever we have a reason to doubt it.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    "Find eligible commodities" went from scanning millions of unit rows on every order to reading a handful
+    of precomputed counters — roughly <strong>0.1 seconds</strong> inside today's sub-second purchase step.
+    The cost of eligibility moved off every order's critical path and onto the rare events that actually
+    change the answer. That is the whole trick, and it took three generations to find it.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 06</span><h2 style="margin:0; font-size:1.35rem;">The exact-change problem</h2><span class="era-dates">Jan 2025 – 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">gateway timeouts → milliseconds</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Knowing which units are eligible still leaves the genuinely hard part. A Murabaha for, say,
+    SAR 1,000,000 must be covered <em>exactly</em> by whole units with fixed prices — like paying an exact
+    amount using only the banknotes in your wallet, when the wallet holds thousands of notes in dozens of
+    denominations. Mathematicians know this family of puzzles as "exact change" problems, and they are
+    famous for one thing: naive solutions explode. Ours did. On inputs of a few hundred inventories, the
+    first implementation searched until the gateway itself hung up on it — and a slow search does not fail
+    one order, it stalls the purchase step of every order queued behind it.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">How we made it fast</span>
+    <p>The version that survived thinks like a very fast cashier. It counts in whole halalas, never
+    fractions — floating-point money that drifts by 0.01 is the difference between exact change and no
+    change at all. Before searching, it checks whether an answer can even exist: if the most valuable
+    10,000 units on the table cannot reach the amount, the order fails instantly with a clear message
+    instead of hunting for a solution that is not there.</p>
+    <p>Then it gets greedy: one linear pass through the eligible inventories, taking as many units of each
+    as still fit in the remaining amount. For the vast majority of orders, that single pass lands exactly on
+    zero. When a gap survives, it backtracks — puts a note back, swaps in different ones — and writes down
+    every gap it fails to close, so even a failure comes out as a diagnosis: <em>the market lacks units at
+    these prices.</em></p>
+    <p>And it is kept on a deliberate leash: at most 10,000 units per trade, at most <strong>three seconds
+    of thinking</strong>. One order failing fast with a useful message beats five thousand orders waiting
+    behind a search that refuses to give up.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    Combinations for the overwhelming majority of orders are found in <strong>milliseconds</strong>, inside
+    a purchase chain whose entire CPU budget is about half a second. The impossible cases fail immediately —
+    and instead of a timeout, they leave behind a list of the missing price points: market feedback, not
+    just an error.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 07</span><h2 style="margin:0; font-size:1.35rem;">The platform attacking itself</h2><span class="era-dates">Oct 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">database load −85%</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>One October morning the monitoring dashboard reported <strong>228,291 database queries in a few
+    hours</strong> — on a system doing almost nothing. We went looking for the traffic and found ourselves.
+    A scheduler ran every minute and, with no duplicate check, had dispatched the same background job
+    <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.
+    The first alarm had been, embarrassingly, the monitoring bill: millions of recorded events per day, all
+    of them faithfully documenting our own waste.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-3.gif" alt="Two identical Spider-Men pointing at each other."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The moment we traced the 228,291 queries back to their source.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>The fixes read like an apology to the database. One composite index turned the hot lookup from a scan
+    into a seek. A cached "last action" column meant roughly 90% of those history queries no longer needed
+    to run at all. And the scheduler grew up: it loads work in batches, skips anything it touched in the
+    last five minutes, checks what is already queued before dispatching again, and staggers its dispatches
+    with a small random delay — so a thousand jobs stop arriving in the very same second.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    Platform query volume dropped roughly <strong>85%</strong> in every environment — one environment alone
+    went from 5.5&nbsp;million to 825&nbsp;thousand queries a day — and monitoring event volume fell about
+    72%, which also ended the debate about observability costs. The report's own conclusion said it best:
+    the monitoring "wasn't the problem — it was faithfully monitoring legitimate performance bottlenecks."
+
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 08</span><h2 style="margin:0; font-size:1.35rem;">The regression the baseline caught</h2><span class="era-dates">Nov 2025</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">2s per order recovered in a week</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>In November, the weekly numbers twitched. The purchase step, steady around seven seconds for weeks,
+    came in at nine — then nearly ten. Nothing had <em>failed</em>: every order completed, no alarms fired,
+    nobody complained. Which is exactly what makes this kind of bug dangerous. Without a baseline, two extra
+    seconds on every order quietly becomes the new normal, and nobody ever asks why.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>The percentile history let us bisect by deployment, and the answer was uncomfortable: the slowdown
+    came from a <em>bug-fix</em>. A certificate had been naming the wrong previous owner; the correction was
+    right, but it did its checking in the middle of every single purchase. We reverted it in production the
+    same week — protecting the step while the fix stayed alive in testing — and then rebuilt the same
+    correction so it did its work off the critical path.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    Purchase times returned to baseline, with the certificate fix intact. The deeper win was cultural: this
+    became the standing proof that <strong>every functional change is also a performance change</strong>
+    until the percentiles say otherwise. Per-step duration tracking was built into the product itself soon
+    after, so today every order records how long each of its steps took.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 09</span><h2 style="margin:0; font-size:1.35rem;">The coded-unit ledger battles</h2><span class="era-dates">2024 – 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">3,300 orders · 100% · ledger intact</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>As Part&nbsp;1 explains, stock lives as individually coded units, each tracked to its owner, with
+    every ownership change appended to a legal ledger by a database trigger. That units table is the
+    hottest object in the platform — one of its indexes alone had served <strong>94&nbsp;million
+    reads</strong> when we first profiled it — and it answers to three masters at once: no two orders may
+    ever hold the same unit, the ledger may never miss a row, and finding eligible units among millions has
+    to stay fast. Almost every scaling battle we fought eventually landed on this table.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we tried — including what failed</span>
+    <p><strong>Exclusive holds took years of iteration:</strong> counters that tolerate crashes without
+    drifting, a repair job for corrupted holds, overlap middleware on the jobs that could collide — and one
+    queue deliberately left at a <em>single worker</em>, because for that step, correctness genuinely could
+    not be parallelized. Knowing when not to scale is also scaling.</p>
+    <p><strong>The table's indexes have a history like a battlefield map:</strong> added, removed, rebuilt
+    as virtual-column composites, extended, pruned again. Every index makes the reads faster and the
+    millions of ownership writes slower, so each one had to earn its keep with measurements — index hygiene
+    became a recurring chore, not a one-time setup.</p>
+    <p><strong>One experiment deserves its own confession.</strong> We added model-level caching to the hot
+    tables to save reads — and months later reverted it for the write-heavy ones, because under real load
+    the caching cost more than it saved. It stung. It is also exactly why we measure.</p>
+    <p><strong>And the trigger met its match at settlement scale.</strong> The per-row trigger guarantees no
+    ledger row is ever missed — and it became the slowest part of bulk settlement. We did not remove the
+    guarantee; we changed who writes. The settlement rewrite produces the very same ledger rows through
+    set-based bulk statements, thousands at a time, with the trigger stepped around only for that audited
+    path.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    March 2026: <strong>3,300 orders, 100% completed</strong> — millions of unit holds, transfers, and
+    ledger rows, with zero double-holds and zero missing links in any chain of ownership. The ledger held at
+    every scale the stress tests ever reached.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 10</span><h2 style="margin:0; font-size:1.35rem;">When the jobs themselves fail</h2><span class="era-dates">2024 – 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">failed job ≠ failed transaction</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Everything in this platform is a job — every step transition, every certificate, every settlement.
+    That is what makes 5,000 concurrent orders possible, and it carries a sober corollary: whatever happens
+    to a job happens to a customer's transaction.</p>
+    <p>In the early platform, a job's life could end three ways, and all of them were bad. A failed job
+    simply <em>died</em> — there was no retry, so a database hiccup lasting one second froze a customer's
+    Murabaha until an engineer went in by hand. Nothing stopped two workers on two different servers from
+    grabbing the same work — and in a system that moves money and transfers ownership, doing something twice
+    is as dangerous as not doing it at all. And when we first added locks to prevent that, the locks never
+    expired: a worker killed mid-job left its lock behind forever, blocking the order with a "max attempts
+    exceeded" error whose cause you could never find — because the cause was a ghost.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we built</span>
+    <p>The platform we run now starts from a different assumption: <em>every job will eventually die
+    mid-flight</em> — the work is making that boring. Jobs retry on their own, waiting 1, 2, 3, 5, then 30
+    seconds between attempts: patient enough for a transient fault to clear, quick enough that the order
+    barely notices. If we had to name the single most important mechanism behind zero failed transactions,
+    it is this one — most failures are temporary, and a platform that retries well simply does not lose
+    them.</p>
+    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong>, so a duplicate
+    dispatch from any server is refused at the queue itself, not caught after the damage. The locks learned
+    to die: they expire shortly after the worker timeout, so a crashed worker's lock heals on its own, and
+    an overlapping dispatch politely re-queues after a short delay instead of burning through its retries on
+    the spot. Even deploys stopped being a hazard — a worker being shut down now finishes or hands back its
+    job instead of taking it to the grave.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    A failed job stopped meaning a failed transaction. Transient faults heal themselves within seconds,
+    duplicates are impossible by construction, and dead workers clean up after themselves. The handful of
+    orders per 5,000-run that still strand — the genuinely non-transient failures — are exactly what the
+    audited admin "Force Forward" tooling exists for. The 99.9%+ completion rates in this article are not
+    the absence of failures. They are failures, handled.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 11</span><h2 style="margin:0; font-size:1.35rem;">The seven seconds between the jobs</h2><span class="era-dates">May – Aug 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>By mid-2026, 5,000-order runs were routine — and the daily test showed the Borrower Ownership step
+    taking <strong>around two minutes</strong> for 4,000 of the 5,000 orders. The decisive clue came from an
+    exercise anyone can copy: we added up the actual CPU time of every job in the purchase step and got
+    <strong>521 milliseconds</strong> — inside a step that observably took <strong>seven and a half
+    seconds</strong>. The code was innocent. The other seven seconds were spent standing in line. And queue
+    wait has a cruel personality: invisible when the system is idle (~0s), noticeable under load (~7s at 91
+    orders a minute), catastrophic at peak (~118 seconds).</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-4.gif" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>Actual footage of a Borrower Ownership job, 0.5 seconds of work done, waiting its turn
+    behind the auto-sell queue.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried — and the bottleneck that moved</span>
+    <p>The fix was to stop making unrelated work share one line. Ownership transfers and auto-sales had been
+    competing for the same eight workers; each got its own dedicated queue on its own server, and the
+    two-minute wait evaporated.</p>
+    <p>Then the fix backfired — upstream. With that backpressure gone, the <em>purchase</em> step nearly
+    tripled, from 3.6 to 9.9 seconds. All the throughput we had just freed slammed into a 700,000-row table
+    that had <strong>no index on the one column every duplicate-check searched</strong> — a full table scan
+    that had been hiding behind the queue the entire time. One index later, the job was back under a
+    second.</p>
+    <p>The rest was housekeeping that only matters at this scale: fifteen log lines per order deleted
+    (about 100&nbsp;MB of logs a day at 5,000 orders), unused indexes dropped to cut write cost, and
+    explicit connection budgets after the full worker fleet exhausted the database's connections.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 240" role="img" aria-label="Before: Borrower Ownership and auto-sell jobs shared one eight-worker queue, with queue wait growing to about 118 seconds at peak. After: each job type has a dedicated queue on a separate server and wait drops to near zero.">
+      <defs>
+        <marker id="arr-q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
+        </marker>
+        <marker id="arr-qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      <line x1="360" y1="10" x2="360" y2="230" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"></line>
+      <g font-size="11" font-family="ui-monospace, Menlo, monospace" letter-spacing="1">
+        <text x="14" y="26" fill="var(--incident)">BEFORE · ONE SHARED QUEUE</text>
+        <text x="384" y="26" fill="var(--accent)">AFTER · DEDICATED QUEUES</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="14" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="14" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="89" y="70">Borrower Ownership</text>
+        <text x="89" y="130">Auto-sell to market</text>
+      </g>
+      <rect x="204" y="68" width="140" height="56" rx="3" fill="var(--incident-soft)" stroke="var(--incident)" stroke-width="1.5" class="qpulse"></rect>
+      <g fill="currentColor" font-size="11" text-anchor="middle">
+        <text x="274" y="90">shared processing queue</text>
+        <text x="274" y="107" opacity="0.7">8 workers, one host</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none" class="flow-slow">
+        <line x1="164" y1="66" x2="200" y2="86" marker-end="url(#arr-q)"></line>
+        <line x1="164" y1="126" x2="200" y2="106" marker-end="url(#arr-q)"></line>
+      </g>
+      <text x="274" y="152" font-size="10.5" fill="var(--incident)" text-anchor="middle">both job types compete</text>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="179" y="186" fill="currentColor" opacity="0.75">queue wait: ~0s idle →</text>
+        <text x="179" y="203" fill="var(--incident)" font-weight="700">~118s at sustained peak</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="384" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="384" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="459" y="70">Borrower Ownership</text>
+        <text x="459" y="130">Auto-sell to market</text>
+      </g>
+      <g fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5">
+        <rect x="572" y="48" width="136" height="36" rx="3"></rect>
+        <rect x="572" y="108" width="136" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="10" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="640" y="63">ownership queue</text>
+        <text x="640" y="77" opacity="0.7">dedicated workers</text>
+        <text x="640" y="123">sell queue</text>
+        <text x="640" y="137" opacity="0.7">dedicated workers</text>
+      </g>
+      <g stroke="var(--accent)" stroke-width="1.6" fill="none" class="flow-fast">
+        <line x1="534" y1="66" x2="568" y2="66" marker-end="url(#arr-qa)"></line>
+        <line x1="534" y1="126" x2="568" y2="126" marker-end="url(#arr-qa)"></line>
+      </g>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="546" y="186" fill="currentColor" opacity="0.75">job runtime ~1s ·</text>
+        <text x="546" y="203" fill="var(--accent)" font-weight="700">queue wait ≈ 0</text>
+      </g>
+    </svg>
+    <figcaption>The queue split at the heart of Case 11. The jobs themselves ran in
+    about one second; nearly all of the two-minute step was waiting behind auto-sell jobs in one shared
+    8-worker queue. Splitting them removed the wait — and promptly exposed the missing index upstream.</figcaption>
+  </figure>
+
+  <div class="metric">
+    <span class="tag">The result</span>
+    5,000-order runs became a <strong>routine daily test</strong>, with the order-creation API averaging
+    ~1.2 seconds while the pipeline runs at full load. Every queue split, though, leaves something new to
+    run — which is how a platform that began with three worker containers ended up with a fleet to manage.
+    That is the next case.
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 12</span><h2 style="margin:0; font-size:1.35rem;">Running a fleet, not a server</h2><span class="era-dates">2025 – 2026</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 workers → ~120, each one justified</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Splitting queues, as Case&nbsp;11 shows, is how you stop unrelated work from queuing behind itself.
+    But every split leaves you with something new to run — and by 2026 the platform was no longer "an
+    application on a server." It was <strong>23 different queues and roughly 120 worker processes spread
+    across three machines</strong>, each one a small daemon holding database connections, consuming memory,
+    and capable of ruining the others' day.</p>
+    <p>Nobody designs that on day one. It accumulates, and it accumulates asymmetrically: a queue that was
+    busy in March is idle in July, a queue nobody predicted becomes the bottleneck overnight, and the two
+    servers you sized identically turn out to be doing wildly different amounts of work. Left unmanaged, a
+    worker fleet develops exactly the problems a city does — congestion in one district, empty streets in
+    another, and infrastructure nobody remembers approving.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">How we manage it</span>
+    <p><strong>Every worker count is an argument, not a default.</strong> The fleet is described in one
+    place — a deployment script that assigns each queue its worker count per machine — so the whole topology
+    is reviewable in a code review rather than discovered by SSH-ing into a box. When a number changes, the
+    reason is in the commit.</p>
+    <p><strong>We add workers where the measurements point.</strong> The trader-order queue went from 5 to
+    10 when timing data showed jobs waiting rather than working. The unit-creation queue was scaled to 8
+    and 16 on different machines when it became the new tail of the purchase step. Ownership and auto-sell
+    got their own dedicated queues on separate machines (Case&nbsp;11).</p>
+    <p><strong>And we remove them just as deliberately.</strong> Dead queues left over from old flows were
+    deleted; a misleadingly named worker was renamed to what it actually did — with its old queue drained
+    first, because renaming a queue while jobs are still sitting in it is how you lose transactions. One
+    queue is deliberately pinned at a <em>single worker</em> forever: the step where parallelism cannot be
+    made safe. In a document full of scaling-up decisions, the most important number in the fleet is a
+    one.</p>
+    <p><strong>The failures here are their own genre.</strong> A duplicate scale flag once silently halved a
+    queue's workers — the kind of bug that produces no error, just a slower system. A single broken anchor
+    in a compose file blocked <em>every</em> deployment until it was found. And the day the full fleet came
+    up at once, it exhausted the database's connection limit — because 120 workers politely holding two
+    connections each is 240 connections nobody had budgeted for. Now every environment has an explicit
+    connection budget, and smaller environments run deliberately small.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    The fleet grew from <strong>3 worker containers to ~120 processes across 3 machines</strong> — and
+    unlike the platform of 2024, we can say why each one exists. The same discipline now runs in reverse:
+    with the workload measured, we are consolidating three machines into two while keeping total queue
+    concurrency identical, because the goal was never "more workers." It was <em>the right workers, in the
+    right places, for reasons written down.</em>
+  </div>
+</section>
+
+<section class="era">
+  <div class="era-head"><span class="era-no">CASE 13</span><h2 style="margin:0; font-size:1.35rem;">The boring failures</h2><span class="era-dates">Throughout</span></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">surprises moved out of production</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Not every scale failure is clever. The stress-test program kept tripping over limits nobody had ever
+    written down: a test server's disk at 98% (December 2024), and stress-test environments filling their
+    disks with logs again in March 2026. A <code>smallint</code> column that overflowed when test data
+    pushed past <strong>32,000 registered companies</strong> — the database equivalent of an odometer
+    rolling over. The default 60-second job timeout. The day the full worker fleet exhausted the database's
+    connections. Deploys that killed whatever jobs were running.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-5.gif" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The platform at 98% disk usage, moments before our first stuck-orders investigation.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">What we tried</span>
+    <p>Each one got the boring fix it deserved: standardized log rotation, wider column types, explicit
+    connection budgets per environment (smaller environments hold ~28 database connections instead of ~86 at
+    full scale), graceful worker shutdown. But the real fix is the habit around them: the stress tests run
+    <strong>daily</strong> precisely so that the next limit nobody wrote down fails in a test, in
+    pre-production, at dawn — instead of in production, at noon, with customers watching.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    The last classes of surprise moved from production incidents to test findings. What still strands at
+    5,000-order scale — a handful of orders per campaign — is handled operationally: an audited per-step
+    "Force Forward" action for admins, with automatic order expiry as the second safety net.
+  </div>
+</section>
+
+
+<section class="era">
+  <div class="era-head"><span class="era-no">RECORD</span><h2 style="margin:0; font-size:1.35rem;">The scaling ladder</h2><span class="era-dates">2024 – 2026</span></div>
+
+  <figure>
+    <svg viewBox="0 0 720 350" role="img" aria-label="Bar chart of stress-test scale by date, growing from 31 orders in December 2024 to 5,200 orders in April 2026 and routine 5,000-order daily runs from June 2026.">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="105" y1="8" x2="105" y2="314"></line>
+        <line x1="212.7" y1="8" x2="212.7" y2="314"></line>
+        <line x1="320.4" y1="8" x2="320.4" y2="314"></line>
+        <line x1="428.1" y1="8" x2="428.1" y2="314"></line>
+        <line x1="535.8" y1="8" x2="535.8" y2="314"></line>
+        <line x1="643.5" y1="8" x2="643.5" y2="314"></line>
+      </g>
+      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.55" text-anchor="middle">
+        <text x="105" y="332">0</text>
+        <text x="212.7" y="332">1,000</text>
+        <text x="320.4" y="332">2,000</text>
+        <text x="428.1" y="332">3,000</text>
+        <text x="535.8" y="332">4,000</text>
+        <text x="643.5" y="332">5,000</text>
+      </g>
+      <g font-size="11.5" fill="currentColor" opacity="0.8" text-anchor="end">
+        <text x="95" y="30">Dec 2024</text>
+        <text x="95" y="64">Jan 2025</text>
+        <text x="95" y="98">May 2025</text>
+        <text x="95" y="132">Jun 2025</text>
+        <text x="95" y="166">Aug 2025</text>
+        <text x="95" y="200">Feb 2026</text>
+        <text x="95" y="234">Mar 2026</text>
+        <text x="95" y="268">Apr 2026</text>
+        <text x="95" y="302">Jun 2026 →</text>
+      </g>
+      <g fill="var(--accent)">
+        <rect class="bar" style="animation-delay:0.05s" x="105" y="16" width="3.3" height="20" rx="1.5"></rect>
+        <rect class="bar" style="animation-delay:0.15s" x="105" y="50" width="3" height="20" rx="1.5"></rect>
+        <rect class="bar" style="animation-delay:0.25s" x="105" y="84" width="41.8" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.35s" x="105" y="118" width="57.6" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.45s" x="105" y="152" width="107.7" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.55s" x="105" y="186" width="269.2" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.65s" x="105" y="220" width="355.4" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.75s" x="105" y="254" width="560" height="20" rx="2"></rect>
+        <rect class="bar" style="animation-delay:0.85s" x="105" y="288" width="538.5" height="20" rx="2" opacity="0.55"></rect>
+      </g>
+      <g font-size="11" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.85" class="blabel" style="animation-delay:1.3s">
+        <text x="115" y="30">31</text>
+        <text x="115" y="64">10</text>
+        <text x="153" y="98">388</text>
+        <text x="169" y="132">535</text>
+        <text x="219" y="166">1,000</text>
+        <text x="381" y="200">2,500 × 5 runs</text>
+        <text x="467" y="234">3,300</text>
+        <text x="658" y="268" text-anchor="end" fill="var(--bg)" opacity="0.95" font-weight="700">5,200</text>
+        <text x="636" y="302" text-anchor="end" fill="var(--bg)" opacity="0.95">5,000 daily</text>
+      </g>
+    </svg>
+    <figcaption>Largest successful stress-test scale per period, in orders per run. The bars for 31 and 10 orders are drawn at minimum visible width — at this scale they are two pixels, which is the point. The lighter final bar marks 5,000-order runs becoming a routine daily test rather than a one-off campaign.</figcaption>
+  </figure>
+
+  <div class="tablebox">
+    <table>
+      <tr><th>Date</th><th>Test scale</th><th>Outcome</th></tr>
+      <tr><td class="num">Dec 2024</td><td class="num">31 orders</td><td>3 stuck &gt;20 min; 10-order retest passed — root cause: disk 98% full</td></tr>
+      <tr><td class="num">Jan 2025</td><td class="num">10 orders</td><td>4 of 10 stuck in Purchasing Commodity</td></tr>
+      <tr><td class="num">May 2025</td><td class="num">388 orders / hr</td><td>Handful stuck at initiation and ownership</td></tr>
+      <tr><td class="num">Jun 2025</td><td class="num">535 orders</td><td>534 completed — first full auto-sell cycle</td></tr>
+      <tr><td class="num">Aug 2025</td><td class="num">1,000 orders</td><td>Post-fix: P95 13s, zero orders over 15s</td></tr>
+      <tr><td class="num">Feb 2026</td><td class="num">2,500 × 5 runs</td><td>99.92–100% success, ~48–50 min per run</td></tr>
+      <tr><td class="num">Mar 2026</td><td class="num">3,300 orders</td><td>100% completed</td></tr>
+      <tr><td class="num">Apr 2026</td><td class="num">5,200 orders</td><td>99.94% — 3 stuck, end-to-end</td></tr>
+      <tr><td class="num">Jun 2026 →</td><td class="num">5,000 orders</td><td>Routine daily performance test; create-order API ~1.2s avg</td></tr>
+    </table>
+  </div>
+</section>
+
+
+<section class="era">
+  <div class="era-head"><span class="era-no">DECISIONS</span><h2 style="margin:0; font-size:1.35rem;">Business logic as a performance lever</h2><span class="era-dates">Throughout</span></div>
+  <p style="margin-top:1rem;">
+    Threaded through the cases above are wins that were not technical at all — product decisions about what
+    the Murabaha flow actually requires:
+  </p>
+  <ul>
+    <li><strong>Auto Complete Sell.</strong> Allowing companies to opt into automatic contract, wakala, and
+      sell steps is what made unattended 5,000-order runs possible at all — and mirrors how high-volume
+      lenders want to operate.</li>
+    <li><strong>Certificates on demand.</strong> Sharia-required documents are still produced — but at
+      download time, off the order's critical path (Case 04).</li>
+    <li><strong>Trade rotation count.</strong> A controlled pre-production A/B (five 2,500-order runs before
+      and after) proved that reducing commodity trade rotations from 2 to 1 carried <em>no performance
+      penalty</em>, clearing the way for the Specialized Entity flow on business merits alone.</li>
+    <li><strong>Force Forward.</strong> At scale, some tiny fraction of orders will always strand.
+      Rather than database surgery by engineers, admins got an audited per-step "force forward" action,
+      with automatic order expiry as the second safety net.</li>
+    <li><strong>A standing performance program.</strong> Weekly (now daily) pre-production stress tests with
+      recorded percentiles, quarterly performance epics, and dedicated worst-case scenarios — performance
+      became a product feature with an owner, not an emergency.</li>
+  </ul>
+</section>
+
+
+<section class="era">
+  <div class="era-head"><span class="era-no">LESSONS</span><h2 style="margin:0; font-size:1.35rem;">What two years taught us</h2></div>
+  <ul style="margin-top:1rem;">
+    <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
+      means the code is innocent; the queue topology is the product (Case 11).</li>
+    <li><strong>Every fix moves the bottleneck.</strong> Removing backpressure downstream will expose the next
+      unindexed query upstream. Budget for the second-order effect before celebrating the first (Case 11).</li>
+    <li><strong>Every job will eventually die mid-flight.</strong> Retries with escalating backoff,
+      per-order uniqueness, and self-expiring locks turned "failed job" from a stuck transaction into a
+      non-event — retrying well is how you reach zero failed transactions (Case 10).</li>
+    <li><strong>Measurement must precede tuning.</strong> Per-step durations, weekly percentiles, and timing
+      logs turned arguments into diffs. Our worst regression was caught in one week because a baseline
+      existed (Case 08).</li>
+    <li><strong>The best optimization is not doing the work.</strong> Two engineering attempts made PDF
+      generation faster; one business conversation made most of it unnecessary (Case 04).</li>
+    <li><strong>A worker fleet needs an owner.</strong> Twenty-three queues and 120 workers only stay
+      sane if every count is justified in code review and removed as deliberately as it was added
+      (Case 12).</li>
+    <li><strong>Scale failures are usually boring.</strong> Full disks (twice), a smallint overflow, a default
+      60-second timeout, and log volume did as much damage as any deadlock (Case 13).</li>
+    <li><strong>Isolation levels and locks are product decisions in disguise.</strong> READ COMMITTED, dropped
+      foreign keys, trigger bypasses, and a deliberately single-threaded queue were all conscious trades of
+      theoretical strictness for real-world correctness under load (Cases 02, 09).</li>
+    <li><strong>Keep the failed experiments on the record.</strong> The caching that hurt, the fix that
+      regressed, the timeout raise that only bought time — the retries are where the understanding came
+      from.</li>
+    <li><strong>The last 0.1% needs an operational answer, not a code one.</strong> At 5,000 orders, 99.9%
+      success still strands five orders. Force-forward tooling and auto-expiry close the loop (Case 13).</li>
+  </ul>
+  <p>
+    Ten orders once broke the platform. Today, five thousand are a daily routine — and the same discipline
+    that got us here (measure, split, index, budget, re-measure) is already pointed at the next order of
+    magnitude.
+  </p>
+</section>
+
+</div>
+
+<style is:global>
+.lynk-post { --bg: #FAF9F6;
+    --ink: #1B2420;
+    --muted: #5C6A63;
+    --accent: #0E7A5F;
+    --accent-soft: #E3EFEA;
+    --incident: #A06F1F;
+    --incident-soft: #F6EEDD;
+    --line: #E2E1DA;
+    --card: #F2F1EB; }
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post { --bg: #121815;
+      --ink: #E5EAE6;
+      --muted: #93A29A;
+      --accent: #45C29B;
+      --accent-soft: #1A2B25;
+      --incident: #D8A24C;
+      --incident-soft: #2A2416;
+      --line: #27302B;
+      --card: #1A211D; --bg: #121815;
+    --ink: #E5EAE6;
+    --muted: #93A29A;
+    --accent: #45C29B;
+    --accent-soft: #1A2B25;
+    --incident: #D8A24C;
+    --incident-soft: #2A2416;
+    --line: #27302B;
+    --card: #1A211D; }
+.lynk-post .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 0 5rem; }
+.lynk-post .serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+.lynk-post .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.lynk-post header.hero { border-bottom: 1px solid var(--line); padding-bottom: 2.25rem; margin-bottom: 2.75rem; }
+.lynk-post .kicker {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 1.1rem;
+  }
+.lynk-post h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(2.1rem, 5.5vw, 3.15rem);
+    line-height: 1.12; font-weight: 500; margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+.lynk-post .standfirst { font-size: 1.08rem; color: var(--muted); max-width: 40rem; margin: 0 0 2rem; }
+.lynk-post .standfirst strong { color: var(--ink); font-weight: 600; }
+.lynk-post .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.lynk-post .stat { background: var(--bg); padding: 0.9rem 1rem 1rem; }
+.lynk-post .stat .n {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+    font-size: 1.45rem; font-weight: 600; color: var(--accent); display: block; line-height: 1.2;
+  }
+.lynk-post .stat .l { font-size: 0.76rem; color: var(--muted); letter-spacing: 0.02em; }
+.lynk-post .era { margin: 3.25rem 0 0; }
+.lynk-post .era-head { display: flex; align-items: baseline; gap: 0.85rem; border-top: 2px solid var(--ink); padding-top: 0.85rem; }
+.lynk-post .era-no { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.lynk-post .era-dates {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+    margin-left: auto; white-space: nowrap;
+  }
+.lynk-post h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.55rem; font-weight: 500; line-height: 1.25; margin: 0.35rem 0 0.9rem; text-wrap: balance;
+  }
+.lynk-post h3 { font-size: 1.02rem; font-weight: 650; margin: 1.6rem 0 0.5rem; }
+.lynk-post p { margin: 0 0 1rem; }
+.lynk-post a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.lynk-post ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+.lynk-post li { margin-bottom: 0.45rem; }
+.lynk-post .tk { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.82em; color: var(--muted); white-space: nowrap; }
+.lynk-post code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.86em; background: var(--card); padding: 0.1em 0.35em; border-radius: 3px; }
+.lynk-post .incident, .lynk-post .attempt, .lynk-post .metric {
+    padding: 0.85rem 1.1rem; margin: 1.25rem 0; font-size: 0.95rem;
+  }
+.lynk-post .incident { border-left: 3px solid var(--incident); background: var(--incident-soft); }
+.lynk-post .attempt { border-left: 3px solid var(--muted); background: var(--card); }
+.lynk-post .metric { border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.lynk-post .incident .tag, .lynk-post .attempt .tag, .lynk-post .metric .tag {
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; margin-bottom: 0.35rem;
+  }
+.lynk-post .incident .tag { color: var(--incident); }
+.lynk-post .attempt .tag { color: var(--muted); }
+.lynk-post .metric .tag { color: var(--accent); }
+.lynk-post .incident p:last-child, .lynk-post .attempt p:last-child, .lynk-post .metric p:last-child, .lynk-post .incident ul:last-child, .lynk-post .attempt ul:last-child, .lynk-post .metric ul:last-child { margin-bottom: 0; }
+.lynk-post .tablebox { overflow-x: auto; margin: 1.25rem 0; border: 1px solid var(--line); }
+.lynk-post table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+.lynk-post th {
+    text-align: left; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line); background: var(--card);
+    white-space: nowrap;
+  }
+.lynk-post td { padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lynk-post tr:last-child td { border-bottom: none; }
+.lynk-post td.num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lynk-post figure { margin: 1.75rem 0; }
+.lynk-post figure svg { max-width: 100%; height: auto; display: block; }
+.lynk-post figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 0.6rem; max-width: 40rem; }
+.lynk-post .impact-pill {
+    display: inline-flex; align-items: baseline; gap: 0.6rem;
+    margin: 0.9rem 0 0; padding: 0.3rem 0.9rem;
+    border: 1px solid var(--accent); border-radius: 999px; background: var(--accent-soft);
+  }
+.lynk-post .impact-pill .lab {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+  }
+.lynk-post .impact-pill .val {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+    font-size: 0.85rem; font-weight: 700; color: var(--ink);
+  }
+@media (prefers-reduced-motion: no-preference) {.lynk-post .bar { transform-box: fill-box; transform-origin: left center; animation: growbar 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }.lynk-post .blabel { animation: fadein 0.6s ease-out backwards; }.lynk-post .flow-slow { stroke-dasharray: 5 5; animation: dash10 6s linear infinite; }.lynk-post .flow-fast { stroke-dasharray: 5 5; animation: dash10 0.9s linear infinite; }.lynk-post .qpulse { animation: qpulse 2.4s ease-in-out infinite; }.lynk-post .pop-slow { transform-box: fill-box; transform-origin: center; animation: docpop 3.3s linear infinite; }.lynk-post .pop-fast { transform-box: fill-box; transform-origin: center; animation: docpop 0.47s linear infinite; }.lynk-post .pop-demand { transform-box: fill-box; transform-origin: center; animation: docpop 8s linear infinite; }.lynk-post .click-ring { transform-box: fill-box; transform-origin: center; animation: clickring 8s linear infinite; }.lynk-post @keyframes growbar { from { transform: scaleX(0); } }.lynk-post @keyframes fadein { from { opacity: 0; } }.lynk-post @keyframes dash10 { to { stroke-dashoffset: -100; } }.lynk-post @keyframes qpulse { 0%, 100% { fill-opacity: 1; } 50% { fill-opacity: 0.5; } }.lynk-post @keyframes docpop { 0% { opacity: 0; transform: scale(0.85); } 8% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }.lynk-post @keyframes clickring { 0% { opacity: 0; transform: scale(0.6); } 3% { opacity: 0.9; } 10% { opacity: 0; transform: scale(1.7); } 100% { opacity: 0; } }}
+.lynk-post .prev {
+    margin: 0 0 2rem; border: 1px solid var(--line); background: var(--card);
+    padding: 0.8rem 1.1rem; font-size: 0.9rem;
+  }
+.lynk-post .prev .tag {
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.25rem;
+  }
+.lynk-post .refs { border-top: 1px solid var(--line); margin-top: 3.5rem; padding-top: 1.5rem; font-size: 0.82rem; color: var(--muted); }
+.lynk-post .refs h2 { font-size: 1.1rem; }
+.lynk-post footer { margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
+
+.lynk-post { font-size: 1rem; }
+.lynk-post figure img { border: 1px solid var(--line); border-radius: 6px; }
+</style>

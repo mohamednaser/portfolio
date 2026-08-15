@@ -1,0 +1,747 @@
+---
+// Article body for /blog/commodity-murabaha-platform/
+---
+
+<div class="lynk-post">
+
+
+<section class="section">
+  <div class="section-head"><span class="section-no">SECTION 01</span><h2 style="margin:0; font-size:1.35rem;">What LYNK is, and what we do</h2></div>
+  <p style="margin-top:1rem;">
+    LYNK is a Saudi fintech platform that provides the infrastructure for <strong>commodity Murabaha
+    financing</strong>. When a bank or finance company wants to extend Sharia-compliant financing to a
+    customer — a personal loan, an SME facility, a credit card settlement — the funds cannot simply be lent
+    at interest. Instead, the financing must be structured as a real trade: the institution buys a genuine
+    commodity, sells it to the customer at cost plus an agreed profit (the <em>Murabaha</em>), and the
+    customer sells it on for liquidity. LYNK is the marketplace and execution engine that makes that entire
+    trade real, digital, and fast.
+  </p>
+  <p>In practice, we operate three things:</p>
+  <ul>
+    <li><strong>A commodity marketplace.</strong> LYNK runs a local commodity market where approved suppliers
+      list real inventory — steel, gasoline, and other qualifying goods — tracked down to the individual unit,
+      with live availability and pricing. For institutions that prefer international commodities, LYNK also
+      integrates directly with Bursa Malaysia's Suq Al-Sila' (BSAS) commodity trading platform.</li>
+    <li><strong>An execution engine.</strong> Financial institutions create Murabaha orders through the LYNK
+      portal or entirely through our API from their own loan-origination systems. Orders can run in
+      <em>manual</em> mode, where an officer confirms each step, or in <em>AUTO</em> mode, where the whole
+      cycle — purchase, ownership transfer, sale, completion — executes without human intervention.</li>
+    <li><strong>The record of the trade.</strong> Every step produces its legal evidence: purchase
+      confirmations, wakala (agency) agreements, ownership certificates, and sell confirmations, plus
+      wallets, settlement, and SADAD invoicing around the money side.</li>
+  </ul>
+  <h3>One machine, many financial products</h3>
+  <p>
+    The same Murabaha machinery serves very different financial products. What changes between them is
+    <em>who the parties are</em> and <em>what the financing is for</em> — never the legal sequence of the
+    trade itself:
+  </p>
+  <div class="tablebox">
+    <table>
+      <tr><th>Product</th><th>Lender</th><th>Borrower</th><th>What it serves</th></tr>
+      <tr>
+        <td><strong>Normal lending</strong></td>
+        <td>The financial institution</td>
+        <td>The institution's customer</td>
+        <td>Classic Murabaha: personal finance, SME facilities, credit-card settlement</td>
+      </tr>
+      <tr>
+        <td><strong>SPV</strong> <span style="white-space:nowrap; color:var(--muted); font-size:0.85em;">(Special Purpose Vehicle)</span></td>
+        <td>An SPV — a separate legal entity the institution creates to isolate financial risk</td>
+        <td>The financial institution itself</td>
+        <td>Structured finance: large or specialized Murabaha deals, ring-fenced from the institution</td>
+      </tr>
+      <tr>
+        <td><strong>Time deposit</strong></td>
+        <td>A client placing funds with the institution for a fixed term</td>
+        <td>The financial institution itself</td>
+        <td>A Murabaha-based investment: the deposit earns profit through Murabaha — the Sharia-compliant
+            alternative to an interest-bearing term deposit</td>
+      </tr>
+      <tr>
+        <td><strong>SPE</strong> <span style="white-space:nowrap; color:var(--muted); font-size:0.85em;">(Special Purpose Entity)</span></td>
+        <td>An external third party</td>
+        <td>An external customer</td>
+        <td>Murabaha execution as a service: the institution manages the entire transaction between two
+            independent parties without being either party to the contract</td>
+      </tr>
+    </table>
+  </div>
+  <p>
+    Note what the table implies for the machinery. In normal lending the institution is the lender; in SPV
+    and time-deposit orders <strong>the same Murabaha flow runs in reverse</strong> — the institution becomes
+    the borrower, commodity ownership starts under the external lender's name, and every certificate is
+    issued accordingly. SPE then combines both: an external lender <em>and</em> an external customer, with
+    the institution purely as transaction manager. Yet all four products run through the <em>same</em>
+    pipeline, the same coded commodity units, and the same ownership ledger — the ownership flow simply
+    supports the institution being lender, borrower, or neither. One performance investment serves every
+    product at once.
+  </p>
+  <p>
+    The products are also part of the scaling story. Before SPV and time deposit became first-class products,
+    each such deal was executed through a workaround: manually registering a new company to represent the
+    SPV or deposit client, order by order. That workaround at volume pushed the platform past 32,000
+    registered entities — exactly the kind of scale event Part&nbsp;2 is about — and turning these flows
+    into proper financial products with a reversed ownership flow removed it.
+  </p>
+  <p>
+    Our clients are the financial institutions; their customers are the borrowers and depositors; the
+    suppliers and traders provide the commodity side of the market; and LYNK administrators oversee the
+    whole exchange. The platform's job is to let an institution turn "approve this financing" into a
+    completed, fully documented, Sharia-valid trade — in seconds.
+  </p>
+</section>
+
+
+<section class="section">
+  <div class="section-head"><span class="section-no">SECTION 02</span><h2 style="margin:0; font-size:1.35rem;">The Murabaha process — and why every step must happen</h2></div>
+  <p style="margin-top:1rem;">
+    A commodity Murabaha on LYNK is a sequence of real transactions, each with a distinct legal meaning.
+    Nothing in this sequence is ceremonial; each step transfers actual ownership of actual commodity units,
+    and each must complete before the next may begin.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 760 235" role="img" aria-label="The commodity travels from the market to the financial institution, then to the customer as the Murabaha sale, then back to the open market for cash; payment flows in the opposite direction at each hop.">
+      <defs>
+        <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+        <marker id="arr-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.55"></path>
+        </marker>
+      </defs>
+      
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="10"  y="85" width="160" height="64" rx="3"></rect>
+        <rect x="207" y="85" width="160" height="64" rx="3"></rect>
+        <rect x="404" y="85" width="160" height="64" rx="3"></rect>
+        <rect x="601" y="85" width="150" height="64" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="12.5" font-weight="600" text-anchor="middle">
+        <text x="90"  y="112">Local market</text>
+        <text x="287" y="112">Financial</text>
+        <text x="484" y="112">Customer</text>
+        <text x="676" y="112">Open market /</text>
+        <text x="90"  y="129" font-weight="400" opacity="0.65" font-size="11.5">supplier inventory</text>
+        <text x="287" y="129">institution</text>
+        <text x="484" y="129" font-weight="400" opacity="0.65" font-size="11.5">(borrower)</text>
+        <text x="676" y="129">Spec. Entity</text>
+      </g>
+      
+      <g stroke="var(--accent)" stroke-width="2" fill="none" class="flow-commodity">
+        <line x1="170" y1="100" x2="203" y2="100" marker-end="url(#arr-a)"></line>
+        <line x1="367" y1="100" x2="400" y2="100" marker-end="url(#arr-a)"></line>
+        <line x1="564" y1="100" x2="597" y2="100" marker-end="url(#arr-a)"></line>
+      </g>
+      
+      <g stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="4 3" fill="none" class="flow-payment">
+        <line x1="203" y1="136" x2="170" y2="136" marker-end="url(#arr-m)"></line>
+        <line x1="400" y1="136" x2="367" y2="136" marker-end="url(#arr-m)"></line>
+        <line x1="597" y1="136" x2="564" y2="136" marker-end="url(#arr-m)"></line>
+      </g>
+      
+      <g fill="var(--accent)" font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="187" y="64">1 · PURCHASE</text>
+        <text x="384" y="64">2 · MURABAHA SALE</text>
+        <text x="581" y="64">3 · SALE FOR CASH</text>
+      </g>
+      <g fill="currentColor" opacity="0.75" font-size="10.5" text-anchor="middle">
+        <text x="187" y="79">real units, held</text>
+        <text x="384" y="79">cost + profit, deferred</text>
+        <text x="581" y="79">via wakala, distinct buyer</text>
+      </g>
+      
+      <g fill="currentColor" opacity="0.6" font-size="10.5" text-anchor="middle">
+        <text x="187" y="165">cash price</text>
+        <text x="384" y="165">instalments</text>
+        <text x="581" y="165">liquidity to customer</text>
+      </g>
+      
+      <g font-size="10.5">
+        <line x1="10" y1="205" x2="40" y2="205" stroke="var(--accent)" stroke-width="2"></line>
+        <text x="48" y="209" fill="currentColor" opacity="0.75">commodity ownership</text>
+        <line x1="200" y1="205" x2="230" y2="205" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="4 3"></line>
+        <text x="238" y="209" fill="currentColor" opacity="0.75">payment</text>
+      </g>
+    </svg>
+    <figcaption>The Murabaha trade cycle: ownership of real commodity units moves market → institution → customer → market, with payment flowing back at each hop. Each transfer is a genuine sale evidenced by certificate — and the sequence cannot be reordered.</figcaption>
+  </figure>
+
+  <ol class="steps">
+    <li><span><span class="st">Order created &amp; approved</span>
+      <span class="sd">The institution submits the financing order — amount, customer, market, commodity
+      preferences. Depending on its roles setup, a supervisor approves it. A trade request is born.</span></span></li>
+    <li><span><span class="st">Purchasing Commodity</span>
+      <span class="sd">The platform finds eligible commodity units on the market that cover the financing
+      amount, places them on hold, and executes the purchase. The institution now genuinely owns specific,
+      identified units of a real commodity. Sharia requires this ownership to be real — you cannot sell
+      what you do not own.</span></span></li>
+    <li><span><span class="st">Borrower Ownership</span>
+      <span class="sd">The institution sells the commodity to the customer at cost plus the agreed profit,
+      payable in instalments — this sale <em>is</em> the Murabaha. Ownership of the units transfers to the
+      customer, evidenced by certificate.</span></span></li>
+    <li><span><span class="st">Sale to market</span>
+      <span class="sd">The customer — typically through a wakala appointing the institution or platform as
+      agent — sells the commodity back to the open market for cash. This provides the liquidity the customer
+      needed. The commodity must move to a genuinely different buyer, which is why trade-rotation rules
+      and, in newer flows, a Specialized Entity govern who may buy it.</span></span></li>
+    <li><span><span class="st">Murabaha Completed &amp; settlement</span>
+      <span class="sd">Funds flow to the customer, certificates are finalized, the order completes, and the
+      commodity units settle back into the market's books, ready to serve a future order.</span></span></li>
+  </ol>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-1.png"
+         alt="LYNK's Murabaha Details screen showing all five steps completed with green checkmarks: Purchasing Commodity in 1 second with its commodity certificate, Contract Signed in 28 seconds confirmed via API by the lender, Borrower Ownership Certificate in 0 seconds with its certificate, Client Wakala in 0 seconds, and Murabaha Completed in 0 seconds with the sell confirmation certificate — on 15 August 2026."
+         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>The process as users see it: a real order completing every legal step, with a downloadable
+    certificate generated at each transfer of ownership. The platform's own steps are near-instant —
+    Purchasing Commodity in 1 second, Borrower Ownership, Client Wakala, and Murabaha Completed in 0 seconds
+    each. The only wait, 28 seconds at Contract Signed, is the lender confirming through their own API —
+    the customer's time, not the machine's.</figcaption>
+  </figure>
+
+  <h3>Stock is code — and every code must be traceable to its owner</h3>
+  <p>
+    The deepest consequence of the legal structure sits in how stock exists at all. On LYNK, a supplier's
+    registered stock is not a quantity in a column — it is <strong>minted into individual units, each
+    represented by its own unique code</strong>. Sharia requires the sale of identified, specified goods,
+    not an abstract balance: when an institution buys "500 units of steel," it must be knowable
+    <em>which</em> 500 units, and when the customer takes ownership, those exact coded units must now
+    belong to that customer.
+  </p>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-2.gif" alt="A busy commodity warehouse with tall racks of stock and workers moving pallets."
+         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>A commodity market is a real warehouse before it is a database. LYNK's job is to give every
+    unit on those shelves a code, an owner, and a history.</figcaption>
+  </figure>
+  <p>
+    So every unit lives as its own record carrying its code, its status (free or reserved), which order is
+    holding it, who owns it now, and who owned it before. And every time ownership changes hands, the
+    database itself — via a trigger, so no code path can forget — appends a row to an
+    <strong>append-only ownership ledger</strong>. Pick any unit code, at any time, and the platform can
+    replay its full legal history: supplier → institution → customer → market, order by order.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 720 342" role="img" aria-label="Supplier stock is minted into individually coded units; one unit moves from free, to held by an order, to owned by the customer; every ownership change appends a row to an append-only ledger.">
+      <defs>
+        <marker id="arr-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
+        </marker>
+        <marker id="arr-ua" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      
+      <rect x="10" y="18" width="160" height="52" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+      <text x="90" y="40" font-size="12" font-weight="600" fill="currentColor" text-anchor="middle">Supplier stock</text>
+      <text x="90" y="57" font-size="10.5" fill="currentColor" opacity="0.65" text-anchor="middle">e.g. 500 units of steel</text>
+      <line x1="170" y1="44" x2="248" y2="44" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" marker-end="url(#arr-u)"></line>
+      <text x="209" y="32" font-size="10.5" fill="currentColor" opacity="0.7" text-anchor="middle">minted</text>
+      
+      <g fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1">
+        <rect x="258" y="26" width="16" height="16" rx="2"></rect><rect x="280" y="26" width="16" height="16" rx="2"></rect><rect x="302" y="26" width="16" height="16" rx="2"></rect><rect x="324" y="26" width="16" height="16" rx="2"></rect><rect x="346" y="26" width="16" height="16" rx="2"></rect><rect x="368" y="26" width="16" height="16" rx="2"></rect><rect x="390" y="26" width="16" height="16" rx="2"></rect><rect x="412" y="26" width="16" height="16" rx="2"></rect><rect x="434" y="26" width="16" height="16" rx="2"></rect><rect x="456" y="26" width="16" height="16" rx="2"></rect><rect x="478" y="26" width="16" height="16" rx="2"></rect><rect x="500" y="26" width="16" height="16" rx="2"></rect>
+        <rect x="258" y="48" width="16" height="16" rx="2"></rect><rect x="280" y="48" width="16" height="16" rx="2"></rect><rect x="302" y="48" width="16" height="16" rx="2"></rect><rect x="324" y="48" width="16" height="16" rx="2"></rect><rect x="346" y="48" width="16" height="16" rx="2"></rect><rect x="368" y="48" width="16" height="16" rx="2"></rect><rect x="390" y="48" width="16" height="16" rx="2"></rect><rect x="412" y="48" width="16" height="16" rx="2"></rect><rect x="434" y="48" width="16" height="16" rx="2"></rect><rect x="456" y="48" width="16" height="16" rx="2"></rect><rect x="478" y="48" width="16" height="16" rx="2"></rect><rect x="500" y="48" width="16" height="16" rx="2"></rect>
+      </g>
+      
+      <rect x="346" y="48" width="16" height="16" rx="2" fill="var(--accent)" class="unit-pulse"></rect>
+      <text x="530" y="38" font-size="10.5" fill="currentColor" opacity="0.7">one row per unit,</text>
+      <text x="530" y="53" font-size="10.5" fill="currentColor" opacity="0.7">each with a unique code</text>
+      
+      <line x1="354" y1="64" x2="120" y2="106" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 3"></line>
+      
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="18" y="110" width="196" height="64" rx="3"></rect>
+        <rect x="262" y="110" width="196" height="64" rx="3"></rect>
+      </g>
+      <rect x="506" y="110" width="196" height="64" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.5"></rect>
+      <g font-family="ui-monospace, Menlo, monospace" font-size="10.5">
+        <text x="30" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
+        <text x="30" y="147" fill="currentColor" opacity="0.8">status: FREE</text>
+        <text x="30" y="163" fill="currentColor" opacity="0.8">owner: Supplier S-014</text>
+        <text x="274" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
+        <text x="274" y="147" fill="currentColor" opacity="0.8">status: RESERVED · hold_for #812</text>
+        <text x="274" y="163" fill="currentColor" opacity="0.8">owner: Supplier S-014</text>
+        <text x="518" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
+        <text x="518" y="147" fill="currentColor" opacity="0.8">status: FREE · settled</text>
+        <text x="518" y="163" fill="currentColor" opacity="0.8">owner: Customer C-1042</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none">
+        <line x1="214" y1="142" x2="258" y2="142" marker-end="url(#arr-u)"></line>
+      </g>
+      <line x1="458" y1="142" x2="502" y2="142" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr-ua)"></line>
+      <text x="236" y="131" font-size="10" fill="currentColor" opacity="0.7" text-anchor="middle">held</text>
+      <text x="480" y="131" font-size="10" fill="var(--accent)" text-anchor="middle">owned</text>
+      
+      <g stroke="currentColor" stroke-opacity="0.45" stroke-width="1.2" stroke-dasharray="3 3" fill="none">
+        <line x1="360" y1="174" x2="360" y2="212"></line>
+        <line x1="604" y1="174" x2="604" y2="212"></line>
+      </g>
+      <text x="368" y="198" font-size="10" fill="currentColor" opacity="0.65">every ownership change fires a DB trigger…</text>
+      
+      <rect x="18" y="216" width="684" height="92" rx="3" fill="var(--card)" stroke="currentColor" stroke-opacity="0.4"></rect>
+      <text x="34" y="238" font-size="11" font-family="ui-monospace, Menlo, monospace" fill="var(--accent)" letter-spacing="1">OWNERSHIP LEDGER · APPEND-ONLY</text>
+      <g font-family="ui-monospace, Menlo, monospace" font-size="10.5" fill="currentColor" opacity="0.85">
+        <text x="34" y="262" class="ledger-row" style="animation-delay:0.4s">8FA3-72 · Supplier S-014 → Institution L-001 · order #812 · purchase</text>
+        <text x="34" y="280" class="ledger-row" style="animation-delay:1.1s">8FA3-72 · Institution L-001 → Customer C-1042 · order #812 · murabaha sale</text>
+        <text x="34" y="298" class="ledger-row" style="animation-delay:1.8s">8FA3-72 · Customer C-1042 → Open market · order #812 · sale for cash</text>
+      </g>
+      <text x="702" y="330" font-size="10" fill="currentColor" opacity="0.6" text-anchor="end">any code, any time → full legal chain of ownership</text>
+    </svg>
+    <figcaption>Stock as code: supplier inventory is minted into individually coded units. Each unit tracks its status, the order holding it, and its current and previous owner — and a database trigger appends every ownership change to an append-only ledger, so any unit's code replays its complete legal history.</figcaption>
+  </figure>
+
+  <p>
+    This design is what makes the platform legally sound — and it is also <strong>one of our hardest
+    engineering challenges</strong>. A single financing order holds hundreds or thousands of units; five
+    thousand concurrent orders means millions of unit rows being held, transferred, and settled at once,
+    where two orders must never hold the same unit — not even for a millisecond — and where losing a single
+    ledger entry would break a chain of ownership that has to stand up to audit. Much of the scaling story
+    in Part&nbsp;2 — the lock contention, the index engineering, the race-condition hunts — is really the
+    story of keeping this per-unit, per-user tracking intact under industrial load.
+  </p>
+
+  <div class="constraint">
+    <span class="tag">The constraint we cannot optimize away</span>
+    Every performance engineer's instinct — skip the step, batch the work, fake the intermediate state,
+    reorder the sequence — is <strong>forbidden here by design</strong>. The purchase must precede the sale.
+    The units must be individually identified and genuinely held. The ownership chain must be complete and
+    documented. A Murabaha with a shortcut in it is not a slow transaction; it is an <em>invalid</em> one.
+    Sharia compliance is a hard correctness constraint, exactly like double-entry accounting — so all
+    throughput must come from architecture, never from relaxing the rules of the trade.
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="section-head"><span class="section-no">SECTION 03</span><h2 style="margin:0; font-size:1.35rem;">The goals: what "a better platform" means for LYNK</h2></div>
+  <p style="margin-top:1rem;">
+    Institutions do not create Murabaha orders one at a time. A consumer-finance company disburses hundreds
+    of loans in a morning; a bank settles credit-card Murabaha in bursts; campaign days multiply everything.
+    Our definition of a better platform therefore comes down to two primary goals, in tension with each other:
+  </p>
+  <h3>Goal 1 — Maximize the number of transactions we can handle at one time</h3>
+  <p>
+    Every concurrent order competes for the same commodity inventory, the same database rows, and the same
+    workers. Capacity is not one number but a system of targets we test against continuously:
+  </p>
+  <div class="tablebox">
+    <table>
+      <tr><th>Target</th><th>Measure</th><th>Where we've proven it</th></tr>
+      <tr><td>Concurrent volume</td><td class="num">5,000+ orders per run</td><td>Routine daily pre-production stress tests; 5,200 end-to-end</td></tr>
+      <tr><td>Per-order speed</td><td class="num">sub-second steps</td><td>Purchase averages 0.26s, P99 within 1s — see Section 04</td></tr>
+      <tr><td>Reliability</td><td class="num">≥ 99.9% completion</td><td>99.92–100% across 2,500–5,200-order campaigns</td></tr>
+      <tr><td>API responsiveness</td><td class="num">~1.2s create-order</td><td>Measured while 5,000 orders flowed through the pipeline</td></tr>
+      <tr><td>Autonomy</td><td class="num">zero-touch runs</td><td>Full AUTO cycle incl. Auto Complete Sell, unattended</td></tr>
+    </table>
+  </div>
+  <h3>Goal 2 — Every transaction must be Islamically legal</h3>
+  <p>
+    The second goal bounds the first. Whatever the load, each of those thousands of orders must individually
+    satisfy the full legal sequence: real units found, genuinely held, actually purchased, ownership truly
+    transferred, sold onward to a legitimately distinct buyer, and every link evidenced by certificate.
+    This has concrete engineering consequences:
+  </p>
+  <ul>
+    <li><strong>Strict per-order sequencing.</strong> Each order's pipeline is a state machine whose steps
+      cannot be skipped or reordered — parallelism must come from running many orders side by side, never
+      from cutting corners inside one.</li>
+    <li><strong>Real inventory, really held.</strong> Units are locked and tracked individually; two orders
+      may never "own" the same unit, even for a millisecond, which is why hold/lock logic and race-condition
+      work dominate our database engineering.</li>
+    <li><strong>Evidence as a deliverable.</strong> Certificates and ownership records are legal artifacts.
+      We may move their <em>generation</em> off the critical path (produce the PDF at download time), but
+      never remove them.</li>
+    <li><strong>Rules even in the fast path.</strong> Trade-rotation limits and the Specialized Entity flow
+      exist so the onward sale is genuinely valid. When we tested relaxing rotation from 2 to 1, the change
+      was justified to the business on Sharia-structure grounds — and only adopted after tests proved
+      performance was unaffected either way.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 720 262" role="img" aria-label="Many order pipelines run side by side, each forced through the same strict step sequence, all drawing units from one shared commodity inventory where each unit may be held by only one order.">
+      <defs>
+        <marker id="arr-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
+        </marker>
+      </defs>
+      
+      <g font-size="11" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.7">
+        <text x="10" y="37">#1</text>
+        <text x="10" y="79">#2</text>
+        <text x="10" y="121">#3</text>
+        <text x="10" y="156">⋮ ×5,000</text>
+      </g>
+      
+      <g fill="none" stroke="currentColor" stroke-opacity="0.45">
+        <rect x="46"  y="20" width="110" height="26" rx="3"></rect><rect x="318" y="20" width="110" height="26" rx="3"></rect><rect x="454" y="20" width="110" height="26" rx="3"></rect><rect x="590" y="20" width="110" height="26" rx="3"></rect>
+        <rect x="46"  y="62" width="110" height="26" rx="3"></rect><rect x="318" y="62" width="110" height="26" rx="3"></rect><rect x="454" y="62" width="110" height="26" rx="3"></rect><rect x="590" y="62" width="110" height="26" rx="3"></rect>
+        <rect x="46"  y="104" width="110" height="26" rx="3"></rect><rect x="318" y="104" width="110" height="26" rx="3"></rect><rect x="454" y="104" width="110" height="26" rx="3"></rect><rect x="590" y="104" width="110" height="26" rx="3"></rect>
+      </g>
+      
+      <g fill="none" stroke="var(--accent)" stroke-width="1.6">
+        <rect x="182" y="20" width="110" height="26" rx="3"></rect>
+        <rect x="182" y="62" width="110" height="26" rx="3"></rect>
+        <rect x="182" y="104" width="110" height="26" rx="3"></rect>
+      </g>
+      
+      <g fill="currentColor" font-size="11" text-anchor="middle">
+        <text x="101" y="37">Create</text><text x="237" y="37">Purchase</text><text x="373" y="37">Ownership</text><text x="509" y="37">Sell</text><text x="645" y="37">Complete</text>
+        <text x="101" y="79">Create</text><text x="237" y="79">Purchase</text><text x="373" y="79">Ownership</text><text x="509" y="79">Sell</text><text x="645" y="79">Complete</text>
+        <text x="101" y="121">Create</text><text x="237" y="121">Purchase</text><text x="373" y="121">Ownership</text><text x="509" y="121">Sell</text><text x="645" y="121">Complete</text>
+      </g>
+      
+      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none">
+        <line x1="156" y1="33" x2="178" y2="33" marker-end="url(#arr-s)"></line><line x1="292" y1="33" x2="314" y2="33" marker-end="url(#arr-s)"></line><line x1="428" y1="33" x2="450" y2="33" marker-end="url(#arr-s)"></line><line x1="564" y1="33" x2="586" y2="33" marker-end="url(#arr-s)"></line>
+        <line x1="156" y1="75" x2="178" y2="75" marker-end="url(#arr-s)"></line><line x1="292" y1="75" x2="314" y2="75" marker-end="url(#arr-s)"></line><line x1="428" y1="75" x2="450" y2="75" marker-end="url(#arr-s)"></line><line x1="564" y1="75" x2="586" y2="75" marker-end="url(#arr-s)"></line>
+        <line x1="156" y1="117" x2="178" y2="117" marker-end="url(#arr-s)"></line><line x1="292" y1="117" x2="314" y2="117" marker-end="url(#arr-s)"></line><line x1="428" y1="117" x2="450" y2="117" marker-end="url(#arr-s)"></line><line x1="564" y1="117" x2="586" y2="117" marker-end="url(#arr-s)"></line>
+      </g>
+      
+      <g stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="3 3" fill="none" opacity="0.8" class="hold-dash">
+        <line x1="237" y1="46"  x2="237" y2="196"></line>
+        <line x1="230" y1="88"  x2="230" y2="196"></line>
+        <line x1="244" y1="130" x2="244" y2="196"></line>
+      </g>
+      <text x="256" y="182" font-size="10.5" fill="var(--accent)">holds units — exclusively</text>
+      
+      <rect x="46" y="196" width="654" height="40" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.4"></rect>
+      <text x="373" y="220" font-size="12" font-weight="600" fill="currentColor" text-anchor="middle">Shared commodity inventory — each unit belongs to at most one order at a time</text>
+    </svg>
+    <figcaption>Where the two goals meet: throughput comes from running thousands of pipelines side by side, while Sharia validity forces every pipeline through the same strict sequence — and all of them compete for exclusive holds on the same pool of real commodity units.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="tag">The thesis of this series</span>
+    A platform that is fast but cuts legal corners is worthless, and a platform that is compliant but
+    handles ten orders is a prototype. LYNK's engineering story is the pursuit of both at once:
+    <strong>industrial throughput for transactions whose every step is a genuine, documented,
+    Sharia-valid trade.</strong>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="section-head"><span class="section-no">SECTION 04</span><h2 style="margin:0; font-size:1.35rem;">How we test our performance</h2></div>
+  <p style="margin-top:1rem;">
+    Claims like "seconds per step" mean nothing without a way to prove them — so performance testing is a
+    standing routine, not an occasional event. Thousands of orders are created through the API in controlled
+    pre-production runs (today's standard is 5,000 orders per run, daily), every order records how long each
+    Murabaha step took, and each run is distilled into the same set of statistics per step. Every change to
+    the platform is judged against that history: if the numbers move the wrong way, the change is caught
+    within days.
+  </p>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-3.gif" alt="A presenter pointing at a large bar chart on an easel."
+         style="max-width: 20rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>Every test run ends the same way: someone pointing at a chart. The numbers below are what
+    we point at.</figcaption>
+  </figure>
+
+  <h3>How to read the numbers</h3>
+  <p>
+    The fairest way to describe thousands of order timings is to imagine lining every order up,
+    <strong>fastest to slowest</strong>, and reading values off that line:
+  </p>
+  <ul>
+    <li><strong>Min / Max</strong> — the single fastest and single slowest order in the run. Max shows the
+      worst thing that happened to anyone.</li>
+    <li><strong>Avg (average)</strong> — total time divided by number of orders. Useful, but it hides
+      outliers: a thousand fast orders can bury ten terrible ones.</li>
+    <li><strong>P25, P50, P75, P90, P95, P99 (percentiles)</strong> — "P" followed by a number reads as:
+      <em>that percentage of orders finished within this time</em>. P25 = the fastest quarter of orders;
+      <strong>P50 is the median</strong> — the typical order, half faster and half slower;
+      <strong>P99</strong> means 99 of every 100 orders were at least this fast — only 1 in 100 was slower.
+      P90/P95/P99 describe the <em>unluckiest</em> customers' experience, which is exactly what averages
+      hide — so those are the numbers we hold ourselves to.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 720 195" role="img" aria-label="Fifty orders drawn as bars sorted from fastest to slowest, with markers at the median P50, at P90, and at P99 where the slow tail begins.">
+      <g>
+        <rect x="10" y="134" width="10" height="6" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="23" y="132" width="10" height="8" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="36" y="131" width="10" height="9" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="49" y="129" width="10" height="11" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="62" y="128" width="10" height="12" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="75" y="126" width="10" height="14" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="88" y="124" width="10" height="16" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="101" y="123" width="10" height="17" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="114" y="121" width="10" height="19" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="127" y="120" width="10" height="20" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="140" y="118" width="10" height="22" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="153" y="116" width="10" height="24" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="166" y="115" width="10" height="25" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="179" y="113" width="10" height="27" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="192" y="112" width="10" height="28" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="205" y="110" width="10" height="30" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="218" y="108" width="10" height="32" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="231" y="107" width="10" height="33" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="244" y="105" width="10" height="35" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="257" y="104" width="10" height="36" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="270" y="102" width="10" height="38" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="283" y="100" width="10" height="40" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="296" y="99" width="10" height="41" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="309" y="97" width="10" height="43" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="322" y="96" width="10" height="44" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="335" y="94" width="10" height="46" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="348" y="92" width="10" height="48" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="361" y="91" width="10" height="49" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="374" y="89" width="10" height="51" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="387" y="88" width="10" height="52" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="400" y="86" width="10" height="54" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="413" y="84" width="10" height="56" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="426" y="83" width="10" height="57" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="439" y="81" width="10" height="59" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="452" y="80" width="10" height="60" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="465" y="78" width="10" height="62" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="478" y="76" width="10" height="64" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="491" y="75" width="10" height="65" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="504" y="73" width="10" height="67" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="517" y="72" width="10" height="68" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="530" y="70" width="10" height="70" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="543" y="68" width="10" height="72" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="556" y="67" width="10" height="73" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="569" y="65" width="10" height="75" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="582" y="64" width="10" height="76" rx="1.5" fill="var(--accent)" opacity="0.75"></rect>
+        <rect x="595" y="52" width="10" height="88" rx="1.5" fill="var(--incident)" opacity="0.9"></rect>
+        <rect x="608" y="43" width="10" height="97" rx="1.5" fill="var(--incident)" opacity="0.9"></rect>
+        <rect x="621" y="34" width="10" height="106" rx="1.5" fill="var(--incident)" opacity="0.9"></rect>
+        <rect x="634" y="25" width="10" height="115" rx="1.5" fill="var(--incident)" opacity="0.9"></rect>
+        <rect x="647" y="16" width="10" height="124" rx="1.5" fill="var(--incident)" opacity="0.9"></rect>
+      </g>
+      <line x1="8" y1="140" x2="660" y2="140" stroke="currentColor" stroke-opacity="0.4"></line>
+      <g stroke="currentColor" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="3 3">
+        <line x1="340" y1="46" x2="340" y2="146"></line>
+        <line x1="600" y1="30" x2="600" y2="146"></line>
+      </g>
+      <line x1="652" y1="14" x2="652" y2="146" stroke="var(--incident)" stroke-width="1" stroke-dasharray="3 3"></line>
+      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" text-anchor="middle" fill="currentColor">
+        <text x="15" y="160" opacity="0.65">MIN</text>
+        <text x="340" y="160">P50</text>
+        <text x="600" y="160">P90</text>
+        <text x="652" y="176" fill="var(--incident)" font-weight="700">P99</text>
+        <text x="652" y="160" opacity="0.65">MAX</text>
+      </g>
+      <g font-size="10" fill="currentColor" opacity="0.6">
+        <text x="10" y="20">every order in the run, sorted fastest → slowest</text>
+      </g>
+      <text x="588" y="58" font-size="10" fill="var(--incident)" text-anchor="end">the slow tail — what averages hide</text>
+    </svg>
+    <figcaption>Percentiles, visually: sort every order in the run from fastest to slowest. P50 is the
+    middle of the line (the typical order), P90 leaves only the slowest 10% to its right, and P99 sits at
+    the edge of the slow tail — the amber bars an average would quietly smooth away.</figcaption>
+  </figure>
+
+  <p>
+    Here is what those statistics look like from a real run today, for the three fully automated steps
+    (values in whole seconds — a "0" means the step completed in under a second):
+  </p>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-4.png"
+         alt="Step Performance Results from a stress-test run. Purchase: min 0, avg 0.26, max 3 seconds; P25 and P50 are 0.0 and P75 through P99 are 1.0. Borrower Ownership: min 0, avg 0.03, max 1; every percentile 0.0 except P99 at 1.0. Sell: min 0, avg 0.04, max 1; every percentile 0.0 except P99 at 1.0."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>A real run's report card. Reading Purchase: the typical order (P50) finished in under a
+    second, the average was 0.26s, 99 of every 100 orders (P99) finished within 1 second, and the single
+    worst order of the whole run (Max) took 3 seconds. Borrower Ownership and Sell average 0.03–0.04s with
+    even their P99 at 1 second. Two years ago the purchase step alone averaged nearly 12 seconds with a
+    worst case of 65 — Part&nbsp;2 tells that story.</figcaption>
+  </figure>
+</section>
+
+
+<section class="section">
+  <div class="section-head"><span class="section-no">SECTION 05</span><h2 style="margin:0; font-size:1.35rem;">None of this came easy</h2></div>
+  <p style="margin-top:1rem;">
+    Everything described above — five legal steps in seconds, millions of tracked units, four products on
+    one pipeline — is where the platform <em>ended up</em>. It is not where it started. In January 2025,
+    a test of just <strong>ten</strong> automated orders left four of them stuck. Between that day and
+    today's routine 5,000-order runs stand thirteen hard-won battles:
+  </p>
+  <ul class="teasers">
+    <li><span class="cn">CASE 01</span><span class="hook"><strong>Everything waited for everything.</strong>
+      The first order couldn't purchase until all 49 others finished searching — and the first "stuck orders"
+      root cause was a disk at <span class="n">98%</span>.</span></li>
+    <li><span class="cn">CASE 02</span><span class="hook"><strong>The database fought back.</strong>
+      Deadlocks and lock timeouts that took <span class="n">three rounds</span> of fixes — the last one
+      cut the worst order from <span class="n">65s to 14s</span>.</span></li>
+    <li><span class="cn">CASE 03</span><span class="hook"><strong>A timeout nobody knew existed</strong>
+      killed the first 11 orders of a 300-order run — and triggered a summer-long campaign on the purchase
+      path.</span></li>
+    <li><span class="cn">CASE 04</span><span class="hook"><strong>Every certificate cost a browser
+      session.</strong> Tuning Chrome bought headroom, a PHP engine bought <span class="n">7×</span> — but
+      the winning move was a business decision: generate on demand, and the cost per step fell to
+      <span class="n">0 seconds</span>.</span></li>
+    <li><span class="cn">CASE 05</span><span class="hook"><strong>"Which units can this customer even
+      buy?"</strong> — answering it scanned <span class="n">millions</span> of rows per order, until a
+      settled flag, and finally a precomputed eligibility ledger, made it a
+      <span class="n">0.1s</span> lookup.</span></li>
+    <li><span class="cn">CASE 06</span><span class="hook"><strong>Pay 1,000,000 exactly, using only the
+      banknotes in your wallet.</strong> The commodity-combination search that once died in gateway
+      timeouts now answers in <span class="n">milliseconds</span> — with a hard 3-second stop.</span></li>
+    <li><span class="cn">CASE 07</span><span class="hook"><strong>The platform attacked itself:</strong>
+      one job dispatched <span class="n">22,400 times</span> in hours, one query executed
+      <span class="n">114,000 times</span> — fixed for an <span class="n">85%</span> query reduction.</span></li>
+    <li><span class="cn">CASE 08</span><span class="hook"><strong>A bug-fix quietly added 2 seconds to every
+      order</strong> — caught within a week, only because a baseline existed.</span></li>
+    <li><span class="cn">CASE 09</span><span class="hook"><strong>The unit ledger under siege:</strong>
+      <span class="n">94 million</span> reads on one index, race conditions on exclusive holds, and a caching
+      experiment that had to be rolled back.</span></li>
+    <li><span class="cn">CASE 10</span><span class="hook"><strong>Everything is a job — and jobs died
+      silently.</strong> No retries, no overlap guards, locks that never expired: a transient blip froze an
+      order, and two servers could grab the same work. Retry with escalating backoff became the road to
+      <span class="n">0 failed transactions</span>.</span></li>
+    <li><span class="cn">CASE 11</span><span class="hook"><strong>0.5 seconds of work inside a 7.5-second
+      step</strong> — the latency was hiding <em>between</em> the jobs, and fixing it made another step
+      <span class="n">3× slower</span> before it made everything faster.</span></li>
+    <li><span class="cn">CASE 12</span><span class="hook"><strong>Every split leaves something new to
+      run.</strong> <span class="n">3</span> worker containers became <span class="n">~120</span> processes
+      across three machines — including one queue pinned forever at a single worker, on purpose.</span></li>
+    <li><span class="cn">CASE 13</span><span class="hook"><strong>The boring failures:</strong> full disks
+      (twice), a <span class="n">32,000</span>-company integer overflow, and connection exhaustion at full
+      worker scale.</span></li>
+  </ul>
+</section>
+
+<div class="next">
+  <span class="tag">Continue to Part 2</span>
+  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">From Ten Orders to Five Thousand</a></strong> —
+  all thirteen cases, told the way they happened: the problem in detail, what we tried (including the
+  attempts that failed), and the measured result. From <strong>4-of-10 stuck</strong> to
+  <strong>99.94% of 5,200 orders</strong> — with the numbers to prove every step.
+</div>
+
+</div>
+
+<style is:global>
+.lynk-post { --bg: #FAF9F6;
+    --ink: #1B2420;
+    --muted: #5C6A63;
+    --accent: #0E7A5F;
+    --accent-soft: #E3EFEA;
+    --incident: #A06F1F;
+    --incident-soft: #F6EEDD;
+    --line: #E2E1DA;
+    --card: #F2F1EB; }
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post { --bg: #121815;
+      --ink: #E5EAE6;
+      --muted: #93A29A;
+      --accent: #45C29B;
+      --accent-soft: #1A2B25;
+      --incident: #D8A24C;
+      --incident-soft: #2A2416;
+      --line: #27302B;
+      --card: #1A211D; --bg: #121815;
+    --ink: #E5EAE6;
+    --muted: #93A29A;
+    --accent: #45C29B;
+    --accent-soft: #1A2B25;
+    --incident: #D8A24C;
+    --incident-soft: #2A2416;
+    --line: #27302B;
+    --card: #1A211D; }
+.lynk-post .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 0 5rem; }
+.lynk-post .serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+.lynk-post .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.lynk-post header.hero { border-bottom: 1px solid var(--line); padding-bottom: 2.25rem; margin-bottom: 2.75rem; }
+.lynk-post .kicker {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 1.1rem;
+  }
+.lynk-post h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(2.1rem, 5.5vw, 3.15rem);
+    line-height: 1.12; font-weight: 500; margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+.lynk-post .standfirst { font-size: 1.08rem; color: var(--muted); max-width: 40rem; margin: 0; }
+.lynk-post .standfirst strong { color: var(--ink); font-weight: 600; }
+.lynk-post .section { margin: 3.25rem 0 0; }
+.lynk-post .section-head { display: flex; align-items: baseline; gap: 0.85rem; border-top: 2px solid var(--ink); padding-top: 0.85rem; }
+.lynk-post .section-no { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: var(--muted); }
+.lynk-post h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.55rem; font-weight: 500; line-height: 1.25; margin: 0.35rem 0 0.9rem; text-wrap: balance;
+  }
+.lynk-post h3 { font-size: 1.02rem; font-weight: 650; margin: 1.6rem 0 0.5rem; }
+.lynk-post p { margin: 0 0 1rem; }
+.lynk-post a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.lynk-post ul, .lynk-post ol { margin: 0 0 1rem; padding-left: 1.2rem; }
+.lynk-post li { margin-bottom: 0.45rem; }
+.lynk-post code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.86em; background: var(--card); padding: 0.1em 0.35em; border-radius: 3px; }
+.lynk-post .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 0.85rem 1.1rem; margin: 1.25rem 0; font-size: 0.95rem;
+  }
+.lynk-post .callout .tag {
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
+  }
+.lynk-post .constraint {
+    border-left: 3px solid var(--incident); background: var(--incident-soft);
+    padding: 0.85rem 1.1rem; margin: 1.25rem 0; font-size: 0.95rem;
+  }
+.lynk-post .constraint .tag {
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--incident); margin-bottom: 0.35rem;
+  }
+.lynk-post .steps { counter-reset: step; list-style: none; padding: 0; margin: 1.5rem 0; }
+.lynk-post .steps li {
+    counter-increment: step;
+    display: grid; grid-template-columns: 2.4rem 1fr; gap: 0.9rem;
+    padding: 0.85rem 0; margin: 0; border-bottom: 1px solid var(--line);
+  }
+.lynk-post .steps li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem; color: var(--accent); padding-top: 0.15rem;
+  }
+.lynk-post .steps .st { font-weight: 650; }
+.lynk-post .steps .sd { color: var(--muted); font-size: 0.92rem; display: block; margin-top: 0.15rem; }
+.lynk-post .tablebox { overflow-x: auto; margin: 1.25rem 0; border: 1px solid var(--line); }
+.lynk-post table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+.lynk-post th {
+    text-align: left; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line); background: var(--card);
+    white-space: nowrap;
+  }
+.lynk-post td { padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.lynk-post tr:last-child td { border-bottom: none; }
+.lynk-post td.num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lynk-post figure { margin: 1.75rem 0; }
+.lynk-post figure svg { max-width: 100%; height: auto; display: block; }
+.lynk-post figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 0.6rem; max-width: 40rem; }
+@media (prefers-reduced-motion: no-preference) {.lynk-post .flow-commodity { stroke-dasharray: 7 5; animation: dash12 1.6s linear infinite; }.lynk-post .flow-payment { animation: dash7 3.2s linear infinite; }.lynk-post .hold-dash { animation: dash6 2.4s linear infinite; }.lynk-post .unit-pulse { animation: unitpulse 2.6s ease-in-out infinite; }.lynk-post .ledger-row { animation: fadein 0.7s ease-out backwards; }.lynk-post @keyframes dash12 { to { stroke-dashoffset: -96; } }.lynk-post @keyframes dash7 { to { stroke-dashoffset: -98; } }.lynk-post @keyframes dash6 { to { stroke-dashoffset: -96; } }.lynk-post @keyframes unitpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }.lynk-post @keyframes fadein { from { opacity: 0; } }}
+.lynk-post .teasers { list-style: none; padding: 0; margin: 1.5rem 0 0; border-top: 1px solid var(--line); }
+.lynk-post .teasers li {
+    display: grid; grid-template-columns: 5rem 1fr; gap: 1rem; align-items: baseline;
+    padding: 0.8rem 0; margin: 0; border-bottom: 1px solid var(--line);
+  }
+.lynk-post .teasers .cn {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.1em; color: var(--incident); white-space: nowrap;
+  }
+.lynk-post .teasers .hook { font-size: 0.97rem; }
+.lynk-post .teasers .hook strong { font-weight: 650; }
+.lynk-post .teasers .hook .n {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+    color: var(--accent); font-weight: 600;
+  }
+.lynk-post .next {
+    margin-top: 3.5rem; border: 1px solid var(--line); background: var(--card);
+    padding: 1.1rem 1.25rem;
+  }
+.lynk-post .next .tag {
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
+  }
+.lynk-post footer { margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
+
+.lynk-post { font-size: 1rem; }
+.lynk-post figure img { border: 1px solid var(--line); border-radius: 6px; }
+</style>
