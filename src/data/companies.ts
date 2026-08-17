@@ -104,7 +104,7 @@ const kindOrder: Record<CompanyKind, number> = {
 };
 
 /** Homepage marquee — all registered companies with logos (excludes personal; Tazhub is a Mitch Designs project, not listed here). */
-export const companyLogos: Company[] = (Object.values(companies) as Company[])
+export const companyLogos: (Company & { src: string })[] = (Object.values(companies) as Company[])
   .filter((c): c is Company & { src: string } => Boolean(c.src))
   .sort((a, b) => (kindOrder[a.kind ?? 'employer'] ?? 0) - (kindOrder[b.kind ?? 'employer'] ?? 0));
 

@@ -1,7 +1,16 @@
 ---
 import SocialLinks from './SocialLinks.astro';
-import { site } from '../site.config';
+import { defaultLang, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { siteMeta } from '../site.config';
 
+interface Props {
+  lang?: Lang;
+}
+
+const { lang = defaultLang } = Astro.props;
+const t = useTranslations(lang);
+const meta = siteMeta[lang];
 const year = new Date().getFullYear();
 ---
 
@@ -9,16 +18,19 @@ const year = new Date().getFullYear();
   <div class="mx-auto max-w-5xl px-6 py-10">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p class="font-semibold text-slate-900 dark:text-slate-50">{site.name}</p>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Technical lead · Fintech &amp; scalable systems
+        <p class="font-semibold text-slate-900 dark:text-slate-50">
+          {meta.name}
         </p>
-        <p class="mt-1 text-sm text-slate-500">{site.location}</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {t.footer.tagline}
+        </p>
+        <p class="mt-1 text-sm text-slate-500">{meta.location}</p>
       </div>
-      <SocialLinks includeRss class="sm:justify-end" />
+      <SocialLinks lang={lang} includeRss={lang === defaultLang} class="sm:justify-end" />
     </div>
     <p class="mt-8 text-center text-xs text-slate-500">
-      © {year} {site.name}. Built with Astro + Tailwind.
+      © {year}
+      {meta.name}. {t.footer.builtWith}
     </p>
   </div>
 </footer>

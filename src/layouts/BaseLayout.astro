@@ -3,9 +3,13 @@ import '../styles/global.css';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import Seo from '../components/Seo.astro';
-import { site } from '../site.config';
+import { defaultLang, getLangFromUrl, languages, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { siteMeta } from '../site.config';
 
 interface Props {
+  /** Defaults to the locale implied by the URL; pass explicitly on 404. */
+  lang?: Lang;
   title?: string;
   /** Raw headline for OG / JSON-LD (omit to use `title` before suffix). */
   seoTitle?: string;
@@ -21,9 +25,10 @@ interface Props {
 }
 
 const {
-  title = site.title,
+  lang = getLangFromUrl(Astro.url),
+  title,
   seoTitle,
-  description = site.description,
+  description,
   image,
   type,
   noindex,
@@ -34,17 +39,21 @@ const {
   modifiedTime,
 } = Astro.props;
 
-const pageTitle =
-  title === site.title ? title : `${title} · ${site.name}`;
+const meta = siteMeta[lang];
+const t = useTranslations(lang);
+const { htmlLang, dir } = languages[lang];
+
+const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={htmlLang} dir={dir}>
   <head>
     <Seo
+      lang={lang}
       title={pageTitle}
-      seoTitle={seoTitle ?? (title === site.title ? undefined : title)}
-      description={description}
+      seoTitle={seoTitle ?? (title ? title : undefined)}
+      description={description ?? meta.description}
       image={image}
       type={type}
       noindex={noindex}
@@ -55,6 +64,17 @@ const pageTitle =
       modifiedTime={modifiedTime}
     />
     <title>{pageTitle}</title>
+    {
+      lang !== defaultLang && (
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/fonts/ibm-plex-sans-arabic-arabic-400.woff2"
+          crossorigin
+        />
+      )
+    }
     <script is:inline>
       (function () {
         const storageKey = 'mnaser-theme';
@@ -85,7 +105,9 @@ const pageTitle =
         }
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', bindToggle, { once: true });
+          document.addEventListener('DOMContentLoaded', bindToggle, {
+            once: true,
+          });
         } else {
           bindToggle();
         }
@@ -99,14 +121,14 @@ const pageTitle =
   >
     <a
       href="#main"
-      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white"
+      class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white"
     >
-      Skip to content
+      {t.common.skipToContent}
     </a>
-    <Header />
+    <Header lang={lang} />
     <main id="main">
       <slot />
     </main>
-    <Footer />
+    <Footer lang={lang} />
   </body>
 </html>

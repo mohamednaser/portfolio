@@ -14,6 +14,12 @@ function initMarquee(root: HTMLElement) {
   root.dataset.initialized = 'true';
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /**
+   * In an RTL container `scrollLeft` runs from 0 down to a negative maximum, so
+   * every offset below is expressed in "logical" units and multiplied by `sign`.
+   */
+  const rtl = getComputedStyle(viewport).direction === 'rtl';
+  const sign = rtl ? -1 : 1;
   let paused = false;
   let rafId = 0;
 
@@ -22,27 +28,29 @@ function initMarquee(root: HTMLElement) {
     return item ? item.offsetWidth + CARD_GAP : 320 + CARD_GAP;
   };
 
+  const logicalScroll = () => viewport.scrollLeft * sign;
+
   const normalizeScroll = () => {
     const half = track.scrollWidth / 2;
     if (half <= 0) return;
-    if (viewport.scrollLeft >= half) {
-      viewport.scrollLeft -= half;
+    if (logicalScroll() >= half) {
+      viewport.scrollLeft -= sign * half;
     }
   };
 
   const scrollByStep = (direction: 1 | -1) => {
     const step = getStep();
-    let target = viewport.scrollLeft + direction * step;
-    if (direction === -1 && viewport.scrollLeft <= 1) {
+    let target = logicalScroll() + direction * step;
+    if (direction === -1 && logicalScroll() <= 1) {
       target = track.scrollWidth / 2 - step;
     }
-    viewport.scrollTo({ left: target, behavior: 'smooth' });
+    viewport.scrollTo({ left: target * sign, behavior: 'smooth' });
     window.setTimeout(normalizeScroll, 350);
   };
 
   const tick = () => {
     if (!paused && !reducedMotion) {
-      viewport.scrollLeft += AUTO_SPEED;
+      viewport.scrollLeft += sign * AUTO_SPEED;
       normalizeScroll();
     }
     rafId = requestAnimationFrame(tick);
@@ -59,13 +67,14 @@ function initMarquee(root: HTMLElement) {
   nextBtn.addEventListener('click', () => scrollByStep(1));
 
   viewport.addEventListener('keydown', (e) => {
+    // Arrow keys follow what the user sees, not the logical order.
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      scrollByStep(-1);
+      scrollByStep(rtl ? 1 : -1);
     }
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      scrollByStep(1);
+      scrollByStep(rtl ? -1 : 1);
     }
   });
 

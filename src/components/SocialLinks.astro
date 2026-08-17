@@ -1,13 +1,11 @@
 ---
 import SocialIcon from './SocialIcon.astro';
-import {
-  emailLink,
-  rssLink,
-  socialLinks,
-  type SocialLink,
-} from '../data/social';
+import { defaultLang, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { emailLink, rssLink, socialLinks, type SocialLink } from '../data/social';
 
 interface Props {
+  lang?: Lang;
   showLabels?: boolean;
   includeRss?: boolean;
   includeEmail?: boolean;
@@ -15,17 +13,26 @@ interface Props {
 }
 
 const {
+  lang = defaultLang,
   showLabels = false,
   includeRss = false,
   includeEmail = false,
   class: className,
 } = Astro.props;
 
+const t = useTranslations(lang);
+
+/** Brand names stay as-is; only the generic labels are translated. */
+const labelOverrides: Partial<Record<SocialLink['id'], string>> = {
+  email: t.social.email,
+  rss: t.social.rss,
+};
+
 const links: SocialLink[] = [
   ...(includeEmail ? [emailLink] : []),
   ...socialLinks,
   ...(includeRss ? [rssLink] : []),
-];
+].map((link) => ({ ...link, label: labelOverrides[link.id] ?? link.label }));
 
 const linkClass = showLabels
   ? 'inline-flex min-h-[44px] items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'

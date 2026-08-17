@@ -1,0 +1,38 @@
+---
+import SocialLinks from '../SocialLinks.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import type { Lang } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import { site, siteMeta } from '../../site.config';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const mailto = `mailto:${site.email}?subject=${encodeURIComponent(t.contact.mailSubject)}`;
+/** `<bdi>` keeps the Latin address from flipping inside the RTL sentence. */
+const [ctaBefore, ctaAfter = ''] = t.contact.emailCta.split('%email%');
+---
+
+<BaseLayout lang={lang} title={t.contact.title} description={t.contact.metaDescription}>
+  <div class="mx-auto max-w-2xl px-6 py-16 text-center">
+    <h1 class="section-heading">{t.contact.title}</h1>
+    <p class="mt-6 text-lg text-slate-600 dark:text-slate-300">
+      {t.contact.lead}
+    </p>
+    <p class="mt-2 text-sm text-slate-500 dark:text-slate-500">
+      {siteMeta[lang].location}
+    </p>
+
+    <a href={mailto} class="btn-primary mt-10">{ctaBefore}<bdi>{site.email}</bdi>{ctaAfter}</a>
+
+    <section class="mt-14" aria-labelledby="social-heading">
+      <h2 id="social-heading" class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+        {t.contact.connect}
+      </h2>
+      <SocialLinks lang={lang} showLabels class="mt-6 justify-center" />
+    </section>
+  </div>
+</BaseLayout>

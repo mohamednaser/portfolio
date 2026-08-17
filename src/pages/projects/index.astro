@@ -1,26 +1,5 @@
 ---
-import ProjectCard from '../../components/ProjectCard.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import { isPublishedProject } from '../../lib/projects';
-import { getCollection } from 'astro:content';
-
-const allProjects = (await getCollection('projects'))
-  .filter(isPublishedProject)
-  .sort((a, b) => a.data.order - b.data.order);
+import ProjectsPage from '../../components/pages/ProjectsPage.astro';
 ---
 
-<BaseLayout
-  title="Projects"
-  description="Products and repositories — stack, achievements, and write-ups for Blog Generator and more."
->
-  <div class="mx-auto max-w-5xl px-6 py-16">
-    <h1 class="section-heading">Projects</h1>
-    <p class="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
-      Everything I build or govern — each project has a detail page with stack, achievements,
-      and links. Add or edit projects in <code class="text-sm">src/content/projects/</code>.
-    </p>
-    <ul class="mt-12 grid gap-6 md:grid-cols-2">
-      {allProjects.map((project) => <ProjectCard project={project} />)}
-    </ul>
-  </div>
-</BaseLayout>
+<ProjectsPage lang="en" />

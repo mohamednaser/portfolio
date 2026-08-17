@@ -1,60 +1,62 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import CompanyBadge from './CompanyBadge.astro';
-import { contentSlug } from '../lib/slug';
+import { defaultLang, localizePath, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { projectSlug, type ProjectEntry } from '../lib/projects';
 
 interface Props {
-  project: CollectionEntry<'projects'>;
+  project: ProjectEntry;
+  lang?: Lang;
   compact?: boolean;
 }
 
-const { project, compact = false } = Astro.props;
-const slug = contentSlug(project.id);
-const { title, description, tags, stack } = project.data;
+const { project, lang = defaultLang, compact = false } = Astro.props;
+const t = useTranslations(lang);
+const href = localizePath(`/projects/${projectSlug(project)}`, lang);
+const { title, description, tags, stack, status, period, company } = project.data;
 const pillTags = tags.length > 0 ? tags : stack.slice(0, 4);
 ---
 
 <li class="card">
-  <CompanyBadge companyId={project.data.company} size="sm" />
+  <CompanyBadge companyId={company} size="sm" />
   <div class="mt-4 flex flex-wrap items-start justify-between gap-2">
-    <h2 class:list={['font-semibold text-slate-900 dark:text-slate-50', compact ? 'text-lg' : 'text-xl']}>
-      <a href={`/projects/${slug}`} class="hover:text-emerald-600 dark:hover:text-emerald-400">
+    <h2
+      class:list={[
+        'font-semibold text-slate-900 dark:text-slate-50',
+        compact ? 'text-lg' : 'text-xl',
+      ]}
+    >
+      <a href={href} class="hover:text-emerald-600 dark:hover:text-emerald-400">
         {title}
       </a>
     </h2>
     {
-      project.data.status !== 'active' && (
-        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-          {project.data.status}
+      status !== 'active' && (
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+          {t.projects.status[status]}
         </span>
       )
     }
   </div>
-  {
-    project.data.period && (
-      <p class="mt-1 text-xs text-slate-500 dark:text-slate-500">{project.data.period}</p>
-    )
-  }
+  {period && <p class="mt-1 text-xs text-slate-500 dark:text-slate-500">{period}</p>}
   <p class:list={['text-slate-600 dark:text-slate-400', compact ? 'mt-2 text-sm' : 'mt-3']}>
     {description}
   </p>
   {
     pillTags.length > 0 && (
       <ul class="mt-4 flex flex-wrap gap-2">
-        {
-          pillTags.map((tag) => (
-            <li class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              {tag}
-            </li>
-          ))
-        }
+        {pillTags.map((tag) => (
+          <li class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            {tag}
+          </li>
+        ))}
       </ul>
     )
   }
   <a
-    href={`/projects/${slug}`}
+    href={href}
     class="mt-4 inline-block text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
   >
-    View project →
+    {t.projects.viewProject}
   </a>
 </li>

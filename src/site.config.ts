@@ -1,3 +1,6 @@
+import type { Lang } from './i18n';
+
+/** Locale-independent facts: URLs, handles, assets. */
 export const site = {
   name: 'Mohamed Naser',
   title: 'Mohamed Naser — Problem Solver | Experienced Developer | AI for Teams',
@@ -19,10 +22,54 @@ export const site = {
   },
 } as const;
 
-export const nav = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
-] as const;
+export type SiteMeta = {
+  name: string;
+  title: string;
+  description: string;
+  location: string;
+  jobTitle: string;
+};
+
+/** Per-locale identity and default SEO copy. */
+export const siteMeta: Record<Lang, SiteMeta> = {
+  en: {
+    name: site.name,
+    title: site.title,
+    description: site.description,
+    location: site.location,
+    jobTitle: 'Technical Lead',
+  },
+  ar: {
+    name: 'محمد ناصر',
+    title: 'محمد ناصر — حلّال مشكلات | مطوّر خبير | الذكاء الاصطناعي للفرق',
+    description:
+      'مطوّر خبير وحلّال مشكلات في التقنية المالية والتنقّل والمنصّات — أُمكّن الفرق والمنتجات بالذكاء الاصطناعي. قائد تقني في Lynk، وأكتب على Medium.',
+    location: 'القاهرة، مصر',
+    jobTitle: 'قائد تقني',
+  },
+};
+
+export type NavItem = {
+  href: string;
+  labelKey: 'home' | 'about' | 'projects' | 'blog' | 'contact';
+};
+
+/**
+ * Nav is per-locale because the blog is English-only for now — the Arabic site
+ * intentionally omits it rather than linking to pages that are not translated.
+ */
+export const navByLang: Record<Lang, readonly NavItem[]> = {
+  en: [
+    { href: '/', labelKey: 'home' },
+    { href: '/about', labelKey: 'about' },
+    { href: '/projects', labelKey: 'projects' },
+    { href: '/blog', labelKey: 'blog' },
+    { href: '/contact', labelKey: 'contact' },
+  ],
+  ar: [
+    { href: '/', labelKey: 'home' },
+    { href: '/about', labelKey: 'about' },
+    { href: '/projects', labelKey: 'projects' },
+    { href: '/contact', labelKey: 'contact' },
+  ],
+};
