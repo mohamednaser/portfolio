@@ -510,6 +510,12 @@ private function toMinorUnits(float $value): int
     <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.<a class="refmark" href="#ref-nplusone">n+1 ↓</a>
     The first alarm had been, embarrassingly, the monitoring bill: millions of recorded events per day, all
     of them faithfully documenting our own waste.</p>
+    <p>That lookup existed because of how an order remembers itself. Every step an order takes is appended
+    to its status history as a new row, and nothing is ever overwritten — in a regulated pipeline the trail
+    <em>is</em> the point. But almost everything the platform wanted to know came down to a single question:
+    what did this order just do? The only way to answer it was to read the order's whole history and take
+    the newest row. One query, per order, every time — on every screen, in every scheduler sweep, before
+    every job decided whether it was allowed to run. A list of a hundred orders asked it a hundred times.</p>
   </div>
   <figure>
     <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-3.webp" alt="Two identical Spider-Men pointing at each other."
@@ -520,8 +526,11 @@ private function toMinorUnits(float $value): int
   <div class="attempt">
     <span class="tag">What we tried</span>
     <p>The fixes read like an apology to the database. One composite index turned the hot lookup from a scan
-    into a seek.<a class="refmark" href="#ref-indexes">indexes ↓</a> A cached "last action" column meant roughly 90% of those history queries no longer needed
-    to run at all. And the scheduler grew up: it loads work in batches, skips anything it touched in the
+    into a seek.<a class="refmark" href="#ref-indexes">indexes ↓</a> Then we stopped asking the question and started remembering the answer: the last
+    action an order took now lives on the order itself, written in the same transaction that appends the
+    history row — the trail stays the record of truth, the column is just its most recent line, already
+    read. The cost moved from every read to one write per transition, and roughly 90% of those history
+    queries stopped running at all. And the scheduler grew up: it loads work in batches, skips anything it touched in the
     last five minutes, checks what is already queued before dispatching again, and staggers its dispatches
     with a small random delay — so a thousand jobs stop arriving in the very same second.</p>
   </div>
