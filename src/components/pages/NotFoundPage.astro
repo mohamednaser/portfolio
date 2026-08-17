@@ -30,7 +30,7 @@ const alt = alsoShow ? useTranslations(alsoShow) : null;
     <p class="mt-4 text-slate-600 dark:text-slate-400">{t.notFound.body}</p>
     <div class="mt-10 flex flex-wrap justify-center gap-4">
       <a href={localizePath('/', lang)} class="btn-primary">{t.notFound.home}</a>
-      <a href="/blog" class="btn-secondary" hreflang="en">{t.notFound.blog}</a>
+      <a href={localizePath('/blog', lang)} class="btn-secondary">{t.notFound.blog}</a>
     </div>
 
     {

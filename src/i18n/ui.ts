@@ -113,6 +113,24 @@ const en = {
       archived: 'Archived',
     },
   },
+  blog: {
+    title: 'Blog',
+    metaDescription:
+      'Articles on AI agents, LLM evaluation, engineering leadership, and shipping reliable software — with links to read on Medium and LinkedIn.',
+    keywords: [
+      'AI agents',
+      'LLM testing',
+      'technical leadership',
+      'software engineering',
+      'Mohamed Naser',
+    ],
+    intro:
+      'Writing on AI-augmented engineering, agent quality, and technical leadership. Summaries and SEO live here; full articles on Medium.',
+    rss: 'RSS feed',
+    empty: 'No posts yet.',
+    /** Shown to Arabic readers only; empty in English, where it says nothing. */
+    languageNote: '',
+  },
   notFound: {
     title: 'Page not found',
     metaDescription: 'The page you requested does not exist.',
@@ -221,6 +239,23 @@ const ar: DeepReadonlyLike<typeof en> = {
       paused: 'متوقّف مؤقتًا',
       archived: 'مؤرشف',
     },
+  },
+  blog: {
+    title: 'المدوّنة',
+    metaDescription:
+      'مقالات عن وكلاء الذكاء الاصطناعي، وتقييم نماذج اللغة، وقيادة فرق الهندسة، وبناء برمجيات موثوقة — مع روابط للقراءة على Medium ولينكدإن.',
+    keywords: [
+      'وكلاء الذكاء الاصطناعي',
+      'اختبار نماذج اللغة',
+      'القيادة التقنية',
+      'هندسة البرمجيات',
+      'محمد ناصر',
+    ],
+    intro:
+      'كتاباتي عن الهندسة المعزَّزة بالذكاء الاصطناعي، وجودة الوكلاء، والقيادة التقنية. الملخّصات هنا، والمقالات كاملةً على Medium.',
+    rss: 'خلاصة RSS',
+    empty: 'لا توجد مقالات بعد.',
+    languageNote: 'المقالات منشورة باللغة الإنجليزية.',
   },
   notFound: {
     title: 'الصفحة غير موجودة',

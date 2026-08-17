@@ -3,7 +3,7 @@ import { sameAsUrls } from '../data/social';
 import {
   alternatePath,
   defaultLang,
-  isEnglishOnlyPath,
+  isUntranslatedPath,
   langCodes,
   languages,
   type Lang,
@@ -53,8 +53,8 @@ const keywordsContent = keywords.length > 0 ? keywords.join(', ') : undefined;
 const headline = seoTitle ?? resolvedTitle;
 const siteImage = new URL(site.image, site.url).href;
 
-/** Blog routes exist in English only — do not advertise an Arabic twin. */
-const localeAlternates = isEnglishOnlyPath(Astro.url.pathname)
+/** Article pages have no Arabic twin — do not advertise one. */
+const localeAlternates = isUntranslatedPath(Astro.url.pathname)
   ? []
   : langCodes.map((code) => ({
       hreflang: languages[code].htmlLang,
