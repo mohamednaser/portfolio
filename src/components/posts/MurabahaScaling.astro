@@ -405,29 +405,63 @@
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">gateway timeouts → milliseconds</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
-    <p>Knowing which units are eligible still leaves the genuinely hard part. A Murabaha for, say,
-    SAR 1,000,000 must be covered <em>exactly</em> by whole units with fixed prices — like paying an exact
-    amount using only the banknotes in your wallet, when the wallet holds thousands of notes in dozens of
-    denominations. Mathematicians know this family of puzzles as "exact change" problems, and they are
-    famous for one thing: naive solutions explode. Ours did. On inputs of a few hundred inventories, the
-    first implementation searched until the gateway itself hung up on it — and a slow search does not fail
-    one order, it stalls the purchase step of every order queued behind it.</p>
+    <p>Two constraints stack here, and it is the stacking that makes this hard. The first is exactness: a
+    Murabaha for SAR 1,000,000 must be covered by whole units at fixed prices adding up to
+    <em>precisely</em> that amount. <span class="k-rule">One halala over or under is not a smaller trade;
+    it is no trade at all.</span> The second is eligibility. As <a class="caseref" href="#case-05">Case
+    05</a> describes, a unit is not eligible just because it exists and is unsold — trade-rotation rules
+    and previous ownership decide, per institution, whether this particular buyer may hold this particular
+    unit. So the two questions the platform is really asking are: <em>which units may this institution
+    hold</em>, and <em>which subset of those adds up to the amount exactly</em>.</p>
+    <p>That is why "the market has plenty of stock" is not an answer. An order can fail with millions of
+    units sitting in the market, because most of them are ineligible for this buyer, and the eligible
+    remainder happens to have no subset that lands on the amount. And the search space is not small:
+    hundreds of eligible inventories, each with its own price and available count, combine into more
+    candidate baskets than anything can enumerate. Mathematicians know this family as "exact change"
+    problems, famous for one thing — naive solutions explode.</p>
+    <p>Failure is expensive at both ends. <span class="k-cost">A search that finds nothing ends the order
+    as "no eligible commodities available", and the customer's financing is cancelled</span> — so an
+    algorithm that gives up too early cancels trades the market could actually have covered. A search that
+    refuses to give up is worse: on inputs of a few hundred inventories our first implementation searched
+    until the gateway hung up on it, and a slow search does not stall one order, it stalls the purchase
+    step of every order queued behind it.</p>
   </div>
   <div class="attempt">
-    <span class="tag">How we made it fast</span>
-    <p>The version that survived thinks like a very fast cashier. It counts in whole halalas, never
-    fractions — floating-point money that drifts by 0.01 is the difference between exact change and no
-    change at all. Before searching, it checks whether an answer can even exist: if the most valuable
-    10,000 units on the table cannot reach the amount, the order fails instantly with a clear message
-    instead of hunting for a solution that is not there.</p>
-    <p>Then it gets greedy: one linear pass through the eligible inventories, taking as many units of each
-    as still fit in the remaining amount. For the vast majority of orders, that single pass lands exactly on
-    zero. When a gap survives, it backtracks — puts a note back, swaps in different ones — and writes down
-    every gap it fails to close, so even a failure comes out as a diagnosis: <em>the market lacks units at
-    these prices.</em></p>
-    <p>And it is kept on a deliberate leash: at most 10,000 units per trade, at most <strong>three seconds
-    of thinking</strong>. One order failing fast with a useful message beats five thousand orders waiting
-    behind a search that refuses to give up.</p>
+    <span class="tag">Two algorithms</span>
+    <p><strong>The first one lived in the database.</strong> Ask for the eligible inventory that can absorb
+    the most value — ordered by available quantity times unit price — take as many units as fit in what is
+    left, exclude that inventory, ask again. Preferred commodity types first, then any type. It was simple,
+    it was one query per pick, and while the market was small it worked. Its limit was structural: it could
+    only ever walk one path forward. Having taken the biggest bucket first, it had no way to reconsider
+    that choice, so it reported "no eligible commodities" on markets that genuinely did contain an exact
+    answer — just not one reachable greedily. Every such report was a cancelled order.</p>
+    <p><strong>The second one moved the whole search into memory.</strong> Load the eligible inventories
+    once, then work on them without touching the database again. It still starts greedy — one linear pass,
+    taking as many units of each inventory as still fit — because for the overwhelming majority of orders
+    that single pass lands exactly on zero. What is new is what happens when it does not:
+    <span class="k-rule">it backtracks</span>, putting the most-used inventory back, swapping in different
+    ones, and repeating until the remainder closes or the options run out. Two things bound it. Before
+    searching at all, a fast pre-check asks whether an answer can exist — if the most valuable 10,000 units
+    on the table cannot reach the amount, the order fails immediately with a clear message instead of
+    hunting for a solution that is not there. And the search itself is on a deliberate leash: at most
+    10,000 units per trade, at most <strong>three seconds of thinking</strong>. One order failing fast with
+    a useful message beats five thousand orders waiting behind a search that refuses to give up.</p>
+    <p>Two details matter more than they look. It counts in whole halalas, never fractions — floating-point
+    money that drifts by 0.01 is the difference between exact change and no change at all. And it writes
+    down every gap it fails to close, so a failure arrives as a diagnosis rather than an error:
+    <em>the market lacks units at these prices.</em> That list is market feedback; it tells a supplier what
+    to list next.</p>
+    <p>For a year both algorithms ran side by side behind one interface so they could be judged on
+    identical inputs. In 2026 the greedy one was deleted and the backtracking one became the only path.</p>
+    <p><strong>What made that judgement possible was a harness.</strong> Neither algorithm could be trusted
+    on intuition, and production is a terrible place to discover that a search has a blind spot — the
+    evidence arrives as a cancelled customer order. So we built an internal tool that runs the algorithms
+    against invented markets: thousands of synthetic price-and-quantity mixes crossed with thousands of
+    financing amounts, the same inputs fed to both, recording for each run whether it found an exact
+    cover, how long it took, and what remained uncovered. It turned "seems fine" into a table you could
+    read. It is what caught the amount smaller than the cheapest unit on the market, the combinations only
+    backtracking could reach, and the inputs where the search would have run past its time budget — each
+    one fixed before an order ever met it.</p>
 <div class="codebox">
   <span class="cap">The commodity-combination search — bounded by config, not by hope</span>
   <pre><code>private const DECIMAL_SCALE = 2;
@@ -457,10 +491,11 @@ private function toMinorUnits(float $value): int
   </div>
   <div class="metric">
     <span class="tag">The result</span>
-    Combinations for the overwhelming majority of orders are found in <strong>milliseconds</strong>, inside
-    a purchase chain whose entire CPU budget is about half a second. The impossible cases fail immediately —
-    and instead of a timeout, they leave behind a list of the missing price points: market feedback, not
-    just an error.
+    <span class="k-win">Combinations for the overwhelming majority of orders are found in
+    milliseconds</span>, inside a purchase chain whose entire CPU budget is about half a second. The
+    orders that used to be cancelled as "no eligible commodities" while a covering basket existed are
+    found now. The genuinely impossible ones fail immediately — and instead of a timeout, they leave behind
+    a list of the missing price points: market feedback, not just an error.
   </div>
 </section>
 
