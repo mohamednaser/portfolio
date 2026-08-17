@@ -60,7 +60,7 @@
 </nav>
 
 <section class="era" id="case-11">
-  <div class="era-head"><span class="era-no">CASE 11</span><h2 style="margin:0; font-size:1.35rem;">The seven seconds between the jobs</h2><span class="era-dates">May – Aug 2026</span></div>
+  <div class="era-head"><h2>Case 11 · The seven seconds between the jobs</h2><span class="era-dates">May – Aug 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -220,7 +220,7 @@ public function up(): void
 </section>
 
 <section class="era" id="case-12">
-  <div class="era-head"><span class="era-no">CASE 12</span><h2 style="margin:0; font-size:1.35rem;">Running a fleet, not a server</h2><span class="era-dates">2025 – 2026</span></div>
+  <div class="era-head"><h2>Case 12 · Running a fleet, not a server</h2><span class="era-dates">2025 – 2026</span></div>
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -378,7 +378,7 @@ fi</code></pre>
 </section>
 
 <section class="era" id="case-13">
-  <div class="era-head"><span class="era-no">CASE 13</span><h2 style="margin:0; font-size:1.35rem;">The workers were running last month's code</h2><span class="era-dates">Jun 2026</span></div>
+  <div class="era-head"><h2>Case 13 · The workers were running last month's code</h2><span class="era-dates">Jun 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -442,7 +442,7 @@ fi</code></pre>
 </section>
 
 <section class="era" id="case-14">
-  <div class="era-head"><span class="era-no">CASE 14</span><h2 style="margin:0; font-size:1.35rem;">The boring failures</h2><span class="era-dates">Throughout</span></div>
+  <div class="era-head"><h2>Case 14 · The boring failures</h2><span class="era-dates">Throughout</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">surprises moved out of production</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -476,7 +476,7 @@ fi</code></pre>
 </section>
 
 <section class="era" id="case-15">
-  <div class="era-head"><span class="era-no">CASE 15</span><h2 style="margin:0; font-size:1.35rem;">Two machines instead of three</h2><span class="era-dates">Aug 2026</span></div>
+  <div class="era-head"><h2>Case 15 · Two machines instead of three</h2><span class="era-dates">Aug 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 nodes → 2 · concurrency unchanged</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -522,7 +522,7 @@ fi</code></pre>
 </section>
 
 <section class="era" id="lessons">
-  <div class="era-head"><span class="era-no">LESSONS</span><h2 style="margin:0; font-size:1.35rem;">What two years taught us</h2></div>
+  <div class="era-head"><h2>What two years taught us</h2></div>
   <ul style="margin-top:1rem;">
     <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
       means the code is innocent; the queue topology is the product (Case 11).</li>
@@ -662,8 +662,11 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
   }
 .lynk-post .stat .l{ font-size: 0.76rem; color: var(--muted); letter-spacing: 0.02em; }
 .lynk-post .era{ margin: 3.25rem 0 0; }
-.lynk-post .era-head{ display: flex; align-items: baseline; gap: 0.85rem; border-top: 2px solid var(--ink); padding-top: 0.85rem; }
-.lynk-post .era-no{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.lynk-post .era-head, .lynk-post .section-head{
+    display: flex; align-items: baseline; gap: 0.85rem;
+    border-top: 2px solid var(--ink); padding-top: 0.9rem; margin-top: 2.2rem;
+  }
+.lynk-post .era-head h2, .lynk-post .section-head h2{ margin: 0; }
 .lynk-post .era-dates{
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
