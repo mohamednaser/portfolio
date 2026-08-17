@@ -142,6 +142,14 @@
     inventory rows, those gap locks collide into deadlocks.<a class="refmark" href="#ref-locks">gap locks ↓</a> <span class="k-cost">We had the strange experience of adding capacity and watching throughput fall. More
     concurrency meant more waiting.</span></p>
   </div>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg"
+         alt="A conceptual abstract illustration of a database table experiencing 'gap locks' causing deadlocks."
+         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>InnoDB's REPEATABLE READ isolation level locks not just rows, but the gaps between them, causing transactions to tangle into deadlocks under high concurrency.</figcaption>
+  </figure>
+
   <div class="attempt">
     <span class="tag">What we tried — three rounds</span>
     <p>It took three rounds to actually win. In the first, we treated each incident as it came: remove this

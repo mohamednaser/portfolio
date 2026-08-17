@@ -75,6 +75,14 @@
     system is idle (~0s), noticeable under load (~7s at 91 orders a minute), catastrophic at peak
     (~118 seconds)</span>.</p>
   </div>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/queue_wait_iceberg_concept.jpg"
+         alt="A conceptual illustration of an iceberg demonstrating the hidden cost of queue wait time vs actual work."
+         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>Queue wait time acts like an iceberg: the actual CPU execution time is just the visible tip, while the time spent waiting in line forms a massive, hidden cost that sinks performance under load.</figcaption>
+  </figure>
+
   <figure>
     <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
       <g font-size="11.5" fill="currentColor" opacity="0.85" text-anchor="end">
