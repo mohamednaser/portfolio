@@ -61,13 +61,14 @@ const localeAlternates = isEnglishOnlyPath(Astro.url.pathname)
       href: new URL(alternatePath(Astro.url.pathname, code), site.url).href,
     }));
 
+// No `email` here on purpose: JSON-LD is emitted on every page, so a plain address in it
+// is machine-readable bait for scrapers. The contact page still offers a mailto link.
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: meta.name,
   alternateName: lang === defaultLang ? siteMeta.ar.name : site.name,
   url: site.url,
-  email: site.email,
   image: siteImage,
   sameAs: sameAsUrls,
   jobTitle: meta.jobTitle,

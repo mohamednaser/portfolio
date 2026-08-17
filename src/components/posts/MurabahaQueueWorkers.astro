@@ -5,6 +5,15 @@
 
 <div class="lynk-post">
 
+<p class="kicker">LYNK Engineering · Murabaha Platform · <a href="/series/scaling-murabaha/">Part 3 of 3</a></p>
+<div class="stats">
+    <div class="stat"><span class="n">0.52s / 7.5s</span><span class="l">real work inside the purchase step</span></div>
+    <div class="stat"><span class="n">118s → ~0</span><span class="l">borrower-ownership queue wait</span></div>
+    <div class="stat"><span class="n">3 → 122</span><span class="l">worker processes, Jan 2025 → today</span></div>
+    <div class="stat"><span class="n">3 → 2</span><span class="l">machines, same total concurrency</span></div>
+  </div>
+
+
 <div class="prev">
   <span class="tag">Earlier in this series</span>
   <strong><a href="/blog/commodity-murabaha-platform/">Part 1 · Commodity Murabaha, Explained for Engineers</a></strong> — what LYNK is, how a
@@ -23,13 +32,34 @@
 </p>
 <p>
   The cases stay numbered continuously with Part 2, because they happened in the same two years and often
-  in the same week. As before, each one tells you <strong style="color:var(--incident)">what was actually
+  in the same week. Every worker count below is the production and pre-production figure unless stated
+  otherwise: the same file collapses to one replica per queue in development and sandbox, so "22 queues"
+  does not mean 122 processes everywhere. As before, each one tells you <strong style="color:var(--incident)">what was actually
   going wrong</strong>, <strong style="color:var(--muted)">what we tried</strong> — including the attempts
   that had to be reverted — and <strong style="color:var(--accent)">what the numbers said</strong>
   afterwards.
 </p>
 
-<section class="era">
+
+<div class="note">
+  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
+  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
+  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
+  the opinions, and any errors, are my own.
+</div>
+<nav class="caseindex" aria-label="Case index">
+  <span class="tag">The five cases</span>
+  <ol>
+    <li><a href="#case-11"><span class="cn">CASE 11</span>The seven seconds between the jobs</a></li>
+    <li><a href="#case-12"><span class="cn">CASE 12</span>Running a fleet, not a server</a></li>
+    <li><a href="#case-13"><span class="cn">CASE 13</span>The workers were running last month's code</a></li>
+    <li><a href="#case-14"><span class="cn">CASE 14</span>The boring failures</a></li>
+    <li><a href="#case-15"><span class="cn">CASE 15</span>Two machines instead of three</a></li>
+    <li><a href="#lessons"><span class="cn">LESSONS</span>What two years taught us</a></li>
+  </ol>
+</nav>
+
+<section class="era" id="case-11">
   <div class="era-head"><span class="era-no">CASE 11</span><h2 style="margin:0; font-size:1.35rem;">The seven seconds between the jobs</h2><span class="era-dates">May – Aug 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
   <div class="incident">
@@ -43,7 +73,33 @@
     orders a minute), catastrophic at peak (~118 seconds).</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-1.gif" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
+    <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
+      <g font-size="11.5" fill="currentColor" opacity="0.85" text-anchor="end">
+        <text x="150" y="34">idle</text>
+        <text x="150" y="82">91 orders / min</text>
+        <text x="150" y="130">sustained peak</text>
+      </g>
+      <g>
+        <rect class="bar" style="animation-delay:0.05s" x="160" y="22" width="3" height="18" rx="1.5" fill="var(--accent)"><title>Idle — queue wait about 0 seconds</title></rect>
+        <rect class="bar" style="animation-delay:0.2s" x="160" y="70" width="31" height="18" rx="2" fill="var(--incident)" opacity="0.8"><title>91 orders per minute — about 7 seconds of queue wait</title></rect>
+        <rect class="bar" style="animation-delay:0.35s" x="160" y="118" width="520" height="18" rx="2" fill="var(--incident)"><title>Sustained peak — about 118 seconds of queue wait</title></rect>
+      </g>
+      <g font-size="11.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" class="blabel" style="animation-delay:1s">
+        <text x="172" y="36" opacity="0.75">~0s</text>
+        <text x="200" y="84" opacity="0.85">~7s</text>
+        <text x="668" y="132" text-anchor="end" fill="var(--bg)" font-weight="700">~118s</text>
+      </g>
+      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.55">
+        <text x="160" y="160">The jobs themselves ran in about 1 second at every point on this chart.</text>
+      </g>
+    </svg>
+    <figcaption>Why queue wait is so easy to miss: measured on an idle system it is invisible, and
+    it stays modest at moderate load. The job's own work never changes — about a second — so every
+    profiler pointed at the code kept reporting that nothing was wrong.</figcaption>
+  </figure>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-1.webp" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>Actual footage of a Borrower Ownership job, 0.5 seconds of work done, waiting its turn
     behind the auto-sell queue.</figcaption>
@@ -62,6 +118,24 @@
     <p>The rest was housekeeping that only matters at this scale: fifteen log lines per order deleted
     (about 100&nbsp;MB of logs a day at 5,000 orders), unused indexes dropped to cut write cost, and
     explicit connection budgets after the full worker fleet exhausted the database's connections.</p>
+<div class="codebox">
+  <span class="cap">database/migrations/..._add_external_order_no_index_to_local_market_orders_table.php</span>
+  <pre><code>/**
+ * local_market_orders has ~700k rows and no index on external_order_no, so
+ * every lookup by reference (the duplicate check in CreateLocalMarketOrderAction
+ * and LocalMarketTrait::getLocalMarketOrderByReference used by transfer/sell/
+ * cancel) runs a full table scan. Under the perf-test burst these concurrent
+ * scans thrash the buffer pool and inflate the initiate-order step. A plain
+ * index turns them into single-row lookups (LYNKMRBHA-6509).
+ */
+public function up(): void
+&#123;
+    Schema::table('local_market_orders', function (Blueprint $table) &#123;
+        $table-&gt;index('external_order_no', 'local_market_orders_external_order_no_index');
+    &#125;);
+&#125;</code></pre>
+</div>
+
   </div>
 
   <figure>
@@ -142,7 +216,7 @@
   </div>
 </section>
 
-<section class="era">
+<section class="era" id="case-12">
   <div class="era-head"><span class="era-no">CASE 12</span><h2 style="margin:0; font-size:1.35rem;">Running a fleet, not a server</h2><span class="era-dates">2025 – 2026</span></div>
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
@@ -202,7 +276,7 @@
         <tr>
           <td>Two new certificate queues<br><span class="tk">Aug 2026</span></td>
           <td>Bid-certificate and order-result jobs were sharing one general-purpose queue with everything else in that integration.</td>
-          <td>5 replicas each on two machines — the change that takes the fleet from 122 to 142.</td>
+          <td>5 replicas each on two machines — the change that takes the fleet to <strong>142</strong> in development, where it ships first. Production, sandbox and pre-production stay at 122 until it rolls out there.</td>
         </tr>
         <tr>
           <td>Order initiation pinned at <strong>1</strong><br><span class="tk">standing rule</span></td>
@@ -234,6 +308,32 @@
     forever: the step where parallelism cannot be made safe. In a case study full of scaling-up decisions,
     the most important number in the fleet is a one.</p>
   </div>
+<div class="codebox">
+  <span class="cap">.github/scripts/deploy.sh — get_scale_flags()</span>
+  <pre><code>if [[ "$DEPLOY_ENV" == "sandbox" || "$DEPLOY_ENV" == "dev" ]]; then
+    # Sandbox/Dev: 1 replica per worker type (all groups on 1 server),
+    # except default-worker=4 as the default queue carries the two
+    # sequential client-wakala jobs (ask + proceed) and backs up under load.
+    # Keeps total DB connections ~28 instead of ~86 at full production scale
+    scale_flags="--scale local-market-eligible-quantities-worker=1"
+    # ...
+else
+    # Production/preprod: full scale per group
+    if [[ "$PROFILES" == *"group1"* ]]; then
+        scale_flags="$scale_flags --scale local-market-order-inventories-units-creation=8"
+        scale_flags="$scale_flags --scale local-market-order-initiation=1"
+        scale_flags="$scale_flags --scale trader-order-initiation=10"
+        # ...
+    fi
+
+    if [[ "$PROFILES" == *"group2"* ]]; then
+        scale_flags="$scale_flags --scale local-market-transfer-ownership-worker=4"
+        scale_flags="$scale_flags --scale local-market-sell-to-open-market-worker=4"
+        # ...
+    fi
+fi</code></pre>
+</div>
+
 
   <div class="incident">
     <span class="tag">Where a fleet bites back</span>
@@ -264,15 +364,15 @@
   <div class="metric">
     <span class="tag">The result</span>
     The fleet grew from <strong>3 worker containers in January 2025 to 122 processes across 3
-    machines</strong> — and unlike the platform of 2024, every one of those numbers has a commit explaining
-    it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
+    machines</strong> — the production and pre-production figure — and unlike the platform of 2024, every
+    one of those numbers has a commit explaining it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
     went from three machines to two with <strong>total queue concurrency unchanged</strong>, and the hardest
     part was proving that the second number had not quietly moved (Case&nbsp;15). The goal was never
     "more workers." It was <em>the right workers, in the right places, for reasons written down.</em>
   </div>
 </section>
 
-<section class="era">
+<section class="era" id="case-13">
   <div class="era-head"><span class="era-no">CASE 13</span><h2 style="margin:0; font-size:1.35rem;">The workers were running last month's code</h2><span class="era-dates">Jun 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
   <div class="incident">
@@ -305,6 +405,27 @@
     at all, and the stop signal inherited from the base image was not one it would have handled anyway.
     Installing the extension and sending the signal the worker actually listens for dropped idle shutdown
     from about ten seconds to about one.</p>
+<div class="codebox">
+  <span class="cap">.github/scripts/deploy.sh — the rolling deploy</span>
+  <pre><code># Scale up: new containers alongside old ones
+docker compose -p lynk-backend $PROFILE_FLAGS up -d --no-recreate $SCALE_UP_FLAGS
+
+# ...
+
+# Scale down to target
+docker compose -p lynk-backend $PROFILE_FLAGS up -d $SCALE_FLAGS
+
+# Force-recreate all PHP services to ensure no old image digest survives.
+# We keep this explicit to avoid recreating infrastructure services
+# such as redis/mysql/mailhog when their profile is enabled.
+PHP_SERVICES=$(get_php_service_names)
+PHP_SERVICES=$(filter_existing_services "$PHP_SERVICES")
+if [ -n "$PHP_SERVICES" ]; then
+    docker compose -p lynk-backend $PROFILE_FLAGS up -d --force-recreate --no-deps \
+        $SCALE_FLAGS $PHP_SERVICES
+fi</code></pre>
+</div>
+
   </div>
   <div class="metric">
     <span class="tag">The result</span>
@@ -315,7 +436,7 @@
   </div>
 </section>
 
-<section class="era">
+<section class="era" id="case-14">
   <div class="era-head"><span class="era-no">CASE 14</span><h2 style="margin:0; font-size:1.35rem;">The boring failures</h2><span class="era-dates">Throughout</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">surprises moved out of production</span></p>
   <div class="incident">
@@ -328,7 +449,7 @@
     connections. Deploys that killed whatever jobs were running.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-2.gif" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
+    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-2.webp" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The platform at 98% disk usage, moments before our first stuck-orders investigation.</figcaption>
   </figure>
@@ -349,7 +470,7 @@
   </div>
 </section>
 
-<section class="era">
+<section class="era" id="case-15">
   <div class="era-head"><span class="era-no">CASE 15</span><h2 style="margin:0; font-size:1.35rem;">Two machines instead of three</h2><span class="era-dates">Aug 2026</span></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 nodes → 2 · concurrency unchanged</span></p>
   <div class="incident">
@@ -395,7 +516,7 @@
   </div>
 </section>
 
-<section class="era">
+<section class="era" id="lessons">
   <div class="era-head"><span class="era-no">LESSONS</span><h2 style="margin:0; font-size:1.35rem;">What two years taught us</h2></div>
   <ul style="margin-top:1rem;">
     <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
@@ -581,4 +702,27 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
 .lynk-post figure{text-align:center}
 .lynk-post figure img,.lynk-post figure svg{margin-left:auto;margin-right:auto}
 .lynk-post figcaption{margin-left:auto;margin-right:auto;text-align:left}
+
+/* --- review pass: code blocks, case index, disclosure --- */
+.lynk-post .codebox{ margin:1.35rem 0; border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; }
+.lynk-post .codebox .cap{ display:block; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.68rem; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted); padding:0.5rem 0.9rem; border-bottom:1px solid var(--line); word-break:break-all; }
+.lynk-post .codebox pre{ margin:0; padding:0.9rem 1rem; overflow-x:auto; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.76rem; line-height:1.6; color:var(--ink); -webkit-overflow-scrolling:touch; }
+.lynk-post .codebox pre code{ background:none; padding:0; font-size:inherit; color:inherit; white-space:pre; }
+.lynk-post .caseindex{ border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); padding:1.05rem 1.2rem; margin:2rem 0; }
+.lynk-post .caseindex .tag{ display:block; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:0.7rem; }
+.lynk-post .caseindex ol{ margin:0; padding:0; list-style:none; }
+.lynk-post .caseindex li{ margin:0.3rem 0; font-size:0.93rem; padding-left:0; }
+.lynk-post .caseindex li::before{ content:none; }
+.lynk-post .caseindex li a{ text-decoration:none; border-bottom:1px solid transparent; }
+.lynk-post .caseindex li a:hover{ border-bottom-color:var(--accent); }
+.lynk-post .caseindex .cn{ font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.75rem; color:var(--muted); margin-right:0.5rem; }
+.lynk-post .note{ border:1px solid var(--line); border-radius:10px; background:var(--card); padding:0.9rem 1.1rem; margin:2rem 0; font-size:0.86rem; color:var(--muted); }
+.lynk-post .note strong{ color:var(--ink); }
+.lynk-post .kicker{ margin-top:0; }
+.lynk-post .stats{ margin-bottom:2rem; }
+@media (max-width:34rem){ .lynk-post .codebox pre{ font-size:0.7rem; } }
+@keyframes growbarv { from { transform: scaleY(0); } }
+@media (prefers-reduced-motion: no-preference){
+  .lynk-post .barv{ transform-box:fill-box; transform-origin:center bottom; animation:growbarv 0.9s cubic-bezier(0.2,0.7,0.3,1) backwards; }
+}
 </style>
