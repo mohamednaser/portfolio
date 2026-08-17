@@ -55,8 +55,8 @@ export type NavItem = {
 };
 
 /**
- * Nav is per-locale because the blog is English-only for now — the Arabic site
- * intentionally omits it rather than linking to pages that are not translated.
+ * Both locales carry the same nav. The blog index is localised; the article
+ * bodies behind it stay in English.
  */
 export const navByLang: Record<Lang, readonly NavItem[]> = {
   en: [
@@ -70,6 +70,7 @@ export const navByLang: Record<Lang, readonly NavItem[]> = {
     { href: '/', labelKey: 'home' },
     { href: '/about', labelKey: 'about' },
     { href: '/projects', labelKey: 'projects' },
+    { href: '/blog', labelKey: 'blog' },
     { href: '/contact', labelKey: 'contact' },
   ],
 };

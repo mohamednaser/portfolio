@@ -4,7 +4,7 @@ import ProjectCard from '../ProjectCard.astro';
 import TestimonialsMarquee from '../TestimonialsMarquee.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getTestimonials } from '../../data/i18n';
-import { defaultLang, localizePath, type Lang } from '../../i18n';
+import { localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
 import { getProjects, projectSlug } from '../../lib/projects';
 import { site } from '../../site.config';
@@ -51,13 +51,7 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
         />
         <div class="mt-10 flex flex-wrap gap-4">
           <a href={localizePath('/projects', lang)} class="btn-primary">{t.home.ctaProjects}</a>
-          {
-            lang === defaultLang && (
-              <a href="/blog" class="btn-secondary">
-                {t.home.ctaBlog}
-              </a>
-            )
-          }
+          <a href={localizePath('/blog', lang)} class="btn-secondary">{t.home.ctaBlog}</a>
           <a href={localizePath('/contact', lang)} class="btn-secondary">{t.home.ctaContact}</a>
         </div>
       </div>

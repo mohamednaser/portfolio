@@ -30,8 +30,17 @@ export const defaultLang: Lang = 'en';
 
 export const langCodes = Object.keys(languages) as Lang[];
 
-/** Routes that exist in English only — the blog and its series hubs are not localised yet. */
-const englishOnly = [/^\/blog(\/|$)/, /^\/series(\/|$)/, /^\/rss\.xml$/];
+/**
+ * Routes with no translated counterpart, and the nearest page to send a reader
+ * to instead. Article bodies and series hubs stay in English — only the blog
+ * index around them is localised — so they fall back to the blog index in the
+ * target locale.
+ */
+const untranslated: { pattern: RegExp; fallback: string }[] = [
+  { pattern: /^\/blog\/.+/, fallback: '/blog/' },
+  { pattern: /^\/series(\/|$)/, fallback: '/blog/' },
+  { pattern: /^\/rss\.xml$/, fallback: '/blog/' },
+];
 
 export function isLang(value: string): value is Lang {
   return value in languages;
@@ -56,18 +65,16 @@ export function localizePath(path: string, lang: Lang): string {
 }
 
 /**
- * The equivalent of `pathname` in `target`. English-only routes (blog) fall
- * back to the Arabic home page rather than linking to a page that never builds.
+ * The equivalent of `pathname` in `target`. A page with no translation resolves
+ * to its declared fallback rather than a URL that never builds.
  */
 export function alternatePath(pathname: string, target: Lang): string {
   const base = stripLang(pathname);
-  if (target !== defaultLang && englishOnly.some((pattern) => pattern.test(base))) {
-    return localizePath('/', target);
-  }
-  return localizePath(base, target);
+  const missing = untranslated.find((route) => route.pattern.test(base));
+  return localizePath(missing && target !== defaultLang ? missing.fallback : base, target);
 }
 
 /** True when `pathname` has no counterpart outside the default locale. */
-export function isEnglishOnlyPath(pathname: string): boolean {
-  return englishOnly.some((pattern) => pattern.test(stripLang(pathname)));
+export function isUntranslatedPath(pathname: string): boolean {
+  return untranslated.some((route) => route.pattern.test(stripLang(pathname)));
 }

@@ -4,16 +4,22 @@ import type { CollectionEntry } from 'astro:content';
 
 interface Props {
   post: CollectionEntry<'blog'>;
+  /** Article titles and teasers are English — force LTR inside an RTL page. */
+  isolateLtr?: boolean;
 }
 
-const { post } = Astro.props;
+const { post, isolateLtr = false } = Astro.props;
 const slug = contentSlug(post.id);
 const href = `/blog/${slug}`;
 const teaser = post.data.excerpt ?? post.data.description;
 const hasCover = Boolean(post.data.coverImage);
 ---
 
-<article class="group border-b border-slate-200 py-10 last:border-b-0 dark:border-slate-800">
+<article
+  class="group border-b border-slate-200 py-10 last:border-b-0 dark:border-slate-800"
+  lang={isolateLtr ? 'en' : undefined}
+  dir={isolateLtr ? 'ltr' : undefined}
+>
   <div
     class:list={[
       'flex flex-col gap-6',
@@ -25,14 +31,18 @@ const hasCover = Boolean(post.data.coverImage);
         datetime={post.data.pubDate.toISOString()}
         class="text-sm text-slate-500 dark:text-slate-400"
       >
-        {post.data.pubDate.toLocaleDateString('en-GB', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        })}
-        {post.data.readingTime && (
-          <span class="before:mx-2 before:content-['·']">{post.data.readingTime}</span>
-        )}
+        {
+          post.data.pubDate.toLocaleDateString('en-GB', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })
+        }
+        {
+          post.data.readingTime && (
+            <span class="before:mx-2 before:content-['·']">{post.data.readingTime}</span>
+          )
+        }
       </time>
       <h2 class="mt-2 text-xl font-bold leading-snug text-slate-900 dark:text-slate-50 sm:text-2xl">
         <a
@@ -59,10 +69,7 @@ const hasCover = Boolean(post.data.coverImage);
         )
       }
       <div class="mt-5 flex flex-wrap items-center gap-3 text-sm">
-        <a
-          href={href}
-          class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-        >
+        <a href={href} class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
           {post.data.external ? 'View summary' : 'Read article'}
         </a>
         {
