@@ -426,6 +426,16 @@
     until the gateway hung up on it, and a slow search does not stall one order, it stalls the purchase
     step of every order queued behind it.</p>
   </div>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/exact-change.webp"
+         width="1024" height="559"
+         alt="Two panels. Left: the dual constraints. Exactness — whole units at fixed prices must add up to precisely the amount, so one halala over or under is no trade. Eligibility — trade-rotation rules, ownership histories and institutional profiles decide which units a given institution may hold, leaving an eligible remainder that is searched for a basket combination; most candidate baskets are wrong and naive solutions explode. Right: the two ways it fails. A search that gives up too early returns no eligible commodities available and the customer's financing is cancelled even though the market could have covered it; a search that refuses to give up runs until the gateway times out and stalls the purchase step of every order queued behind it."
+         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>Both constraints, and both ways of failing them. The search has to satisfy exactness and
+    eligibility at once — and it has to do it inside a time budget, because giving up too early cancels a
+    financing the market could have covered, while never giving up holds up every order behind it.</figcaption>
+  </figure>
   <div class="attempt">
     <span class="tag">Two algorithms</span>
     <p><strong>The first one lived in the database.</strong> Ask for the eligible inventory that can absorb
