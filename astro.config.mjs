@@ -9,13 +9,26 @@ const tailwindConfig = fileURLToPath(new URL('./tailwind.config.mjs', import.met
 // https://astro.build/config
 export default defineConfig({
   site: 'https://mnaser.me',
+  i18n: {
+    locales: ['en', 'ar'],
+    defaultLocale: 'en',
+    routing: {
+      // English stays at the root (`/about`); Arabic is prefixed (`/ar/about`).
+      prefixDefaultLocale: false,
+    },
+  },
   integrations: [
     tailwind({
       configFile: tailwindConfig,
       applyBaseStyles: false,
     }),
     mdx(),
-    sitemap(),
+    sitemap({
+      i18n: {
+        defaultLocale: 'en',
+        locales: { en: 'en-GB', ar: 'ar' },
+      },
+    }),
   ],
   redirects: {
     '/ai': '/blog',

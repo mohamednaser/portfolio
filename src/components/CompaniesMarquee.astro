@@ -1,12 +1,16 @@
 ---
 import CompanyLogoCard from './CompanyLogoCard.astro';
 import type { Company } from '../data/companies';
+import { defaultLang, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 
 interface Props {
   items: (Company & { src: string })[];
+  lang?: Lang;
 }
 
-const { items } = Astro.props;
+const { items, lang = defaultLang } = Astro.props;
+const t = useTranslations(lang);
 const track = [...items, ...items];
 const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
 ---
@@ -16,10 +20,18 @@ const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
     type="button"
     class="marquee__btn marquee__btn--prev"
     data-direction="prev"
-    aria-label="Show previous companies"
+    aria-label={t.companies.prev}
     aria-controls={`${uid}-viewport`}
   >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      class="h-5 w-5 rtl:rotate-180"
+      aria-hidden="true"
+    >
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
     </svg>
   </button>
@@ -29,7 +41,7 @@ const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
     data-viewport
     id={`${uid}-viewport`}
     tabindex="0"
-    aria-label="Companies and clients carousel"
+    aria-label={t.companies.carouselLabel}
   >
     <div class="marquee__track flex w-max gap-6" data-track>
       {track.map((company) => <CompanyLogoCard company={company} />)}
@@ -40,10 +52,18 @@ const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
     type="button"
     class="marquee__btn marquee__btn--next"
     data-direction="next"
-    aria-label="Show next companies"
+    aria-label={t.companies.next}
     aria-controls={`${uid}-viewport`}
   >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5" aria-hidden="true">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      class="h-5 w-5 rtl:rotate-180"
+      aria-hidden="true"
+    >
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
     </svg>
   </button>

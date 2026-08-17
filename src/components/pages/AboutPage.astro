@@ -1,0 +1,188 @@
+---
+import SocialLinks from '../SocialLinks.astro';
+import TestimonialsMarquee from '../TestimonialsMarquee.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  getCertifications,
+  getEducation,
+  getExperience,
+  getSkillGroups,
+  getSpokenLanguages,
+  getTestimonials,
+  getTopSkills,
+} from '../../data/i18n';
+import { localizePath, type Lang } from '../../i18n';
+import { fill, useTranslations } from '../../i18n/ui';
+import { site } from '../../site.config';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const testimonials = getTestimonials(lang);
+const experience = getExperience(lang);
+const education = getEducation(lang);
+const certifications = getCertifications(lang);
+const spokenLanguages = getSpokenLanguages(lang);
+const skillGroups = getSkillGroups(lang);
+const topSkills = getTopSkills(lang);
+
+const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 underline dark:text-emerald-400">Medium</a>`;
+const introHtml = fill(t.about.introHtml, { medium: mediumLink });
+const listSeparator = lang === 'ar' ? '، ' : ', ';
+---
+
+<BaseLayout lang={lang} title={t.about.title} description={t.about.metaDescription}>
+  <article class="mx-auto max-w-5xl px-6 py-16">
+    <header class="max-w-3xl">
+      <h1 class="section-heading">{t.about.title}</h1>
+      <p
+        class="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-300"
+        set:html={introHtml}
+      />
+    </header>
+
+    <section class="mt-12 grid gap-10 lg:grid-cols-[240px_1fr]">
+      <img
+        src={site.image}
+        alt={t.about.portraitAlt}
+        width="240"
+        height="240"
+        class="rounded-2xl object-cover"
+        loading="lazy"
+      />
+      <div class="space-y-4 leading-relaxed text-slate-600 dark:text-slate-300">
+        {t.about.bodyHtml.map((paragraph) => <p set:html={paragraph} />)}
+        <p>
+          <a
+            href={localizePath('/projects', lang)}
+            class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+          >
+            {t.about.browseProjects}
+          </a>
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+        {t.about.topSkills}
+      </h2>
+      <ul class="mt-4 flex flex-wrap gap-2">
+        {
+          topSkills.map((skill) => (
+            <li class="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {skill}
+            </li>
+          ))
+        }
+      </ul>
+      <div class="mt-8 grid gap-6 sm:grid-cols-2">
+        {
+          skillGroups.map((group) => (
+            <div class="card">
+              <h3 class="font-semibold text-slate-900 dark:text-slate-50">{group.label}</h3>
+              <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                {group.items.join(' · ')}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+        {t.about.experience}
+      </h2>
+      <ol class="mt-8 space-y-8 border-s border-slate-200 ps-6 dark:border-slate-700">
+        {
+          experience.map((job) => (
+            <li class="relative">
+              <span class="absolute -start-[1.35rem] top-2 h-2 w-2 rounded-full bg-emerald-500" />
+              <p class="text-sm text-slate-500 dark:text-slate-400">{job.period}</p>
+              <h3 class="font-semibold text-slate-900 dark:text-slate-50">
+                {job.url ? (
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-emerald-600 dark:hover:text-emerald-400"
+                  >
+                    {job.company}
+                  </a>
+                ) : (
+                  job.company
+                )}
+              </h3>
+              <p class="text-slate-600 dark:text-slate-400">{job.role}</p>
+              {job.location && <p class="text-sm text-slate-500">{job.location}</p>}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul class="mt-3 list-disc space-y-1 ps-5 text-sm text-slate-600 dark:text-slate-400">
+                  {job.highlights.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+        {t.about.education}
+      </h2>
+      <ul class="mt-6 space-y-4">
+        {
+          education.map((e) => (
+            <li class="card">
+              <p class="text-sm text-slate-500">{e.period}</p>
+              <h3 class="font-semibold">
+                <a
+                  href={e.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-emerald-600 dark:hover:text-emerald-400"
+                >
+                  {e.school}
+                </a>
+              </h3>
+              <p class="text-sm text-slate-600 dark:text-slate-400">{e.detail}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+        {t.about.certifications}
+      </h2>
+      <ul class="mt-4 list-disc space-y-1 ps-5 text-slate-600 dark:text-slate-400">
+        {certifications.map((c) => <li>{c}</li>)}
+      </ul>
+      <p class="mt-4 text-slate-600 dark:text-slate-400">
+        {
+          fill(t.about.languagesLine, {
+            list: spokenLanguages.join(listSeparator),
+          })
+        }
+      </p>
+    </section>
+
+    <section id="testimonials" class="mt-16 scroll-mt-24">
+      <h2 class="section-heading">{t.about.testimonials}</h2>
+      <TestimonialsMarquee items={testimonials} lang={lang} />
+    </section>
+
+    <div class="mt-12 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+      <a href="/cv.pdf" class="btn-primary" download>{t.about.downloadCv}</a>
+      <SocialLinks lang={lang} />
+    </div>
+  </article>
+</BaseLayout>

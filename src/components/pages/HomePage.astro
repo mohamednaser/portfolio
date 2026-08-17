@@ -1,0 +1,111 @@
+---
+import CompanyLogos from '../CompanyLogos.astro';
+import ProjectCard from '../ProjectCard.astro';
+import TestimonialsMarquee from '../TestimonialsMarquee.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getTestimonials } from '../../data/i18n';
+import { defaultLang, localizePath, type Lang } from '../../i18n';
+import { fill, useTranslations } from '../../i18n/ui';
+import { getProjects, projectSlug } from '../../lib/projects';
+import { site } from '../../site.config';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const testimonials = getTestimonials(lang);
+
+/** Homepage “Selected projects” — fixed trio; not driven by `featured` alone. */
+const homepageProjectSlugs = ['lynk', 'carefer', 'ynmo'];
+
+const featuredProjects = (await getProjects(lang))
+  .filter((project) => homepageProjectSlugs.includes(projectSlug(project)))
+  .sort(
+    (a, b) =>
+      homepageProjectSlugs.indexOf(projectSlug(a)) - homepageProjectSlugs.indexOf(projectSlug(b)),
+  );
+
+const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 underline decoration-emerald-600/30 underline-offset-2 hover:decoration-emerald-600 dark:text-emerald-400 dark:decoration-emerald-400/30">Medium</a>`;
+const introHtml = fill(t.home.introHtml, { medium: mediumLink });
+---
+
+<BaseLayout lang={lang}>
+  <section class="mx-auto max-w-5xl px-6 py-16 sm:py-24">
+    <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
+      <div>
+        <p
+          class="font-mono text-sm uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
+        >
+          {t.home.eyebrow}
+        </p>
+        <h1
+          class="mt-4 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl"
+        >
+          {t.home.headline}
+        </h1>
+        <p
+          class="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-300"
+          set:html={introHtml}
+        />
+        <div class="mt-10 flex flex-wrap gap-4">
+          <a href={localizePath('/projects', lang)} class="btn-primary">{t.home.ctaProjects}</a>
+          {
+            lang === defaultLang && (
+              <a href="/blog" class="btn-secondary">
+                {t.home.ctaBlog}
+              </a>
+            )
+          }
+          <a href={localizePath('/contact', lang)} class="btn-secondary">{t.home.ctaContact}</a>
+        </div>
+      </div>
+      <img
+        src={site.image}
+        alt={t.home.portraitAlt}
+        width="280"
+        height="280"
+        class="mx-auto rounded-2xl object-cover shadow-lg lg:mx-0"
+        loading="eager"
+      />
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-6 py-16">
+    <h2 class="section-heading">{t.home.selectedProjects}</h2>
+    <p class="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
+      {t.home.selectedProjectsIntro}
+    </p>
+    <ul class="mt-10 grid gap-6 md:grid-cols-3">
+      {featuredProjects.map((project) => <ProjectCard project={project} lang={lang} compact />)}
+    </ul>
+    <p class="mt-8">
+      <a
+        href={localizePath('/projects', lang)}
+        class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+      >
+        {t.home.allProjects}
+      </a>
+    </p>
+  </section>
+
+  <CompanyLogos lang={lang} />
+
+  <section
+    class="border-t border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40"
+  >
+    <div class="mx-auto max-w-5xl px-6">
+      <h2 class="section-heading">{t.home.testimonialsHeading}</h2>
+      <TestimonialsMarquee items={testimonials} lang={lang} />
+      <p class="mt-8 text-center">
+        <a
+          href={`${localizePath('/about', lang)}#testimonials`}
+          class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+        >
+          {fill(t.home.allTestimonials, { count: testimonials.length })}
+        </a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>

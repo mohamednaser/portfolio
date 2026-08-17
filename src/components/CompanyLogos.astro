@@ -1,14 +1,17 @@
 ---
 import CompaniesMarquee from './CompaniesMarquee.astro';
 import { companyLogos } from '../data/companies';
+import { defaultLang, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 
 interface Props {
+  lang?: Lang;
   heading?: string;
 }
 
-const { heading = 'Proud to collaborate with' } = Astro.props;
-
-const items = companyLogos as (typeof companyLogos)[number] & { src: string }[];
+const { lang = defaultLang, heading } = Astro.props;
+const t = useTranslations(lang);
+const resolvedHeading = heading ?? t.companies.heading;
 ---
 
 <section
@@ -17,8 +20,8 @@ const items = companyLogos as (typeof companyLogos)[number] & { src: string }[];
 >
   <div class="mx-auto max-w-5xl px-6">
     <h2 id="companies-heading" class="section-heading text-center">
-      {heading}
+      {resolvedHeading}
     </h2>
-    <CompaniesMarquee items={items} />
+    <CompaniesMarquee items={companyLogos} lang={lang} />
   </div>
 </section>

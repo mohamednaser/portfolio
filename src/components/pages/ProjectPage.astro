@@ -1,0 +1,137 @@
+---
+import CompanyBadge from '../CompanyBadge.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { localizePath, type Lang } from '../../i18n';
+import { fill, useTranslations } from '../../i18n/ui';
+import type { ProjectEntry } from '../../lib/projects';
+import { render } from 'astro:content';
+
+interface Props {
+  project: ProjectEntry;
+  lang: Lang;
+}
+
+const { project, lang } = Astro.props;
+const t = useTranslations(lang);
+const { Content } = await render(project);
+const {
+  title,
+  description,
+  period,
+  role,
+  status,
+  stack,
+  achievements,
+  links,
+  tags,
+  company,
+  employer,
+} = project.data;
+---
+
+<BaseLayout lang={lang} title={title} description={description} type="article">
+  <article class="mx-auto max-w-3xl px-6 py-16">
+    <CompanyBadge companyId={company} />
+    {
+      employer && (
+        <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+          <span>{t.projects.deliveredAt}</span>
+          <CompanyBadge companyId={employer} size="sm" />
+        </div>
+      )
+    }
+    <p class="mt-6 text-sm text-emerald-600 dark:text-emerald-400">
+      {[period, role].filter(Boolean).join(' · ')}
+    </p>
+    <h1 class="mt-2 text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+      {title}
+    </h1>
+    <p class="mt-4 text-lg text-slate-600 dark:text-slate-400">{description}</p>
+
+    {
+      status !== 'active' && (
+        <p class="mt-2 text-sm text-slate-500">
+          {fill(t.projects.statusLine, { status: t.projects.status[status] })}
+        </p>
+      )
+    }
+
+    {
+      links.length > 0 && (
+        <ul class="mt-6 flex flex-wrap gap-3">
+          {links.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-secondary text-sm"
+              >
+                {link.label} ↗
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      stack.length > 0 && (
+        <section class="mt-10">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {t.projects.stack}
+          </h2>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            {stack.map((item) => (
+              <li class="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      achievements.length > 0 && (
+        <section class="mt-10">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {t.projects.achievements}
+          </h2>
+          <ul class="mt-3 list-disc space-y-2 ps-5 text-slate-700 dark:text-slate-300">
+            {achievements.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      tags.length > 0 && (
+        <ul class="mt-8 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <li class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {tag}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <div
+      class="mt-10 space-y-4 leading-relaxed text-slate-700 dark:text-slate-300 [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-semibold [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:ps-5 [&_strong]:text-slate-900 dark:[&_strong]:text-slate-100"
+    >
+      <Content />
+    </div>
+
+    <p class="mt-12">
+      <a
+        href={localizePath('/projects', lang)}
+        class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+      >
+        {t.projects.backToAll}
+      </a>
+    </p>
+  </article>
+</BaseLayout>

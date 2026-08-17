@@ -1,26 +1,45 @@
 ---
-import { nav } from '../site.config';
+import LanguageSwitch from './LanguageSwitch.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import { localizePath, stripLang, type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { navByLang, siteMeta } from '../site.config';
 
-const current = Astro.url.pathname;
+interface Props {
+  lang: Lang;
+}
 
-function isActive(href: string): boolean {
-  return href === '/' ? current === '/' : current.startsWith(href);
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const items = navByLang[lang].map((item) => ({
+  href: localizePath(item.href, lang),
+  label: t.nav[item.labelKey],
+  root: item.href === '/',
+}));
+
+/** Compare against the locale-stripped path so `/ar/about` matches `/about`. */
+const current = stripLang(Astro.url.pathname).replace(/\/$/, '') || '/';
+
+function isActive(href: string, root: boolean): boolean {
+  const target = stripLang(href).replace(/\/$/, '') || '/';
+  return root ? current === '/' : current.startsWith(target);
 }
 ---
 
-<header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90">
+<header
+  class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90"
+>
   <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
     <a
-      href="/"
+      href={localizePath('/', lang)}
       class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50"
     >
-      Mohamed Naser
+      {siteMeta[lang].name}
     </a>
-    <nav class="hidden items-center gap-1 md:flex" aria-label="Main">
+    <nav class="hidden items-center gap-1 md:flex" aria-label={t.common.mainNav}>
       {
-        nav.map((item) => {
-          const active = isActive(item.href);
+        items.map((item) => {
+          const active = isActive(item.href, item.root);
           return (
             <a
               href={item.href}
@@ -39,14 +58,17 @@ function isActive(href: string): boolean {
       }
     </nav>
     <div class="flex items-center gap-2">
-      <ThemeToggle />
+      <LanguageSwitch lang={lang} />
+      <ThemeToggle lang={lang} />
       <button
         type="button"
         id="mobile-menu-btn"
         class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-slate-300 p-2 md:hidden dark:border-slate-600"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        aria-label="Open menu"
+        aria-label={t.common.openMenu}
+        data-label-open={t.common.openMenu}
+        data-label-close={t.common.closeMenu}
       >
         <span aria-hidden="true">☰</span>
       </button>
@@ -55,12 +77,12 @@ function isActive(href: string): boolean {
   <nav
     id="mobile-menu"
     class="hidden border-t border-slate-200 px-6 py-4 md:hidden dark:border-slate-800"
-    aria-label="Mobile"
+    aria-label={t.common.mobileNav}
   >
     <ul class="flex flex-col gap-2">
       {
-        nav.map((item) => {
-          const active = isActive(item.href);
+        items.map((item) => {
+          const active = isActive(item.href, item.root);
           return (
             <li>
               <a
@@ -89,6 +111,7 @@ function isActive(href: string): boolean {
   btn?.addEventListener('click', () => {
     const open = menu?.classList.toggle('hidden') === false;
     btn.setAttribute('aria-expanded', String(open));
-    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    const label = open ? btn.dataset.labelClose : btn.dataset.labelOpen;
+    if (label) btn.setAttribute('aria-label', label);
   });
 </script>
