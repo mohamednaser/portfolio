@@ -132,5 +132,24 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
       <slot />
     </main>
     <Footer lang={lang} />
+    <script>
+      import mediumZoom from 'medium-zoom';
+
+      function initZoom() {
+        // Select all images in the main content area
+        // Customize the selector if needed (e.g., '.lynk-post img')
+        const images = document.querySelectorAll('main img');
+        mediumZoom(images, {
+          margin: 24,
+          background: 'rgba(0, 0, 0, 0.8)',
+        });
+      }
+
+      // Initialize on load
+      initZoom();
+
+      // Re-initialize after Astro view transitions
+      document.addEventListener('astro:page-load', initZoom);
+    </script>
   </body>
 </html>
