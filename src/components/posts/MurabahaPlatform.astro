@@ -624,13 +624,44 @@
   </ul>
 </section>
 
+<section class="refs" id="further-reading">
+  <h2>Further reading</h2>
+  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <ul>
+    <li><strong>Murabaha and tawarruq as contracts.</strong> The step order this platform enforces is not
+      an implementation preference — it comes from the contract standards themselves, in particular
+      Shari'ah Standard No. 8 (Murabaha) and No. 30 (Monetization / Tawarruq).
+      <a href="https://aaoifi.com/shariaa-standards/?lang=en">AAOIFI Shari'ah Standards</a>.</li>
+    <li><strong>The supervisory side of it.</strong> What a Saudi financier is actually regulated against:
+      <a href="https://www.sama.gov.sa/en-US/RulesInstructions/Pages/default.aspx">Saudi Central Bank (SAMA)
+      rules and instructions</a>, with the cross-border prudential standards at the
+      <a href="https://www.ifsb.org/published-standards/">Islamic Financial Services Board</a>.</li>
+    <li><strong>Why one order cannot be one database transaction.</strong> A Murabaha order spans minutes,
+      several parties and an external signature, so it is a long-lived business transaction with
+      compensating steps — described first in Garcia-Molina and Salem's
+      <a href="https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf">"Sagas" (1987)</a> and
+      restated for services as the
+      <a href="https://microservices.io/patterns/data/saga.html">saga pattern</a>.</li>
+    <li><strong>Doing a step exactly once while still retrying it.</strong> Every step in this flow is
+      retried, and none of them may happen twice. The clearest short treatment of idempotency keys is
+      <a href="https://docs.stripe.com/api/idempotent_requests">Stripe's idempotent requests</a>.</li>
+    <li><strong>Why the numbers here are percentiles, not averages.</strong> Dean and Barroso,
+      <a href="https://research.google/pubs/the-tail-at-scale/">"The Tail at Scale"</a> — why the slowest
+      1% of requests decides what users think of a system.</li>
+    <li><strong>What a stress-test program is shaped like.</strong> Smoke, load, stress, soak and spike
+      tests, and what each one is for:
+      <a href="https://grafana.com/docs/k6/latest/testing-guides/test-types/">Grafana k6, test types</a>.</li>
+    <li><strong>The rest of the series.</strong> Parts 2 and 3 carry their own reading lists — MySQL
+      locking, isolation and indexing in Part 2; queues, worker fleets and deploys in Part 3.</li>
+  </ul>
+</section>
 <div class="next">
   <span class="tag">Continue the series</span>
-  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · 10 Database Bottlenecks We Hit Scaling to 5,000 Orders</a></strong> —
+  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · MySQL Under Load: 10 Bottlenecks Scaling to 5,000 Orders</a></strong> —
   the ten battles fought in the code and the database, told the way they happened: the problem in detail,
   what we tried (including the attempts that failed), and the measured result. From <strong>4-of-10
   stuck</strong> to <strong>99.94% of 5,200 orders</strong>.<br>
-  <strong><a href="/blog/scaling-queue-workers-3-to-122/">Part 3 · Scaling Queue Workers: From 3 Containers to 122 Processes</a></strong> —
+  <strong><a href="/blog/scaling-queue-workers-3-to-122/">Part 3 · Laravel Queues at Scale: From 3 Containers to 122 Workers</a></strong> —
   the infrastructure half: how three worker containers became <strong>122 processes across 22
   queues</strong>, why every one of those numbers changed, what it cost when they changed by accident, and
   how three machines later became two.
@@ -768,6 +799,9 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
   }
 .lynk-post .refs{ border-top: 1px solid var(--line); margin-top: 3.5rem; padding-top: 1.5rem; font-size: 0.82rem; color: var(--muted); }
 .lynk-post .refs h2{ font-size: 1.1rem; }
+.lynk-post .refs strong{ color: var(--ink); font-weight: 600; }
+.lynk-post .refs p{ max-width: 40rem; }
+.lynk-post .refs li{ margin-bottom: 0.6rem; }
 .lynk-post footer{ margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
 @keyframes growbar{ from { transform: scaleX(0); } }
 @keyframes fadein{ from { opacity: 0; } }
