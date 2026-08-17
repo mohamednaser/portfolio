@@ -20,11 +20,11 @@
   <div class="section-head"><h2>What LYNK is, and what we do</h2></div>
   <p style="margin-top:1rem;">
     LYNK is a Saudi fintech platform that provides the infrastructure for <strong>commodity Murabaha
-    financing</strong>. When a bank or finance company wants to extend Sharia-compliant financing to a
+    financing</strong>.<a class="refmark" href="#ref-regulation">regulator ↓</a> When a bank or finance company wants to extend Sharia-compliant financing to a
     customer — a personal loan, an SME facility, a credit card settlement — the funds cannot simply be lent
     at interest. Instead, the financing must be structured as a real trade: the institution buys a genuine
     commodity, sells it to the customer at cost plus an agreed profit (the <em>Murabaha</em>), and the
-    customer sells it on for liquidity. LYNK is the marketplace and execution engine that makes that entire
+    customer sells it on for liquidity.<a class="refmark" href="#ref-contracts">standard ↓</a> LYNK is the marketplace and execution engine that makes that entire
     trade real, digital, and fast.
   </p>
   <p>In practice, we operate three things:</p>
@@ -91,7 +91,7 @@
   <p style="margin-top:1rem;">
     A commodity Murabaha on LYNK is a sequence of real transactions, each with a distinct legal meaning.
     Nothing in this sequence is ceremonial; each step transfers actual ownership of actual commodity units,
-    and each must complete before the next may begin.
+    and <span class="k-rule">each must complete before the next may begin</span>.<a class="refmark" href="#ref-saga">saga ↓</a>
   </p>
 
   <figure>
@@ -111,8 +111,8 @@
     <li><span><span class="st">Purchasing Commodity</span>
       <span class="sd">The platform finds eligible commodity units on the market that cover the financing
       amount, places them on hold, and executes the purchase. The institution now genuinely owns specific,
-      identified units of a real commodity. Sharia requires this ownership to be real — you cannot sell
-      what you do not own.</span></span></li>
+      identified units of a real commodity. Sharia requires this ownership to be real — <span class="k-rule">you cannot sell
+      what you do not own</span>.</span></span></li>
     <li><span><span class="st">Borrower Ownership</span>
       <span class="sd">The institution sells the commodity to the customer at cost plus the agreed profit,
       payable in instalments — this sale <em>is</em> the Murabaha. Ownership of the units transfers to the
@@ -234,7 +234,7 @@
     This design is what makes the platform legally sound — and it is also <strong>one of our hardest
     engineering challenges</strong>. A single financing order holds hundreds or thousands of units; five
     thousand concurrent orders means millions of unit rows being held, transferred, and settled at once,
-    where two orders must never hold the same unit — not even for a millisecond — and where losing a single
+    where <span class="k-rule">two orders must never hold the same unit — not even for a millisecond</span> — and where losing a single
     ledger entry would break a chain of ownership that has to stand up to audit. Much of the scaling story
     in Part&nbsp;2 — the lock contention, the index engineering, the race-condition hunts — is really the
     story of keeping this per-unit, per-user tracking intact under industrial load.
@@ -245,9 +245,9 @@
     Every performance engineer's instinct — skip the step, batch the work, fake the intermediate state,
     reorder the sequence — is <strong>forbidden here by design</strong>. The purchase must precede the sale.
     The units must be individually identified and genuinely held. The ownership chain must be complete and
-    documented. A Murabaha with a shortcut in it is not a slow transaction; it is an <em>invalid</em> one.
-    Sharia compliance is a hard correctness constraint, exactly like double-entry accounting — so all
-    throughput must come from architecture, never from relaxing the rules of the trade.
+    documented. <span class="k-rule">A Murabaha with a shortcut in it is not a slow transaction; it is an <em>invalid</em> one.</span>
+    Sharia compliance is a hard correctness constraint, exactly like double-entry accounting — so <span class="k-rule">all
+    throughput must come from architecture, never from relaxing the rules of the trade</span>.
   </div>
 </section>
 
@@ -288,9 +288,7 @@
     <li><strong>Real inventory, really held.</strong> Units are locked and tracked individually; two orders
       may never "own" the same unit, even for a millisecond, which is why hold/lock logic and race-condition
       work dominate our database engineering.</li>
-    <li><strong>Evidence as a deliverable.</strong> Certificates and ownership records are legal artifacts.
-      We may move their <em>generation</em> off the critical path (produce the PDF at download time), but
-      never remove them.</li>
+    <li><strong>Evidence as a deliverable.</strong> Certificates and ownership records are legal artifacts.</li>
     <li><strong>Rules even in the fast path.</strong> Trade-rotation limits and the Specialized Entity flow
       exist so the onward sale is genuinely valid. When we tested relaxing rotation from 2 to 1, the change
       was justified to the business on Sharia-structure grounds — and only adopted after tests proved
@@ -363,11 +361,11 @@
   <div class="section-head"><h2>How we test our performance</h2></div>
   <p style="margin-top:1rem;">
     Claims like "seconds per step" mean nothing without a way to prove them — so performance testing is a
-    standing routine, not an occasional event. Thousands of orders are created through the API in controlled
+    standing routine, not an occasional event.<a class="refmark" href="#ref-testing">test types ↓</a> Thousands of orders are created through the API in controlled
     pre-production runs (today's standard is 5,000 orders per run, daily), every order records how long each
     Murabaha step took, and each run is distilled into the same set of statistics per step. Every change to
-    the platform is judged against that history: if the numbers move the wrong way, the change is caught
-    within days.
+    the platform is judged against that history<a class="refmark" href="#ref-percentiles">percentiles ↓</a>: <span class="k-win">if the numbers move the wrong way, the change is caught
+    within days</span>.
   </p>
   <figure>
     <img loading="lazy" decoding="async" src="/images/blog/murabaha-as-a-state-machine/figure-3.webp" alt="A presenter pointing at a large bar chart on an easel."
@@ -494,56 +492,56 @@
   <p style="margin-top:1rem;">
     Everything described above — five legal steps in seconds, millions of tracked units, four products on
     one pipeline — is where the platform <em>ended up</em>. It is not where it started. In January 2025,
-    a test of just <strong>ten</strong> automated orders left four of them stuck. Between that day and
+    a test of just <span class="k-cost">ten automated orders left four of them stuck</span>. Between that day and
     today's routine 5,000-order runs stand fifteen hard-won battles — the first ten fought in the code
     and the database, the last five in the infrastructure underneath it:
   </p>
   <ul class="teasers">
-    <li><span class="cn">CASE 01</span><span class="hook"><strong>Everything waited for everything.</strong>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-01">CASE 01</a><span class="hook"><strong>Everything waited for everything.</strong>
       The first order couldn't purchase until all 49 others finished searching — and the first "stuck orders"
       root cause was a disk at <span class="n">98%</span>.</span></li>
-    <li><span class="cn">CASE 02</span><span class="hook"><strong>The database fought back.</strong>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">CASE 02</a><span class="hook"><strong>The database fought back.</strong>
       Deadlocks and lock timeouts that took <span class="n">three rounds</span> of fixes — the last one
       cut the worst order from <span class="n">65s to 14s</span>.</span></li>
-    <li><span class="cn">CASE 03</span><span class="hook"><strong>A timeout nobody knew existed</strong>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-03">CASE 03</a><span class="hook"><strong>A timeout nobody knew existed</strong>
       killed the first 11 orders of a 300-order run — and triggered a summer-long campaign on the purchase
       path.</span></li>
-    <li><span class="cn">CASE 04</span><span class="hook"><strong>Every certificate cost a browser
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">CASE 04</a><span class="hook"><strong>Every certificate cost a browser
       session.</strong> Tuning Chrome bought headroom, a PHP engine bought <span class="n">7×</span> — but
       the winning move was a business decision: generate on demand, and the cost per step fell to
       <span class="n">0 seconds</span>.</span></li>
-    <li><span class="cn">CASE 05</span><span class="hook"><strong>"Which units can this customer even
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-05">CASE 05</a><span class="hook"><strong>"Which units can this customer even
       buy?"</strong> — answering it scanned <span class="n">millions</span> of rows per order, until a
       settled flag, and finally a precomputed eligibility ledger, made it a
       <span class="n">0.1s</span> lookup.</span></li>
-    <li><span class="cn">CASE 06</span><span class="hook"><strong>Pay 1,000,000 exactly, using only the
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-06">CASE 06</a><span class="hook"><strong>Pay 1,000,000 exactly, using only the
       banknotes in your wallet.</strong> The commodity-combination search that once died in gateway
       timeouts now answers in <span class="n">milliseconds</span> — with a hard 3-second stop.</span></li>
-    <li><span class="cn">CASE 07</span><span class="hook"><strong>The platform attacked itself:</strong>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-07">CASE 07</a><span class="hook"><strong>The platform attacked itself:</strong>
       one job dispatched <span class="n">22,400 times</span> in hours, one query executed
       <span class="n">114,000 times</span> — fixed for an <span class="n">85%</span> query reduction.</span></li>
-    <li><span class="cn">CASE 08</span><span class="hook"><strong>A bug-fix quietly added 2 seconds to every
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">CASE 08</a><span class="hook"><strong>A bug-fix quietly added 2 seconds to every
       order</strong> — caught within a week, only because a baseline existed.</span></li>
-    <li><span class="cn">CASE 09</span><span class="hook"><strong>The unit ledger under siege:</strong>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">CASE 09</a><span class="hook"><strong>The unit ledger under siege:</strong>
       <span class="n">94 million</span> reads on one index, race conditions on exclusive holds, and a caching
       experiment that had to be rolled back.</span></li>
-    <li><span class="cn">CASE 10</span><span class="hook"><strong>Everything is a job — and jobs died
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">CASE 10</a><span class="hook"><strong>Everything is a job — and jobs died
       silently.</strong> No retries, no overlap guards, locks that never expired: a transient blip froze an
       order, and two servers could grab the same work. Retry with escalating backoff became the road to
       <span class="n">0 failed transactions</span>.</span></li>
-    <li><span class="cn">CASE 11</span><span class="hook"><strong>0.5 seconds of work inside a 7.5-second
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">CASE 11</a><span class="hook"><strong>0.5 seconds of work inside a 7.5-second
       step</strong> — the latency was hiding <em>between</em> the jobs, and fixing it made another step
       <span class="n">3× slower</span> before it made everything faster.</span></li>
-    <li><span class="cn">CASE 12</span><span class="hook"><strong>Every split leaves something new to
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-12">CASE 12</a><span class="hook"><strong>Every split leaves something new to
       run.</strong> <span class="n">3</span> worker containers became <span class="n">122</span> processes
       across <span class="n">22</span> queues — including one pinned forever at a single worker, on purpose.</span></li>
-    <li><span class="cn">CASE 13</span><span class="hook"><strong>The workers were running last month's
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-13">CASE 13</a><span class="hook"><strong>The workers were running last month's
       code.</strong> Jobs finished, follow-ups never started, and no error was raised anywhere — every deploy
       had been updating the web tier and <em>none</em> of the workers.</span></li>
-    <li><span class="cn">CASE 14</span><span class="hook"><strong>The boring failures:</strong> full disks
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-14">CASE 14</a><span class="hook"><strong>The boring failures:</strong> full disks
       (twice), a <span class="n">32,000</span>-company integer overflow, and connection exhaustion at full
       worker scale.</span></li>
-    <li><span class="cn">CASE 15</span><span class="hook"><strong>Three machines became two</strong> at
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-15">CASE 15</a><span class="hook"><strong>Three machines became two</strong> at
       identical queue concurrency — after discovering one node had been serving
       <span class="n">100%</span> of the traffic while another sat out of rotation for six months.</span></li>
   </ul>
@@ -553,27 +551,27 @@
   <h2>Further reading</h2>
   <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
-    <li><strong>Murabaha and tawarruq as contracts.</strong> The step order this platform enforces is not
+    <li id="ref-contracts"><strong>Murabaha and tawarruq as contracts.</strong> The step order this platform enforces is not
       an implementation preference — it comes from the contract standards themselves, in particular
       Shari'ah Standard No. 8 (Murabaha) and No. 30 (Monetization / Tawarruq).
       <a href="https://aaoifi.com/shariaa-standards/?lang=en">AAOIFI Shari'ah Standards</a>.</li>
-    <li><strong>The supervisory side of it.</strong> What a Saudi financier is actually regulated against:
+    <li id="ref-regulation"><strong>The supervisory side of it.</strong> What a Saudi financier is actually regulated against:
       <a href="https://www.sama.gov.sa/en-US/RulesInstructions/Pages/default.aspx">Saudi Central Bank (SAMA)
       rules and instructions</a>, with the cross-border prudential standards at the
       <a href="https://www.ifsb.org/published-standards/">Islamic Financial Services Board</a>.</li>
-    <li><strong>Why one order cannot be one database transaction.</strong> A Murabaha order spans minutes,
+    <li id="ref-saga"><strong>Why one order cannot be one database transaction.</strong> A Murabaha order spans minutes,
       several parties and an external signature, so it is a long-lived business transaction with
       compensating steps — described first in Garcia-Molina and Salem's
       <a href="https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf">"Sagas" (1987)</a> and
       restated for services as the
       <a href="https://microservices.io/patterns/data/saga.html">saga pattern</a>.</li>
-    <li><strong>Doing a step exactly once while still retrying it.</strong> Every step in this flow is
+    <li id="ref-idempotency"><strong>Doing a step exactly once while still retrying it.</strong> Every step in this flow is
       retried, and none of them may happen twice. The clearest short treatment of idempotency keys is
       <a href="https://docs.stripe.com/api/idempotent_requests">Stripe's idempotent requests</a>.</li>
-    <li><strong>Why the numbers here are percentiles, not averages.</strong> Dean and Barroso,
+    <li id="ref-percentiles"><strong>Why the numbers here are percentiles, not averages.</strong> Dean and Barroso,
       <a href="https://research.google/pubs/the-tail-at-scale/">"The Tail at Scale"</a> — why the slowest
       1% of requests decides what users think of a system.</li>
-    <li><strong>What a stress-test program is shaped like.</strong> Smoke, load, stress, soak and spike
+    <li id="ref-testing"><strong>What a stress-test program is shaped like.</strong> Smoke, load, stress, soak and spike
       tests, and what each one is for:
       <a href="https://grafana.com/docs/k6/latest/testing-guides/test-types/">Grafana k6, test types</a>.</li>
     <li><strong>The rest of the series.</strong> Parts 2 and 3 carry their own reading lists — MySQL
@@ -765,4 +763,74 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
 @media (prefers-reduced-motion: no-preference){
   .lynk-post .barv{ transform-box:fill-box; transform-origin:center bottom; animation:growbarv 0.9s cubic-bezier(0.2,0.7,0.3,1) backwards; }
 }
+
+/* --- Emphasis colour code ---------------------------------------------
+   k-rule  (red)   a hard constraint: something that must be true, or the
+                   trade / system is invalid.
+   k-cost  (amber) what it cost when it went wrong.
+   k-win   (green) the measured result once it was fixed.
+   Used inline on the load-bearing clause of a sentence, never a whole
+   paragraph. The .constraint box is the block-level form of k-rule.     */
+.lynk-post{
+    --rule: #B3261E; --rule-line: #E7ADA7; --rule-soft: #FBEDEB;
+    --accent-line: #9BC9B9; --incident-line: #DFC58F;
+  }
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
+    --rule: #FF8C7A; --rule-line: #7C3B33; --rule-soft: #2B1A17;
+    --accent-line: #2E6353; --incident-line: #6B5322;
+  }
+.lynk-post .k-rule, .lynk-post .k-cost, .lynk-post .k-win{
+    font-weight: 650;
+    border-bottom: 2px solid var(--rule-line);
+    padding-bottom: 0.06em;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+.lynk-post .k-rule{ color: var(--rule); border-bottom-color: var(--rule-line); }
+.lynk-post .k-cost{ color: var(--incident); border-bottom-color: var(--incident-line); }
+.lynk-post .k-win{ color: var(--accent); border-bottom-color: var(--accent-line); }
+.lynk-post .constraint{
+    border-left: 3px solid var(--rule); background: var(--rule-soft);
+    padding: 0.9rem 1.1rem; margin: 1.75rem 0; font-size: 0.95rem;
+  }
+.lynk-post .constraint .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--rule); margin-bottom: 0.35rem;
+  }
+.lynk-post .constraint p:last-child{ margin-bottom: 0; }
+
+/* --- Inline pointers into Further reading -----------------------------
+   A .refmark sits next to the term it explains and jumps to the matching
+   entry at the foot of the article, which carries the external link.    */
+.lynk-post .refmark{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.05rem 0.4rem; margin-left: 0.28rem; vertical-align: 0.12em;
+  }
+.lynk-post .refmark:hover, .lynk-post .refmark:focus-visible{
+    border-color: var(--accent); background: var(--accent-soft);
+  }
+.lynk-post .refs li{ scroll-margin-top: 4.5rem; }
+.lynk-post .refs li:target{
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 0.5rem 0.75rem; margin-left: -0.9rem; border-radius: 0 4px 4px 0;
+  }
+
+/* --- Case teasers: each label deep-links to the real case ------------- */
+.lynk-post .teasers{ list-style: none; padding-left: 0; margin: 1.25rem 0 0; }
+.lynk-post .teasers li{
+    display: flex; gap: 0.9rem; align-items: baseline;
+    padding: 0.6rem 0; border-top: 1px solid var(--line); margin: 0;
+  }
+.lynk-post .teasers li:last-child{ border-bottom: 1px solid var(--line); }
+.lynk-post .teasers .cn{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em; color: var(--accent);
+    white-space: nowrap; text-decoration: none;
+    border-bottom: 1px solid transparent; flex: none;
+  }
+.lynk-post .teasers a.cn:hover, .lynk-post .teasers a.cn:focus-visible{ border-bottom-color: var(--accent); }
+.lynk-post .teasers .hook{ display: block; }
 </style>

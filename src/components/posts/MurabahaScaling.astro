@@ -13,48 +13,53 @@
   </div>
 
 
-<div class="prev">
-  <span class="tag">Part 1 of this series</span>
-  <strong><a href="/blog/murabaha-as-a-state-machine/">Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —
-  what LYNK is, its financial products, how the commodity Murabaha process works step by step, and the two
-  goals that frame everything below: maximum concurrent transactions, with full Sharia validity as a hard
-  constraint.
-</div>
-<p>
-  As Part 1 explains, a Murabaha order is not one transaction but a strict legal sequence — purchase real
-  commodity units, transfer ownership to the borrower, sell to the open market, complete — none of which
-  may be skipped, faked, or reordered. Each order fans out into a chain of queued jobs touching the hottest
-  tables in the system: market orders, inventories, and millions of individually coded units. Making one
-  such pipeline correct is ordinary engineering. Making five thousand of them run concurrently, with every
-  legal constraint intact, is where the last two years of work went.
+<p class="lede">
+  In January 2025 we ran ten automated Murabaha orders through the platform. Four of them got stuck.
+  Eighteen months later the same pipeline ran <strong>5,200 orders end to end at 99.94%</strong>, and
+  5,000-order runs became a daily routine. What follows is everything that happened in between.
 </p>
 <p>
-  What follows are the ten battles that made the difference, in the order we fought them — the ones
-  fought inside the code and the database. The infrastructure battles that came after, once the code
-  had stopped being the constraint, are <a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Part 3</a>. We have kept
-  the scars visible. Each case tells you <strong style="color:var(--incident)">what was actually going
+  Volume was never the hard part. A Murabaha order is not one transaction but a strict legal sequence —
+  buy real commodity units, transfer ownership to the borrower, sell to the open market, complete — and
+  <span class="k-rule">none of it may be skipped, faked, or reordered</span>. Each order fans out into a
+  chain of queued jobs landing on the hottest tables in the system: market orders, inventories, and
+  millions of individually coded units. Making one such pipeline correct is ordinary engineering. Making
+  five thousand of them run at once, with every legal constraint intact, is where the last two years went.
+</p>
+<p>
+  Ten battles made the difference, told in the order we fought them — the ones fought inside the code and
+  the database. The infrastructure battles that came after, once the code had stopped being the
+  constraint, are <a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Part 3</a>. We have kept
+  the scars visible: each case tells you <strong style="color:var(--incident)">what was actually going
   wrong</strong>, <strong style="color:var(--muted)">what we tried</strong> — including the ideas that did
   not survive contact with production — and <strong style="color:var(--accent)">what the numbers said</strong>
   when the dust settled.
 </p>
-<p>
-  A note on the title: most of these ten are database problems — lock contention, isolation levels, indexes,
-  a ledger under load. Four are not. The certificate tax (Case&nbsp;04) was a rendering engine, the
-  exact-change search (Case&nbsp;06) was an algorithm, the self-inflicted load (Case&nbsp;07) was a
-  scheduler, and job reliability (Case&nbsp;10) was the queue. They are here because at this scale you do
-  not get to choose which layer breaks next — and because three of the four were ultimately solved by
-  changing what the product had to do, not by tuning the layer that hurt.
-</p>
 
+<div class="prev">
+  <span class="tag">Part 1 of this series</span>
+  <strong><a href="/blog/murabaha-as-a-state-machine/">Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —
+  what a commodity Murabaha is, why every step is legally load-bearing, and why stock has to exist as
+  individually coded units.
+</div>
 
 <p>
-  <strong>The stack, named once so the rest reads concretely.</strong> The platform is a
-  <strong>Laravel</strong> application on PHP&nbsp;8, with <strong>MySQL&nbsp;8 (InnoDB)</strong> as the
-  system of record, <strong>Redis</strong> behind the queues and locks, and the whole thing deployed as
-  Docker Compose services on a handful of Linux VMs. Where a case below turns on a specific behaviour of
-  one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling flags — it is named at the
-  point it matters, and glossed for readers who work somewhere else.
+  <strong>The stack, named once.</strong> <strong>Laravel</strong> on PHP&nbsp;8,
+  <strong>MySQL&nbsp;8 (InnoDB)</strong> as the system of record, <strong>Redis</strong> behind the queues
+  and locks, deployed as Docker Compose services on a handful of Linux VMs. Where a case turns on a
+  specific behaviour of one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling
+  flags — it is named and glossed at the point it matters.
 </p>
+
+<figure>
+  <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/stack.webp"
+       width="1024" height="559"
+       alt="Platform and deployment architecture: a user request reaches the Laravel application on PHP 8, which writes transactional data to MySQL 8 (InnoDB) as the system of record and manages distributed job queues and locks in Redis; queue workers read those jobs and write back into MySQL. The whole thing is deployed as Docker Compose services — app, db, redis and scaled worker replicas — spread across a handful of Linux VMs."
+       style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+  <figcaption>The platform behind every case below: one Laravel application, MySQL as the system of
+  record, Redis carrying the queues and locks, and worker replicas scaled per queue across a handful of
+  Linux VMs. Almost every battle in this article is a fight between two of these boxes.</figcaption>
+</figure>
 
 
 <div class="note">
@@ -89,8 +94,8 @@
     <p>Our first real batch test, in December 2024, was humbling. We created 31 orders at once and watched
     three of them freeze for more than twenty minutes. When we retried with just <strong>ten orders</strong>,
     everything passed — and that, honestly, was the platform's ceiling at the time. A few weeks later a
-    test run confirmed it the hard way: ten automated trade requests, <strong>four stuck</strong> in
-    Purchasing Commodity.</p>
+    test run confirmed it the hard way: ten automated trade requests, <span class="k-cost">four stuck in
+    Purchasing Commodity</span>.</p>
     <p>Digging in, we found a platform designed for one order at a time, politely queuing the whole world
     behind it. Fifty simultaneous orders were processed strictly stage by stage — the first order could not
     buy its commodity until all forty-nine others had finished searching for theirs. Certificates rendered
@@ -118,7 +123,7 @@
   <div class="metric">
     <span class="tag">The result</span>
     By mid-2025 the platform was surviving real volume: <strong>388 orders in one hour</strong> in May, then
-    <strong>534 of 535 completed</strong> in June — the first run where the entire cycle finished unattended,
+    <span class="k-win">534 of 535 completed</span> in June — the first run where the entire cycle finished unattended,
     with no human touching a single order. The ceiling had moved from ten orders to hundreds, and we finally
     had a platform worth stress-testing.
   </div>
@@ -130,28 +135,28 @@
   <div class="incident">
     <span class="tag">The problem</span>
     <p>Then production started sending a new kind of message: <code>Lock wait timeout exceeded</code>.
-    Orders that should have flown were standing in line behind a single <code>SELECT … FOR UPDATE</code>,
+    Orders that should have flown were standing in line behind a single <code>SELECT … FOR UPDATE</code><a class="refmark" href="#ref-locking-reads">locking reads ↓</a>,
     like shoppers queuing at the one open till. Underneath it sat something subtler: MySQL's default
     isolation level — <em>REPEATABLE READ</em>, safe and strict — has InnoDB lock not just the rows a
     transaction touches but the <em>gaps between</em> them, and when many transactions touch neighboring
-    inventory rows, those gap locks collide into deadlocks. We had the strange experience of adding capacity and watching throughput fall. More
-    concurrency meant more waiting.</p>
+    inventory rows, those gap locks collide into deadlocks.<a class="refmark" href="#ref-locks">gap locks ↓</a> <span class="k-cost">We had the strange experience of adding capacity and watching throughput fall. More
+    concurrency meant more waiting.</span></p>
   </div>
   <div class="attempt">
     <span class="tag">What we tried — three rounds</span>
     <p>It took three rounds to actually win. In the first, we treated each incident as it came: remove this
     lock, log that deadlock (<code>innodb_print_all_deadlocks</code> on, so at least the next one would
-    leave a confession). Every individual fix worked — and the class of problem kept coming back with a new
+    leave a confession)<a class="refmark" href="#ref-deadlocks">deadlocks ↓</a>. Every individual fix worked — and the class of problem kept coming back with a new
     address.</p>
     <p>In the second round, April 2025, we went after the class itself and switched the platform to
-    <strong><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html">READ COMMITTED</a></strong>: dramatically less lock contention, in exchange for a strictness the
+    <strong><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html">READ COMMITTED</a></strong><a class="refmark" href="#ref-isolation">isolation ↓</a>: dramatically less lock contention, in exchange for a strictness the
     Murabaha flow never actually relied on. Worth being precise about that trade, because in a financial
     system it sounds alarming. What REPEATABLE READ buys you is a stable snapshot across a long
     transaction — read a row twice, see the same value both times. No step in this pipeline does that. Each
     step reads the state it needs, acts, and commits inside a second, and the invariants that actually
     matter — a unit belongs to one order, a counter never goes negative — are enforced by explicit row
-    locks and database constraints, not by the snapshot. We gave up a guarantee we were not using; the
-    ones we were using are still there.</p>
+    locks and database constraints, not by the snapshot. <span class="k-rule">We gave up a guarantee we were not using; the
+    ones we were using are still there.</span><a class="refmark" href="#ref-anomalies">anomalies ↓</a></p>
     <p>The third round came during the summer stress tests, when the sell path deadlocked anyway — the
     global setting was not reaching every transaction, so the hottest services got it explicitly. And the
     last deadlocks were removed the cheapest way of all: not by locking more, but by making every code path
@@ -173,8 +178,8 @@
     <span class="tag">The result — 1,000-order stress test, Aug 2025</span>
     We ran 1,000 orders through the fixed pipeline and measured. Average purchase time fell from
     <strong>11.81s to 7.8s</strong>. P95 from <strong>28s to 13s</strong>. The worst order of the entire
-    run: <strong>14 seconds, down from 65</strong>. And the slow tail — the 21.9% of orders that used to
-    take over 15 seconds — vanished entirely. Every one of the thousand finished within 3–14 seconds.
+    run: <strong>14 seconds, down from 65</strong>. And <span class="k-win">the slow tail — the 21.9% of orders that used to
+    take over 15 seconds — vanished entirely</span>. Every one of the thousand finished within 3–14 seconds.
   </div>
   <figure>
     <svg viewBox="0 0 720 210" role="img" aria-label="Paired bars comparing the purchase step before and after the READ COMMITTED work: average 11.81 down to 7.8 seconds, P95 28 down to 13 seconds, and the worst order 65 down to 14 seconds.">
@@ -222,7 +227,7 @@
     <p>That summer we set ourselves a target — 500 orders without a single error — launched a 300-order run,
     and watched the first eleven orders die before doing anything at all. The culprit was a setting nobody
     had ever had a reason to think about: Laravel's <em>default 60-second job timeout</em>. No job was
-    ever supposed to run for a minute. The timeout was not the disease; it was the thermometer — and it was
+    ever supposed to run for a minute. <span class="k-rule">The timeout was not the disease; it was the thermometer</span> — and it was
     telling us the purchase path simply did too much, one thing after another, for every single order.</p>
   </div>
   <div class="attempt">
@@ -232,7 +237,7 @@
     commodities, creating trader orders, and holding units each got their own queue instead of sharing one
     line. The search for eligible commodities was separated from order initiation, so five workers could do
     in parallel what one had been doing alone. Inventory scans switched to cursors. We even dropped foreign
-    keys from the busiest join table — heresy in most engineering conversations, but their integrity checks
+    keys<a class="refmark" href="#ref-foreign-keys">foreign keys ↓</a> from the busiest join table — heresy in most engineering conversations, but their integrity checks
     were pure cost on a table written millions of times a day, and every write to it already goes through a
     single service that enforces the same invariants. It is a real trade rather than a free one: the
     guarantee moved out of the engine and into code, where it stays honest by review and tests instead of
@@ -467,7 +472,7 @@ private function toMinorUnits(float $value): int
     <p>One October morning the monitoring dashboard reported <strong>228,291 database queries in a few
     hours</strong> — on a system doing almost nothing. We went looking for the traffic and found ourselves.
     A scheduler ran every minute and, with no duplicate check, had dispatched the same background job
-    <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.
+    <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.<a class="refmark" href="#ref-nplusone">n+1 ↓</a>
     The first alarm had been, embarrassingly, the monitoring bill: millions of recorded events per day, all
     of them faithfully documenting our own waste.</p>
   </div>
@@ -480,14 +485,14 @@ private function toMinorUnits(float $value): int
   <div class="attempt">
     <span class="tag">What we tried</span>
     <p>The fixes read like an apology to the database. One composite index turned the hot lookup from a scan
-    into a seek. A cached "last action" column meant roughly 90% of those history queries no longer needed
+    into a seek.<a class="refmark" href="#ref-indexes">indexes ↓</a> A cached "last action" column meant roughly 90% of those history queries no longer needed
     to run at all. And the scheduler grew up: it loads work in batches, skips anything it touched in the
     last five minutes, checks what is already queued before dispatching again, and staggers its dispatches
     with a small random delay — so a thousand jobs stop arriving in the very same second.</p>
   </div>
   <div class="metric">
     <span class="tag">The result</span>
-    Platform query volume dropped roughly <strong>85%</strong> in every environment — one environment alone
+    <span class="k-win">Platform query volume dropped roughly 85% in every environment</span> — one environment alone
     went from 5.5&nbsp;million to 825&nbsp;thousand queries a day — and monitoring event volume fell about
     72%, which also ended the debate about observability costs. The report's own conclusion said it best:
     the monitoring "wasn't the problem — it was faithfully monitoring legitimate performance bottlenecks."
@@ -516,8 +521,8 @@ private function toMinorUnits(float $value): int
   <div class="metric">
     <span class="tag">The result</span>
     Purchase times returned to baseline, with the certificate fix intact. The deeper win was cultural: this
-    became the standing proof that <strong>every functional change is also a performance change</strong>
-    until the percentiles say otherwise. Per-step duration tracking was built into the product itself soon
+    became the standing proof that <span class="k-rule">every functional change is also a performance change
+    until the percentiles say otherwise</span>. Per-step duration tracking was built into the product itself soon
     after, so today every order records how long each of its steps took.
   </div>
 </section>
@@ -530,8 +535,8 @@ private function toMinorUnits(float $value): int
     <p>As Part&nbsp;1 explains, stock lives as individually coded units, each tracked to its owner, with
     every ownership change appended to a legal ledger by a database trigger. That units table is the
     hottest object in the platform — one of its indexes alone had served <strong>94&nbsp;million
-    reads</strong> when we first profiled it — and it answers to three masters at once: no two orders may
-    ever hold the same unit, the ledger may never miss a row, and finding eligible units among millions has
+    reads</strong> when we first profiled it — and it answers to three masters at once: <span class="k-rule">no two orders may
+    ever hold the same unit, the ledger may never miss a row</span>, and finding eligible units among millions has
     to stay fast. Almost every scaling battle we fought eventually landed on this table.</p>
   </div>
   <div class="attempt">
@@ -539,8 +544,8 @@ private function toMinorUnits(float $value): int
     <p><strong>Exclusive holds took years of iteration:</strong> counters that tolerate crashes without
     drifting, a repair job for corrupted holds, overlap middleware on the jobs that could collide — and one
     queue deliberately left at a <em>single worker</em>, because for that step, correctness genuinely could
-    not be parallelized. Knowing when not to scale is also scaling.</p>
-    <p><strong>The table's indexes have a history like a battlefield map:</strong> added, removed, rebuilt
+    not be parallelized. <span class="k-rule">Knowing when not to scale is also scaling.</span></p>
+    <p><strong>The table's indexes have a history like a battlefield map:</strong><a class="refmark" href="#ref-explain">query plans ↓</a> added, removed, rebuilt
     as virtual-column composites, extended, pruned again. Every index makes the reads faster and the
     millions of ownership writes slower, so each one had to earn its keep with measurements — index hygiene
     became a recurring chore, not a one-time setup.</p>
@@ -565,14 +570,14 @@ private function toMinorUnits(float $value): int
     tables to save reads — and months later reverted it for the write-heavy ones, because under real load
     the caching cost more than it saved. It stung. It is also exactly why we measure.</p>
     <p><strong>And the trigger met its match at settlement scale.</strong> The per-row trigger guarantees no
-    ledger row is ever missed — and it became the slowest part of bulk settlement. We did not remove the
-    guarantee; we changed who writes. The settlement rewrite produces the very same ledger rows through
+    ledger row is ever missed — and it became the slowest part of bulk settlement. <span class="k-rule">We did not remove the
+    guarantee; we changed who writes.</span> The settlement rewrite produces the very same ledger rows through
     set-based bulk statements, thousands at a time, with the trigger stepped around only for that audited
     path.</p>
   </div>
   <div class="metric">
     <span class="tag">The result</span>
-    March 2026: <strong>3,300 orders, 100% completed</strong> — millions of unit holds, transfers, and
+    March 2026: <span class="k-win">3,300 orders, 100% completed</span> — millions of unit holds, transfers, and
     ledger rows, with zero double-holds and zero missing links in any chain of ownership. The ledger held at
     every scale the stress tests ever reached.
   </div>
@@ -589,8 +594,8 @@ private function toMinorUnits(float $value): int
     <p>In the early platform, a job's life could end three ways, and all of them were bad. A failed job
     simply <em>died</em> — there was no retry, so a database hiccup lasting one second froze a customer's
     Murabaha until an engineer went in by hand. Nothing stopped two workers on two different servers from
-    grabbing the same work — and in a system that moves money and transfers ownership, doing something twice
-    is as dangerous as not doing it at all. And when we first added locks to prevent that, the locks never
+    grabbing the same work — and <span class="k-rule">in a system that moves money and transfers ownership, doing something twice
+    is as dangerous as not doing it at all.</span> And when we first added locks to prevent that, the locks never
     expired: a worker killed mid-job left its lock behind forever, blocking the order with a "max attempts
     exceeded" error whose cause you could never find — because the cause was a ghost.</p>
   </div>
@@ -598,11 +603,11 @@ private function toMinorUnits(float $value): int
     <span class="tag">What we built</span>
     <p>The platform we run now starts from a different assumption: <em>every job will eventually die
     mid-flight</em> — the work is making that boring. Jobs retry on their own, waiting 1, 2, 3, 5, then 30
-    seconds between attempts: patient enough for a transient fault to clear, quick enough that the order
+    seconds between attempts<a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-retries">retries ↓</a>: patient enough for a transient fault to clear, quick enough that the order
     barely notices. If we had to name the single most important mechanism behind zero failed transactions,
     it is this one — most failures are temporary, and a platform that retries well simply does not lose
     them.</p>
-    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong> — Laravel's
+    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong><a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-unique">unique jobs ↓</a> — Laravel's
     <code>ShouldBeUnique</code>, backed by the Redis lock store — so a duplicate
     dispatch from any server is refused at the queue itself, not caught after the damage. The locks learned
     to die: they expire shortly after the worker timeout, so a crashed worker's lock heals on its own, and
@@ -829,40 +834,40 @@ class PreventOverlapping extends WithoutOverlapping
   <h2>Further reading</h2>
   <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
-    <li><strong>Isolation levels, and what READ COMMITTED actually changes</strong> (Case 02) — the
+    <li id="ref-isolation"><strong>Isolation levels, and what READ COMMITTED actually changes</strong> (Case 02) — the
       per-statement snapshot, and the gap locks InnoDB stops taking once you leave REPEATABLE READ:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html">MySQL 8.0 Reference Manual, 17.7.2.1
       Transaction Isolation Levels</a>.</li>
-    <li><strong>What each isolation level is allowed to get wrong.</strong> The anomaly vocabulary comes
+    <li id="ref-anomalies"><strong>What each isolation level is allowed to get wrong.</strong> The anomaly vocabulary comes
       from Berenson et al.,
       <a href="https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/">"A
       Critique of ANSI SQL Isolation Levels"</a>; Martin Kleppmann's
       <a href="https://github.com/ept/hermitage">Hermitage</a> turns it into runnable tests showing which
       anomalies each database really permits, and <a href="https://jepsen.io/consistency">Jepsen's
       consistency map</a> places the whole family in one picture.</li>
-    <li><strong>Record locks, gap locks and next-key locks</strong> (Cases 02, 09) — what is actually
+    <li id="ref-locks"><strong>Record locks, gap locks and next-key locks</strong> (Cases 02, 09) — what is actually
       being held while an order waits: <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html">MySQL 17.7.1, InnoDB Locking</a>.</li>
-    <li><strong>Locking reads</strong> (Case 09) — <code>SELECT ... FOR UPDATE</code>, plus
+    <li id="ref-locking-reads"><strong>Locking reads</strong> (Case 09) — <code>SELECT ... FOR UPDATE</code>, plus
       <code>NOWAIT</code> and <code>SKIP LOCKED</code>:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html">MySQL 17.7.2.4</a>; from the application side,
       <a href="https://laravel.com/docs/12.x/queries#pessimistic-locking">Laravel's pessimistic locking</a>.</li>
-    <li><strong>Deadlocks are normal — the question is how you handle them</strong> (Case 02). The
+    <li id="ref-deadlocks"><strong>Deadlocks are normal — the question is how you handle them</strong> (Case 02). The
       checklist we worked through, including "use READ COMMITTED" and "add the right index", is
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html">MySQL 17.7.5.3, How to Minimize and Handle
       Deadlocks</a>.</li>
-    <li><strong>Indexes, and why one missing index cost seconds</strong> (Cases 03, 09) —
+    <li id="ref-indexes"><strong>Indexes, and why one missing index cost seconds</strong> (Cases 03, 09) —
       <a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-indexes.html">MySQL 10.3.1, How MySQL Uses Indexes</a> for the mechanics, and
       Markus Winand's <a href="https://use-the-index-luke.com/">Use The Index, Luke</a> for the best
       developer-facing treatment of index design anywhere.</li>
-    <li><strong>Reading a query plan before changing anything</strong> —
+    <li id="ref-explain"><strong>Reading a query plan before changing anything</strong> —
       <a href="https://dev.mysql.com/doc/refman/8.0/en/using-explain.html">MySQL 10.8.1, Optimizing Queries with EXPLAIN</a>.</li>
-    <li><strong>Foreign keys, and what dropping them buys and costs</strong> (Case 09) — the referential
+    <li id="ref-foreign-keys"><strong>Foreign keys, and what dropping them buys and costs</strong> (Case 09) — the referential
       actions we gave up, and the locking behaviour we gave up with them:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html">MySQL 15.1.20.5, FOREIGN KEY Constraints</a>.</li>
-    <li><strong>N+1 queries and eager loading</strong> (Case 07) — how one query becomes 114,000:
+    <li id="ref-nplusone"><strong>N+1 queries and eager loading</strong> (Case 07) — how one query becomes 114,000:
       <a href="https://laravel.com/docs/12.x/eloquent-relationships#eager-loading">Laravel eager loading</a>. Transaction handling
       itself is in <a href="https://laravel.com/docs/12.x/database#database-transactions">Laravel's database docs</a>.</li>
-    <li><strong>If you only read one book on this.</strong> Martin Kleppmann,
+    <li id="ref-ddia"><strong>If you only read one book on this.</strong> Martin Kleppmann,
       <a href="https://dataintensive.net/">Designing Data-Intensive Applications</a> — Chapter 7
       (Transactions) covers most of what this article ran into, in order.</li>
   </ul>
@@ -1048,4 +1053,68 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
 @media (prefers-reduced-motion: no-preference){
   .lynk-post .barv{ transform-box:fill-box; transform-origin:center bottom; animation:growbarv 0.9s cubic-bezier(0.2,0.7,0.3,1) backwards; }
 }
+
+/* --- Emphasis colour code ---------------------------------------------
+   k-rule  (red)   a hard constraint: something that must be true, or the
+                   trade / system is invalid.
+   k-cost  (amber) what it cost when it went wrong.
+   k-win   (green) the measured result once it was fixed.
+   Used inline on the load-bearing clause of a sentence, never a whole
+   paragraph. The .constraint box is the block-level form of k-rule.     */
+.lynk-post{
+    --rule: #B3261E; --rule-line: #E7ADA7; --rule-soft: #FBEDEB;
+    --accent-line: #9BC9B9; --incident-line: #DFC58F;
+  }
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
+    --rule: #FF8C7A; --rule-line: #7C3B33; --rule-soft: #2B1A17;
+    --accent-line: #2E6353; --incident-line: #6B5322;
+  }
+.lynk-post .k-rule, .lynk-post .k-cost, .lynk-post .k-win{
+    font-weight: 650;
+    border-bottom: 2px solid var(--rule-line);
+    padding-bottom: 0.06em;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+.lynk-post .k-rule{ color: var(--rule); border-bottom-color: var(--rule-line); }
+.lynk-post .k-cost{ color: var(--incident); border-bottom-color: var(--incident-line); }
+.lynk-post .k-win{ color: var(--accent); border-bottom-color: var(--accent-line); }
+.lynk-post .constraint{
+    border-left: 3px solid var(--rule); background: var(--rule-soft);
+    padding: 0.9rem 1.1rem; margin: 1.75rem 0; font-size: 0.95rem;
+  }
+.lynk-post .constraint .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--rule); margin-bottom: 0.35rem;
+  }
+.lynk-post .constraint p:last-child{ margin-bottom: 0; }
+
+/* --- Inline pointers into Further reading -----------------------------
+   A .refmark sits next to the term it explains and jumps to the matching
+   entry at the foot of the article, which carries the external link.    */
+.lynk-post .refmark{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.05rem 0.4rem; margin-left: 0.28rem; vertical-align: 0.12em;
+  }
+.lynk-post .refmark:hover, .lynk-post .refmark:focus-visible{
+    border-color: var(--accent); background: var(--accent-soft);
+  }
+.lynk-post .refs li{ scroll-margin-top: 4.5rem; }
+.lynk-post .refs li:target{
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 0.5rem 0.75rem; margin-left: -0.9rem; border-radius: 0 4px 4px 0;
+  }
+
+.lynk-post .era{ scroll-margin-top: 4.5rem; }
+
+/* --- Opening paragraph: the hook, set larger than body copy ---------- */
+.lynk-post .lede{
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.22rem; line-height: 1.5; color: var(--ink);
+    margin: 1.6rem 0 1.3rem; max-width: 42rem; text-wrap: pretty;
+  }
+.lynk-post .lede strong{ font-weight: 600; color: var(--accent); }
 </style>

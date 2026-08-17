@@ -68,12 +68,12 @@
     taking <strong>around two minutes</strong> for 4,000 of the 5,000 orders. The decisive clue came from an
     exercise anyone can copy, and we ran it first on the purchase step next door: add up the actual CPU time
     of every job in the step and compare it with the wall clock. The jobs came to
-    <strong>521 milliseconds</strong>, inside a step that observably took <strong>seven and a half
-    seconds</strong>. The same arithmetic on Borrower Ownership told the same story on a crueller scale —
-    about a second of work inside two minutes of elapsed time. The code was innocent in both cases; the
-    difference was time spent standing in line. And queue wait has a cruel personality: invisible when the
+    <span class="k-cost">521 milliseconds, inside a step that observably took seven and a half
+    seconds</span>. The same arithmetic on Borrower Ownership told the same story on a crueller scale —
+    about a second of work inside two minutes of elapsed time. <span class="k-rule">The code was innocent in both cases; the
+    difference was time spent standing in line.</span><a class="refmark" href="#ref-queue-wait">queue wait ↓</a> And queue wait has a cruel personality: <span class="k-cost">invisible when the
     system is idle (~0s), noticeable under load (~7s at 91 orders a minute), catastrophic at peak
-    (~118 seconds).</p>
+    (~118 seconds)</span>.</p>
   </div>
   <figure>
     <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
@@ -110,7 +110,7 @@
 
   <div class="attempt">
     <span class="tag">What we tried — and the bottleneck that moved</span>
-    <p>The fix was to stop making unrelated work share one line. Ownership transfers and auto-sales had been
+    <p>The fix was to stop making unrelated work share one line.<a class="refmark" href="#ref-queues">queues ↓</a> Ownership transfers and auto-sales had been
     competing for the same eight workers; each got its own dedicated queue on its own server, and the
     two-minute wait evaporated.</p>
     <p>Then the fix backfired — upstream. With that backpressure gone, the <em>purchase</em> step nearly
@@ -294,7 +294,7 @@ public function up(): void
 
   <div class="attempt">
     <span class="tag">How we manage it</span>
-    <p><strong>The fleet is a file, not folklore.</strong> Every queue's worker count, per machine, is
+    <p><strong>The fleet is a file, not folklore.</strong><a class="refmark" href="#ref-horizon">horizon ↓</a> Every queue's worker count, per machine, is
     declared in the deployment script — so the entire topology arrives in a pull request instead of being
     discovered by SSH-ing into a box, and when a number changes the reason is in the commit. The catch is
     that a queue lives in <em>four</em> places: the Compose profile list, the steady-state scale block, the
@@ -342,7 +342,7 @@ fi</code></pre>
 
   <div class="incident">
     <span class="tag">Where a fleet bites back</span>
-    <p><strong>A duplicate flag silently halves a queue.</strong> Compose keeps only the last value when the
+    <p><strong>A duplicate flag silently halves a queue.</strong><a class="refmark" href="#ref-replicas">replicas ↓</a> Compose keeps only the last value when the
     same service is scaled twice, so merging two profile groups onto one host quietly drops one queue from
     8 workers to 4 and another from 5 to 2. No error, no warning — just a slower system and a load-test
     result that means nothing.</p>
@@ -354,7 +354,7 @@ fi</code></pre>
     leaves the running containers behind unless the deploy is explicitly told to remove orphans — and even
     then, containers whose profile is no longer active survive the sweep. Five such orphans came back after
     a routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
-    <p><strong>The real ceiling is connections, not CPU.</strong> In June 2026 a smaller environment was
+    <p><span class="k-rule">The real ceiling is connections, not CPU.</span><a class="refmark" href="#ref-connections">connections ↓</a> In June 2026 a smaller environment was
     running all three groups at production replicas on one server: <strong>86 worker containers against
     MySQL's default connection limit of 151</strong>, with an unbounded pool of web processes competing for what
     was left. The fix was a budget rather than a bigger database — web processes capped at 10 and recycled
@@ -368,8 +368,8 @@ fi</code></pre>
 
   <div class="metric">
     <span class="tag">The result</span>
-    The fleet grew from <strong>3 worker containers in January 2025 to 122 processes across 3
-    machines</strong> — the production and pre-production figure — and unlike the platform of 2024, every
+    The fleet grew from <span class="k-win">3 worker containers in January 2025 to 122 processes across 3
+    machines</span> — the production and pre-production figure — and unlike the platform of 2024, every
     one of those numbers has a commit explaining it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
     went from three machines to two with <strong>total queue concurrency unchanged</strong>, and the hardest
     part was proving that the second number had not quietly moved (Case&nbsp;15). The goal was never
@@ -389,7 +389,7 @@ fi</code></pre>
     environment file naming the <em>database</em> queue driver — from before the platform moved to Redis.
     The application dispatched to Redis. The workers, still on the old build, wrote and read the database
     table. Every follow-up job in every chain landed in a queue nobody was watching.</p>
-    <p>Deploys had been reporting success the whole time. The web container picked up new code on every
+    <p><span class="k-cost">Deploys had been reporting success the whole time.</span><a class="refmark" href="#ref-deploy">deploys ↓</a> The web container picked up new code on every
     release; the workers had not picked up any.</p>
   </div>
   <div class="attempt">
@@ -464,8 +464,8 @@ fi</code></pre>
     <p>Each one got the boring fix it deserved: standardized log rotation, wider column types, explicit
     connection budgets per environment (smaller environments hold ~28 database connections instead of ~86 at
     full scale), graceful worker shutdown. But the real fix is the habit around them: the stress tests run
-    <strong>daily</strong> precisely so that the next limit nobody wrote down fails in a test, in
-    pre-production, at dawn — instead of in production, at noon, with customers watching.</p>
+    <span class="k-rule">daily precisely so that the next limit nobody wrote down fails in a test, in
+    pre-production, at dawn — instead of in production, at noon, with customers watching</span>.</p>
   </div>
   <div class="metric">
     <span class="tag">The result</span>
@@ -492,12 +492,12 @@ fi</code></pre>
     answered 200. On the others the API's own hostname became the implicit default and returned 404 to a
     probe that had never asked for it. Permanently unhealthy, permanently out of rotation.</p>
     <p>Worth noting what that probe does <em>not</em> do: the page it hits is static. It never touches the
-    application. A completely dead app tier would have gone on reporting itself healthy.</p>
+    application. <span class="k-rule">A completely dead app tier would have gone on reporting itself healthy.</span><a class="refmark" href="#ref-healthcheck">health checks ↓</a></p>
   </div>
   <div class="attempt">
     <span class="tag">What we tried</span>
     <p>The consolidation was a redistribution, not a reduction. The retiring node's queues were reassigned
-    across the two survivors with <strong>every queue's total concurrency held identical</strong> — the same
+    across the two survivors with <span class="k-win">every queue’s total concurrency held identical</span> — the same
     122 worker processes, split 66 and 56, weighted so the node that also serves HTTP carries fewer.</p>
     <p>Three things nearly went wrong and were caught in review rather than in production. The scheduler's
     profile was attached to the group being retired, so decommissioning it would have silently stopped every
@@ -567,40 +567,40 @@ fi</code></pre>
   <h2>Further reading</h2>
   <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
-    <li><strong>Workers, connections and queues</strong> (Cases 11, 12) — the vocabulary this whole part
+    <li id="ref-queues"><strong>Workers, connections and queues</strong> (Cases 11, 12) — the vocabulary this whole part
       is built on, including why one worker process serves one queue list at a time:
       <a href="https://laravel.com/docs/12.x/queues">Laravel queues</a>.</li>
-    <li><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case 10) — what
+    <li id="ref-unique"><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case 10) — what
       <code>ShouldBeUnique</code> does and, importantly, what it does not promise if the lock expires:
       <a href="https://laravel.com/docs/12.x/queues#unique-jobs">unique jobs</a>. The self-expiring locks used elsewhere in the flow
       are <a href="https://laravel.com/docs/12.x/cache#atomic-locks">atomic locks</a>.</li>
-    <li><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case 10) —
+    <li id="ref-retries"><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case 10) —
       <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">Laravel's failed-job handling</a> for the mechanics, and
       the <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">AWS
       Builders' Library on timeouts, retries and backoff with jitter</a> for why synchronised retries
       make an overloaded system worse.</li>
-    <li><strong>Deploying without killing in-flight jobs</strong> (Case 13) — why a worker keeps running
+    <li id="ref-deploy"><strong>Deploying without killing in-flight jobs</strong> (Case 13) — why a worker keeps running
       old code until it is told not to: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">queue workers and
       deployment</a>.</li>
-    <li><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
+    <li id="ref-horizon"><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
       <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case 12 for you.</li>
-    <li><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
+    <li id="ref-brpop"><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
       a Redis queue: <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
-    <li><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case 11) — the difference
+    <li id="ref-queue-wait"><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case 11) — the difference
       between service time and queue wait, and how to find saturation:
       <a href="https://www.brendangregg.com/usemethod.html">Brendan Gregg's USE method</a>. For why
       adding workers eventually stops helping — and then hurts — see Neil Gunther's
       <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
       Law</a>.</li>
-    <li><strong>Sizing processes against a connection ceiling</strong> (Case 14) — the knob that was
+    <li id="ref-connections"><strong>Sizing processes against a connection ceiling</strong> (Case 14) — the knob that was
       unbounded, and the ceiling it ran into:
       <a href="https://www.php.net/manual/en/install.fpm.configuration.php">PHP-FPM process manager
       configuration</a> and MySQL's
       <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a>.</li>
-    <li><strong>Declaring replica counts</strong> (Case 12) — how many copies of a service run,
+    <li id="ref-replicas"><strong>Declaring replica counts</strong> (Case 12) — how many copies of a service run,
       whether that is declared in the compose file or passed as a scale flag at deploy time:
       <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose deploy specification</a>.</li>
-    <li><strong>Health checks that touch the application</strong> (Case 15) — a probe that only proves a
+    <li id="ref-healthcheck"><strong>Health checks that touch the application</strong> (Case 15) — a probe that only proves a
       port is open will call a dead application healthy:
       <a href="https://microservices.io/patterns/observability/health-check-api.html">health check API
       pattern</a>, and <a href="https://12factor.net/disposability">12-factor disposability</a> for why a
@@ -781,4 +781,60 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
 @media (prefers-reduced-motion: no-preference){
   .lynk-post .barv{ transform-box:fill-box; transform-origin:center bottom; animation:growbarv 0.9s cubic-bezier(0.2,0.7,0.3,1) backwards; }
 }
+
+/* --- Emphasis colour code ---------------------------------------------
+   k-rule  (red)   a hard constraint: something that must be true, or the
+                   trade / system is invalid.
+   k-cost  (amber) what it cost when it went wrong.
+   k-win   (green) the measured result once it was fixed.
+   Used inline on the load-bearing clause of a sentence, never a whole
+   paragraph. The .constraint box is the block-level form of k-rule.     */
+.lynk-post{
+    --rule: #B3261E; --rule-line: #E7ADA7; --rule-soft: #FBEDEB;
+    --accent-line: #9BC9B9; --incident-line: #DFC58F;
+  }
+html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
+    --rule: #FF8C7A; --rule-line: #7C3B33; --rule-soft: #2B1A17;
+    --accent-line: #2E6353; --incident-line: #6B5322;
+  }
+.lynk-post .k-rule, .lynk-post .k-cost, .lynk-post .k-win{
+    font-weight: 650;
+    border-bottom: 2px solid var(--rule-line);
+    padding-bottom: 0.06em;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+.lynk-post .k-rule{ color: var(--rule); border-bottom-color: var(--rule-line); }
+.lynk-post .k-cost{ color: var(--incident); border-bottom-color: var(--incident-line); }
+.lynk-post .k-win{ color: var(--accent); border-bottom-color: var(--accent-line); }
+.lynk-post .constraint{
+    border-left: 3px solid var(--rule); background: var(--rule-soft);
+    padding: 0.9rem 1.1rem; margin: 1.75rem 0; font-size: 0.95rem;
+  }
+.lynk-post .constraint .tag{
+    display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--rule); margin-bottom: 0.35rem;
+  }
+.lynk-post .constraint p:last-child{ margin-bottom: 0; }
+
+/* --- Inline pointers into Further reading -----------------------------
+   A .refmark sits next to the term it explains and jumps to the matching
+   entry at the foot of the article, which carries the external link.    */
+.lynk-post .refmark{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.05rem 0.4rem; margin-left: 0.28rem; vertical-align: 0.12em;
+  }
+.lynk-post .refmark:hover, .lynk-post .refmark:focus-visible{
+    border-color: var(--accent); background: var(--accent-soft);
+  }
+.lynk-post .refs li{ scroll-margin-top: 4.5rem; }
+.lynk-post .refs li:target{
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 0.5rem 0.75rem; margin-left: -0.9rem; border-radius: 0 4px 4px 0;
+  }
+
+.lynk-post .era{ scroll-margin-top: 4.5rem; }
 </style>
