@@ -1,652 +1,459 @@
 ---
 // Article body for /blog/stop-breaking-production-llm-judge/
-// Also published on Medium — see the canonical/alternate links in the frontmatter.
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'What is LLM as a judge?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'LLM as a judge is an evaluation pattern where one language model grades the output of another. The judge receives the question, the reference answer and the agent answer, then returns a verdict — pass/fail, a score, or a preference between two candidates — along with its reasoning. It replaces human graders in regression testing, so an agent can be evaluated on every pull request instead of once a release.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Why does manual testing of LLM agents not scale?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Two reasons: speed and coverage. Running 500 hand-graded scenarios takes hours, so it cannot run on every pull request. And a hand-written suite only covers the cases someone already imagined — it misses multi-turn context switches, retrieval failures and edge cases you have not thought of yet. The result is reactive testing: users find the bugs, not you.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Is a single LLM judge reliable enough?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'A single judge is cheap and fast — roughly one API call and a couple of hundred milliseconds — but it carries that model’s stylistic bias. It can fail a correct answer purely because the wording differs from the reference. Use a single judge for fast feedback during development, and a panel of several judges whose scores are averaged for decisions that gate a deploy.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Can an agent evaluate its own answers?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'No. Self-judging is the most biased configuration available: the model that produced the answer is the model deciding whether the answer is good. It is a student grading their own exam. Always judge with models other than the one under test.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What is the difference between DeepEval and RAGAS?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'DeepEval is a general LLM evaluation framework with pre-built metrics for hallucination, toxicity, relevance and bias, plus custom LLM-judge metrics — a good fit for agent regression testing in CI. RAGAS specialises in retrieval-augmented generation, scoring faithfulness, answer relevance, context precision and context recall — use it when source attribution and retrieval quality are what you need to measure.',
-      },
-    },
-  ],
-};
+// Mirrors the Medium original (text and figures) — see mediumUrl in the post frontmatter.
+const base = "/images/blog/stop-breaking-production-llm-judge";
 ---
 
 <div class="judge-post">
   <p>
-    It's 2 AM on a Tuesday, and your Slack is exploding. A customer just reported a critical bug:
-    your AI agent is giving incorrect responses about payment processing. You quickly identify the
-    issue — a faulty assumption in the system prompt. You fix it, run a few manual tests, and deploy
-    with confidence.
+    It's 2 AM on a Tuesday, and your Slack is exploding. A customer just
+    reported a critical bug: your AI agent is giving incorrect responses about
+    payment processing. You quickly identify the issue — a faulty assumption in
+    the system prompt. You fix it, run a few manual tests, and deploy with
+    confidence.
   </p>
   <p>
-    By 6 AM, three more bugs appear. Not in payment processing, but in unrelated features: customer
-    support queries, knowledge retrieval, report generation. Features you didn't touch. Features you
-    thought were working fine.
+    By 6 AM, three more bugs appear. Not in payment processing, but in unrelated
+    features: customer support queries, knowledge retrieval, and report
+    generation. Features you didn't touch. Features you thought were working
+    fine.
+  </p>
+  <p>
+    This is the LLM agent developer's nightmare: <strong
+      >every change is a potential cascading failure waiting to happen.</strong
+    >
+  </p>
+  <p>
+    You can't see the ripple effects of your modifications throughout the entire
+    system. Moreover, your users are discovering problems that you were
+    completely unaware of.
   </p>
 
-  <div class="incident">
-    <span class="tag">The nightmare</span>
-    <p>
-      Every change to an LLM agent is a potential cascading failure. You cannot see the ripple
-      effects of a prompt edit across the rest of the system — and your users are discovering the
-      problems you never knew you shipped.
-    </p>
+  <h2>The Problem: Manual Testing Doesn't Scale</h2>
+  <p>
+    Your first instinct is reasonable: <strong
+      >hire humans to write test scenarios.</strong>
+  </p>
+  <p>You create a test suite of 500 Q&amp;A pairs. Each pair has:</p>
+  <ul>
+    <li>A question</li>
+    <li>The expected answer (from a domain expert)</li>
+  </ul>
+  <p>
+    Every time you change a prompt or modify the agent's behavior, you run all
+    500 scenarios and mark pass/fail. Simple. Effective. But then reality sets
+    in.
+  </p>
+
+  <h3>The Two Scalability Killers</h3>
+  <p>
+    <strong>1. Speed:</strong> Running 500 tests manually takes <em>hours</em>.
+    Testing every PR becomes a bottleneck. You're stuck in reactive mode — users
+    find bugs, you fix them, you deploy. Then more bugs emerge. Proactive
+    testing feels like a luxury you can't afford.
+  </p>
+  <p>
+    <strong>2. Coverage:</strong> What about edge cases you haven't thought of yet?
+    What about multi-turn conversations where context switches between finance and
+    sports questions? What about RAG systems where answers need proper source attribution?
+    Adding every scenario manually is an endless treadmill.
+  </p>
+
+  <h3>The Reactive Trap</h3>
+
+  <figure>
+    <img
+      src={`${base}/reactive-trap.jpg`}
+      alt="The reactive cycle in four panels: users find bugs, you fix them, you deploy, more bugs emerge — and the cycle repeats."
+      width="1363"
+      height="903"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <p>
+    You're not discovering problems — users are. And they're discovering them in
+    production.
+  </p>
+  <p>
+    The ideal would be: <strong
+      >evaluate changes <em>before</em> they reach users, automatically, at scale,
+      every single PR.</strong
+    >
+  </p>
+  <p>This is where most teams give up. Testing LLM agents feels impossible.</p>
+
+  <h2>The Solution: LLM as Judge</h2>
+  <p>What if instead of hiring humans to judge every test, you used an LLM?</p>
+  <p>
+    <strong>Here's the insight:</strong> LLMs are surprisingly good at evaluating
+    other LLMs. They can read a question, compare two answers, and judge which one
+    is better — or whether an answer meets a standard.
+  </p>
+  <p>The pattern is simple:</p>
+  <ol>
+    <li>
+      You make a code change and create a pull request — this triggers the
+      evaluation
+    </li>
+    <li>
+      Your reference dataset (500 question-answer pairs) sits ready as the
+      benchmark
+    </li>
+    <li>Your agent code runs and produces answers</li>
+    <li>
+      The LLM judge reads both the reference answer and your agent's answer,
+      then decides if they match (or how close they are)
+    </li>
+    <li>
+      The judge outputs structured results: Pass/Fail status, a score, and
+      reasoning about any mismatches
+    </li>
+    <li>You get a report showing exactly which tests failed and why.</li>
+  </ol>
+
+  <figure>
+    <img
+      src={`${base}/pipeline.jpg`}
+      alt="Evaluation pipeline: make code changes and create a pull request, then the reference dataset of 500 Q and A pairs and the agent answers both feed an LLM judge, which outputs a pass/fail decision with score and reasoning, and finally an automated report."
+      width="1363"
+      height="909"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <p>
+    This is not traditional unit testing. It's <em>semantic evaluation</em> — judging
+    whether the agent's behavior matches expectations, even when the wording differs.
+  </p>
+
+  <h2>Three Approaches to Judging: Pick Your Confidence Level</h2>
+  <p>
+    Now you need to decide: <em
+      >How confident do you want your evaluation to be?</em>
+  </p>
+
+  <h3>Approach 1: Single Judge</h3>
+
+  <figure>
+    <img
+      src={`${base}/single-judge.jpg`}
+      alt="Single judge setup: question, agent answer and reference answer all feed one LLM judge, which returns pass or fail. Speed about 200 milliseconds, cost one API call, trade-off fast but risky."
+      width="1363"
+      height="710"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <p><strong>How it works:</strong></p>
+  <ul>
+    <li>Send the question + agent answer + reference answer to judge LLM</li>
+    <li>The judge responds: "Pass" or "Fail"</li>
+    <li>Done. Cost: one API call. Time: ~200ms.</li>
+  </ul>
+
+  <p><strong>The Problem: Bias</strong></p>
+  <p>
+    Here's where it gets tricky. LLMs have preferences. One model might prefer
+    formal tone, another conversational. One might be strict about exact
+    wording, another lenient.
+  </p>
+  <p>Imagine:</p>
+  <ul>
+    <li>
+      <strong>Reference answer:</strong> "The capital of France is Paris."
+    </li>
+    <li><strong>Agent answer:</strong> "Paris is the capital of France."</li>
+  </ul>
+  <p>
+    Both are correct. But your judge might say: <em
+      >"I prefer the reference format. The agent answer is inconsistent. Fail."</em
+    >
+  </p>
+  <p>
+    This is bias. Your valid answer gets marked as failing because the judge has
+    stylistic preferences.
+  </p>
+  <p>
+    <strong>When to use it:</strong> quick feedback with low cost in development .
+    Not for critical decisions.
+  </p>
+
+  <h3>Approach 2: Multiple Judges</h3>
+
+  <figure>
+    <img
+      src={`${base}/multi-judges.jpg`}
+      alt="Multiple judges: the question and answers go to GPT-4 (0.92), Claude (0.88), Gemini (0.89) and a local model (0.90) simultaneously; the four scores are averaged to a final score of 0.897, so each model's bias cancels out."
+      width="1363"
+      height="795"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <p><strong>How it works:</strong></p>
+  <ul>
+    <li>
+      Send the same question + answers to 4 different LLM judges simultaneously
+    </li>
+    <li>Judge 1 (GPT-4): Score 0.92</li>
+    <li>Judge 2 (Claude): Score 0.88</li>
+    <li>Judge 3 (Gemini): Score 0.89</li>
+    <li>Judge 4 (Local model): Score 0.90</li>
+    <li>Average them: 0.897 ✓</li>
+  </ul>
+  <p>
+    <strong>Why this works:</strong> Each LLM has different biases. If one judge prefers
+    formal tone, another might prefer conversational. Their biases <em
+      >cancel out</em
+    > when you average them.
+  </p>
+  <p>
+    An outlier score (say, one judge gives 0.65 while others give 0.90) is
+    isolated and doesn't tank your result. The consensus is more robust.
+  </p>
+  <p>
+    <strong>Cost trade-off:</strong> 4× the API calls, but you get far more reliable
+    evaluation. Many teams find this is worth it — one false negative from a biased
+    judge could let a bug into production.
+  </p>
+
+  <h3>Approach 3: Self-Judge (Don't Do This)</h3>
+  <p>Some people suggest: <em>"Why not have the agent evaluate itself?"</em></p>
+  <p>
+    <strong>Don't.</strong> This is maximally biased. The agent is motivated to mark
+    its own answer as correct. You're asking a student to grade their own exam.
+  </p>
+
+  <h2>What Should You Evaluate?</h2>
+  <p>
+    Not all aspects of agent behavior are equally important. Prioritize what
+    matters to your use case.
+  </p>
+
+  <h3>1. Single-Turn Q&amp;A (The Baseline)</h3>
+  <p>Simple question → Simple answer. Is the answer correct?</p>
+  <ul>
+    <li>"What is the Python keyword for looping?" → "for"</li>
+  </ul>
+  <p>This is your foundation. If the agent fails here, nothing else matters.</p>
+
+  <h3>2. Multi-Turn Conversations (The Real Challenge)</h3>
+  <p>
+    A conversation with context. The user asks multiple questions, sometimes
+    switching topics.
+  </p>
+
+  <figure>
+    <img
+      src={`${base}/multi-turn.jpg`}
+      alt="A three-turn conversation: turn 1 in finance context asks what Bitcoin is and the agent answers correctly; turn 2 switches to sports and the agent answers correctly; turn 3 switches back to finance and the agent produces a confused, mixed-context answer about the Chiefs using the blockchain."
+      width="1363"
+      height="1108"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <p>
+    <strong>This is where most agents fail.</strong> Can your agent remember it was
+    talking about Bitcoin? Or will it get confused and talk about the Chiefs' blockchain
+    technology?
+  </p>
+  <p>
+    The judge evaluates context coherence: <em
+      >"Did the agent maintain context across topic switches?"</em
+    >
+  </p>
+  <p>
+    Multi-turn evaluation is harder to build (you need conversation histories,
+    not just Q&amp;A pairs), but it catches real-world failures that single-turn
+    tests miss.
+  </p>
+
+  <h3>3. RAG Evaluation (Grounding in Reality)</h3>
+  <p>
+    If your agent uses Retrieval-Augmented Generation (RAG), answers should be
+    grounded in sources.
+  </p>
+  <p>The judge checks:</p>
+  <ul>
+    <li>Is the answer supported by the retrieved document?</li>
+    <li>Are citations valid?</li>
+    <li>Did the agent hallucinate?</li>
+  </ul>
+  <p><strong>Example:</strong></p>
+  <ul>
+    <li>Document: "The Earth orbits the Sun in 365.25 days."</li>
+    <li>
+      Agent answer: "The Earth orbits the Sun in 365.25 days, as stated in
+      Document_42."
+    </li>
+    <li>Judge: ✓ Answer is grounded.</li>
+  </ul>
+  <p>versus:</p>
+  <ul>
+    <li>
+      Agent answer: "The Earth orbits Mars, a fact not covered in the
+      documents."
+    </li>
+    <li>Judge: ✗ Agent hallucinated.</li>
+  </ul>
+  <p>
+    RAG evaluation requires specialized metrics. We'll cover tools for this
+    below.
+  </p>
+
+  <h2>What Judges Output (And How to Use It)</h2>
+
+  <h3>Output Type 1: Binary Pass/Fail</h3>
+  <p>Simplest. Useful for regression testing.</p>
+  <ul>
+    <li>487 tests passed</li>
+    <li>13 tests failed</li>
+    <li>List of failing tests</li>
+  </ul>
+  <p><strong>Use case:</strong> "Did this PR break anything?"</p>
+
+  <h3>Output Type 2: Numerical Score (0–100)</h3>
+  <p>More nuanced. Useful for tracking quality over time.</p>
+  <ul>
+    <li>Overall quality: 87/100</li>
+    <li>Consistency: 0.91</li>
+    <li>Relevance: 0.84</li>
+    <li>Accuracy: 0.92</li>
+  </ul>
+  <p>
+    <strong>Use case:</strong> "Is the agent getting better?" Graph these scores over
+    time.
+  </p>
+
+  <h3>Output Type 3: Pairwise Comparison</h3>
+  <p>Judge two versions and pick the better one.</p>
+  <ul>
+    <li>
+      Model A answer vs Model B answer: <em>"Model B is better because…"</em>
+    </li>
+  </ul>
+  <p>
+    <strong>Use case:</strong> A/B testing different prompts. Which one consistently
+    wins?
+  </p>
+
+  <h3>Output Type 4: Reference-Based Generation</h3>
+  <p>For RAG systems specifically. Judge checks:</p>
+  <ul>
+    <li>Did the agent cite sources? ✓</li>
+    <li>Are those sources valid? ✓</li>
+    <li>Is the answer faithful to the source? ✓</li>
+  </ul>
+  <p>
+    <strong>Use case:</strong> "Can I trust this RAG system to give cited answers?"
+  </p>
+
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Output Type</th>
+          <th scope="col">Use Case</th>
+          <th scope="col">Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Pass/Fail</td>
+          <td>Regression testing</td>
+          <td>Low (binary)</td>
+        </tr>
+        <tr>
+          <td>Numerical Score</td>
+          <td>Quality tracking</td>
+          <td>Medium</td>
+        </tr>
+        <tr>
+          <td>Pairwise</td>
+          <td>A/B testing</td>
+          <td>Medium-High</td>
+        </tr>
+        <tr>
+          <td>Reference check</td>
+          <td>RAG grounding</td>
+          <td>High</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 01</span>
-      <h2>Manual testing doesn't scale</h2>
-    </div>
+  <h2>Tools</h2>
+  <p>
+    You don't need to build the judge logic from scratch. Two frameworks
+    dominate this space.
+  </p>
 
-    <p>Your first instinct is reasonable: hire humans to write test scenarios.</p>
-    <p>
-      You create a test suite of 500 question-and-answer pairs. Each pair has a question and the
-      expected answer, written by a domain expert. Every time you change a prompt or modify the
-      agent's behaviour, you run all 500 scenarios and mark pass or fail. Simple. Effective.
-    </p>
-    <p>Then reality sets in.</p>
+  <h3>
+    <a
+      href="https://github.com/confident-ai/deepeval"
+      target="_blank"
+      rel="noopener noreferrer">DeepEval</a
+    >
+  </h3>
+  <p>
+    <strong>What it does:</strong> Provides pre-built metrics for LLM evaluation.
+  </p>
+  <ul>
+    <li>Hallucination detection</li>
+    <li>Toxicity scoring</li>
+    <li>Relevance checking</li>
+    <li>Bias detection</li>
+    <li>Custom metrics via LLM judge</li>
+  </ul>
+  <p>
+    <strong>Best for:</strong> General agent evaluation, regression testing, scoring
+    answers.
+  </p>
 
-    <h3>The two scalability killers</h3>
-    <p>
-      <strong>Speed.</strong> Running 500 tests by hand takes hours. Testing every pull request becomes
-      a bottleneck, so you stop doing it. You are stuck in reactive mode — users find bugs, you fix them,
-      you deploy, more bugs emerge. Proactive testing feels like a luxury you can't afford.
-    </p>
-    <p>
-      <strong>Coverage.</strong> What about the edge cases nobody has thought of yet? Multi-turn conversations
-      where the context switches from finance to sports halfway through? RAG answers that need proper
-      source attribution? Adding every scenario by hand is an endless treadmill.
-    </p>
+  <h3>
+    <a href="https://docs.ragas.io/" target="_blank" rel="noopener noreferrer"
+      >RAGAS</a>
+  </h3>
+  <p><strong>What it does:</strong> Specialized metrics for RAG systems.</p>
+  <ul>
+    <li>Faithfulness (Is the answer grounded in sources?)</li>
+    <li>Answer relevance (Does it answer the question?)</li>
+    <li>Context precision (Are retrieved documents actually relevant?)</li>
+    <li>Context recall (Did retrieval miss important documents?)</li>
+  </ul>
+  <p>
+    <strong>Best for:</strong> RAG pipelines where source attribution matters.
+  </p>
 
-    <h3>The reactive trap</h3>
-    <p>
-      You are not discovering problems. Users are — in production. The ideal is the opposite:
-      evaluate every change <em>before</em> it reaches users, automatically, at scale, on every pull request.
-      This is where most teams give up, because testing LLM agents feels impossible.
-    </p>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 02</span>
-      <h2>The solution: LLM as judge</h2>
-    </div>
-
-    <p>
-      What if, instead of hiring humans to judge every test, you used an LLM? Here is the insight
-      that makes it work: <strong>LLMs are surprisingly good at evaluating other LLMs.</strong> They can
-      read a question, compare two answers, and decide which is better — or whether an answer meets a
-      standard.
-    </p>
-
-    <p>The pattern is simple:</p>
-    <ol>
-      <li>You make a code change and open a pull request — this triggers the evaluation.</li>
-      <li>Your reference dataset (500 question-answer pairs) sits ready as the benchmark.</li>
-      <li>Your agent code runs and produces answers.</li>
-      <li>
-        The judge LLM reads both the reference answer and your agent's answer, then decides whether
-        they match — or how close they are.
-      </li>
-      <li>
-        The judge outputs structured results: pass/fail, a score, and reasoning about any mismatch.
-      </li>
-      <li>You get a report showing exactly which tests failed and why.</li>
-    </ol>
-
-    <figure>
-      <svg
-        viewBox="0 0 720 250"
-        role="img"
-        aria-label="Evaluation pipeline: a pull request triggers a run in which the reference dataset and the agent under test both feed answers into a judge LLM, which emits a structured report of pass or fail status, score and reasoning."
-      >
-        <defs>
-          <marker
-            id="j-arr"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="6"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.55"></path>
-          </marker>
-          <marker
-            id="j-arr-a"
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="6"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
-          </marker>
-        </defs>
-
-        <rect
-          x="8"
-          y="100"
-          width="112"
-          height="50"
-          rx="3"
-          fill="none"
-          stroke="currentColor"
-          stroke-opacity="0.5"></rect>
-        <g fill="currentColor" font-size="11.5" text-anchor="middle">
-          <text x="64" y="120">Pull request</text>
-          <text x="64" y="136" opacity="0.7">CI trigger</text>
-        </g>
-
-        <rect
-          x="168"
-          y="34"
-          width="164"
-          height="56"
-          rx="3"
-          fill="var(--card)"
-          stroke="currentColor"
-          stroke-opacity="0.5"></rect>
-        <g fill="currentColor" font-size="11.5" text-anchor="middle">
-          <text x="250" y="56">Reference dataset</text>
-          <text x="250" y="73" opacity="0.7">500 expert Q&amp;A pairs</text>
-        </g>
-
-        <rect
-          x="168"
-          y="160"
-          width="164"
-          height="56"
-          rx="3"
-          fill="var(--card)"
-          stroke="currentColor"
-          stroke-opacity="0.5"></rect>
-        <g fill="currentColor" font-size="11.5" text-anchor="middle">
-          <text x="250" y="182">Agent under test</text>
-          <text x="250" y="199" opacity="0.7">produces answers</text>
-        </g>
-
-        <rect
-          x="386"
-          y="94"
-          width="132"
-          height="62"
-          rx="3"
-          fill="var(--accent-soft)"
-          stroke="var(--accent)"
-          stroke-width="1.5"
-          class="j-pulse"></rect>
-        <g fill="currentColor" font-size="12" text-anchor="middle">
-          <text x="452" y="119">Judge LLM</text>
-          <text x="452" y="136" font-size="10.5" opacity="0.7">semantic comparison</text>
-        </g>
-
-        <rect
-          x="570"
-          y="86"
-          width="142"
-          height="78"
-          rx="3"
-          fill="none"
-          stroke="var(--accent)"
-          stroke-width="1.5"></rect>
-        <g
-          fill="currentColor"
-          font-size="11"
-          text-anchor="middle"
-          font-family="ui-monospace, Menlo, monospace"
-        >
-          <text x="641" y="108">PASS / FAIL</text>
-          <text x="641" y="126">score 0–100</text>
-          <text x="641" y="144">reasoning</text>
-        </g>
-
-        <g stroke="currentColor" stroke-opacity="0.55" stroke-width="1.4" fill="none">
-          <path d="M120,118 L144,118 L144,62 L164,62" marker-end="url(#j-arr)"></path>
-          <path d="M120,132 L144,132 L144,188 L164,188" marker-end="url(#j-arr)"></path>
-          <path d="M332,62 L360,62 L360,112 L382,112" marker-end="url(#j-arr)"></path>
-          <path d="M332,188 L360,188 L360,138 L382,138" marker-end="url(#j-arr)"></path>
-        </g>
-        <line
-          x1="518"
-          y1="125"
-          x2="566"
-          y2="125"
-          stroke="var(--accent)"
-          stroke-width="1.6"
-          marker-end="url(#j-arr-a)"></line>
-
-        <text x="452" y="176" font-size="10.5" fill="var(--accent)" text-anchor="middle">
-          not string equality — semantic match
-        </text>
-      </svg>
-      <figcaption>
-        The evaluation loop. This is not traditional unit testing; it is semantic evaluation —
-        judging whether the agent's behaviour matches expectations even when the wording differs.
-      </figcaption>
-    </figure>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 03</span>
-      <h2>Three ways to judge — pick your confidence level</h2>
-    </div>
-
-    <p>Now you have to decide how confident you need the evaluation to be.</p>
-
-    <h3>Approach 1 — a single judge</h3>
-    <p>
-      Send the question, the agent answer and the reference answer to one judge LLM. It responds
-      <em>pass</em> or <em>fail</em>. Cost: one API call. Latency: roughly 200&nbsp;ms.
-    </p>
-
-    <div class="incident">
-      <span class="tag">The problem — bias</span>
-      <p>
-        LLMs have preferences. One model prefers a formal tone, another conversational. One is
-        strict about exact wording, another lenient. Consider:
-      </p>
-      <p class="pair">
-        <span class="lab">Reference</span> The capital of France is Paris.<br />
-        <span class="lab">Agent</span> Paris is the capital of France.
-      </p>
-      <p>
-        Both are correct. But your judge might reply: <em
-          >"I prefer the reference format. The agent answer is inconsistent. Fail."</em
-        > That is bias — a valid answer marked as failing because the judge has stylistic preferences.
-      </p>
-    </div>
-
-    <p>
-      <strong>When to use it:</strong> quick, cheap feedback during development. Not for decisions that
-      gate a release.
-    </p>
-
-    <h3>Approach 2 — a panel of judges</h3>
-    <p>
-      Send the same question and answers to several judges at once, then average their scores. Each
-      model has different biases, so the biases largely cancel out. An outlier — one judge at 0.65
-      while the rest sit around 0.90 — is isolated instead of sinking the result.
-    </p>
-
-    <figure>
-      <svg
-        viewBox="0 0 720 210"
-        role="img"
-        aria-label="A panel of four judges scoring the same answer: 0.92, 0.88, 0.89 and 0.90, averaged to 0.897. One outlier at 0.65 barely moves the consensus."
-      >
-        <text
-          x="8"
-          y="24"
-          font-size="11"
-          font-family="ui-monospace, Menlo, monospace"
-          letter-spacing="1"
-          fill="var(--accent)"
-        >
-          FOUR JUDGES · ONE ANSWER
-        </text>
-
-        <g font-size="11.5" fill="currentColor">
-          <text x="8" y="60">Judge A</text>
-          <text x="8" y="94">Judge B</text>
-          <text x="8" y="128">Judge C</text>
-          <text x="8" y="162">Judge D</text>
-        </g>
-
-        <g fill="var(--line)">
-          <rect x="86" y="48" width="440" height="14" rx="2"></rect>
-          <rect x="86" y="82" width="440" height="14" rx="2"></rect>
-          <rect x="86" y="116" width="440" height="14" rx="2"></rect>
-          <rect x="86" y="150" width="440" height="14" rx="2"></rect>
-        </g>
-        <g fill="var(--accent)" class="j-bar">
-          <rect x="86" y="48" width="405" height="14" rx="2"></rect>
-          <rect x="86" y="82" width="387" height="14" rx="2"></rect>
-          <rect x="86" y="116" width="392" height="14" rx="2"></rect>
-          <rect x="86" y="150" width="396" height="14" rx="2"></rect>
-        </g>
-
-        <g font-size="11.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor">
-          <text x="536" y="60">0.92</text>
-          <text x="536" y="94">0.88</text>
-          <text x="536" y="128">0.89</text>
-          <text x="536" y="162">0.90</text>
-        </g>
-
-        <line x1="596" y1="40" x2="596" y2="172" stroke="var(--line)" stroke-width="1"></line>
-        <rect
-          x="612"
-          y="76"
-          width="100"
-          height="60"
-          rx="3"
-          fill="var(--accent-soft)"
-          stroke="var(--accent)"
-          stroke-width="1.5"></rect>
-        <g text-anchor="middle" fill="currentColor">
-          <text
-            x="662"
-            y="98"
-            font-size="10"
-            letter-spacing="1"
-            font-family="ui-monospace, Menlo, monospace"
-            opacity="0.75">CONSENSUS</text
-          >
-          <text
-            x="662"
-            y="121"
-            font-size="17"
-            font-weight="700"
-            font-family="ui-monospace, Menlo, monospace"
-            fill="var(--accent)">0.897</text
-          >
-        </g>
-
-        <text x="86" y="192" font-size="10.5" fill="currentColor" opacity="0.75">
-          Different models, different biases — averaging cancels most of them out.
-        </text>
-      </svg>
-      <figcaption>
-        Four judges cost four times the API calls. Many teams find that trade worth it: one false
-        negative from a biased judge is one bug waved into production.
-      </figcaption>
-    </figure>
-
-    <h3>Approach 3 — self-judging (don't)</h3>
-    <p>
-      Someone will suggest letting the agent evaluate itself. Don't. This is maximally biased — the
-      model is motivated to mark its own answer correct. You are asking a student to grade their own
-      exam.
-    </p>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Approach</th>
-            <th scope="col">Cost</th>
-            <th scope="col">Bias risk</th>
-            <th scope="col">Use it for</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Single judge</td>
-            <td class="num">1×</td>
-            <td>High</td>
-            <td>Fast local feedback while iterating on prompts</td>
-          </tr>
-          <tr>
-            <td>Judge panel</td>
-            <td class="num">4×</td>
-            <td>Low</td>
-            <td>Release gates, regression suites, anything that blocks a deploy</td>
-          </tr>
-          <tr>
-            <td>Self-judge</td>
-            <td class="num">1×</td>
-            <td>Maximum</td>
-            <td>Nothing</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 04</span>
-      <h2>What should you actually evaluate?</h2>
-    </div>
-
-    <p>Not every aspect of agent behaviour matters equally. Prioritise by use case.</p>
-
-    <h3>1. Single-turn Q&amp;A — the baseline</h3>
-    <p>
-      Simple question, simple answer. Is it correct? <em
-        >"What is the Python keyword for looping?"</em
-      > →
-      <code>for</code>. This is your foundation. If the agent fails here, nothing else matters.
-    </p>
-
-    <h3>2. Multi-turn conversations — the real challenge</h3>
-    <p>
-      A conversation with context, where the user asks several questions and sometimes switches
-      topic. This is where most agents fail. Can yours remember it was talking about Bitcoin, or
-      will it start explaining the Chiefs' blockchain strategy? The judge evaluates <strong
-        >context coherence</strong
-      >: did the agent hold its thread across the topic switch?
-    </p>
-    <p>
-      Multi-turn evaluation is harder to build — you need conversation histories, not just Q&amp;A
-      pairs — but it catches the real-world failures single-turn tests never see.
-    </p>
-
-    <h3>3. RAG evaluation — grounding in reality</h3>
-    <p>
-      If your agent uses retrieval-augmented generation, its answers should be grounded in the
-      retrieved sources. The judge checks three things: is the answer supported by the document, are
-      the citations valid, and did the agent hallucinate?
-    </p>
-
-    <div class="metric">
-      <span class="tag">Grounded</span>
-      <p class="pair">
-        <span class="lab">Document</span> The Earth orbits the Sun in 365.25 days.<br />
-        <span class="lab">Agent</span> The Earth orbits the Sun in 365.25 days, as stated in Document_42.<br
-        />
-        <span class="lab">Judge</span> Answer is supported by the source. Pass.
-      </p>
-    </div>
-
-    <div class="incident">
-      <span class="tag">Hallucinated</span>
-      <p class="pair">
-        <span class="lab">Agent</span> The Earth orbits Mars, a fact not covered in the documents.<br
-        />
-        <span class="lab">Judge</span> Unsupported claim. Fail.
-      </p>
-    </div>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 05</span>
-      <h2>What judges output, and how to use it</h2>
-    </div>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Output</th>
-            <th scope="col">Looks like</th>
-            <th scope="col">Answers the question</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Binary pass/fail</strong></td>
-            <td class="num">487 passed · 13 failed</td>
-            <td>"Did this PR break anything?"</td>
-          </tr>
-          <tr>
-            <td><strong>Numerical score</strong></td>
-            <td class="num">87/100 · relevance 0.84</td>
-            <td>"Is the agent getting better?" — graph it over time</td>
-          </tr>
-          <tr>
-            <td><strong>Pairwise comparison</strong></td>
-            <td>Model B wins, because…</td>
-            <td>"Which of these two prompts is better?"</td>
-          </tr>
-          <tr>
-            <td><strong>Reference-based</strong></td>
-            <td>Cited ✓ · valid ✓ · faithful ✓</td>
-            <td>"Can I trust this RAG system to cite honestly?"</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p>
-      Binary output is the simplest and the right default for regression testing. Scores are more
-      nuanced and worth tracking as a time series — a quality graph that slopes downward over three
-      sprints tells you something no single build ever will. Pairwise comparison is what you want
-      for A/B testing prompts. Reference-based checks belong to RAG systems specifically.
-    </p>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">PART 06</span>
-      <h2>Tools: DeepEval and RAGAS</h2>
-    </div>
-
-    <p>You don't need to build judge logic from scratch. Two frameworks dominate this space.</p>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Framework</th>
-            <th scope="col">What it gives you</th>
-            <th scope="col">Best for</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>DeepEval</strong></td>
-            <td>
-              Hallucination detection, toxicity scoring, relevance checking, bias detection, and
-              custom metrics backed by an LLM judge
-            </td>
-            <td>General agent evaluation, regression testing in CI, scoring answers</td>
-          </tr>
-          <tr>
-            <td><strong>RAGAS</strong></td>
-            <td>
-              Faithfulness (is the answer grounded?), answer relevance, context precision (were the
-              retrieved documents relevant?), context recall (did retrieval miss anything?)
-            </td>
-            <td>RAG pipelines where source attribution matters</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">FAQ</span>
-      <h2>Frequently asked questions</h2>
-    </div>
-
-    <h3>What is LLM as a judge?</h3>
-    <p>
-      One language model grading the output of another. The judge receives the question, the
-      reference answer and the agent answer, then returns a verdict — pass/fail, a score, or a
-      preference between two candidates — with its reasoning. It replaces human graders in
-      regression testing, so the agent can be evaluated on every pull request instead of once a
-      release.
-    </p>
-
-    <h3>Is a single judge reliable enough?</h3>
-    <p>
-      For fast feedback while you iterate, yes. For anything that gates a deploy, no — one model's
-      stylistic preference can fail a correct answer. Use a panel and average the scores.
-    </p>
-
-    <h3>Can an agent evaluate its own answers?</h3>
-    <p>
-      No. Self-judging is the most biased configuration available. Always judge with models other
-      than the one under test.
-    </p>
-
-    <h3>How big should the reference dataset be?</h3>
-    <p>
-      Big enough that a regression in any feature you care about has at least a handful of scenarios
-      pointing at it. Start with the traffic you actually see — real production questions with
-      expert answers beat synthetic ones — and grow the set every time a user finds something your
-      suite missed.
-    </p>
-
-    <h3>What is the difference between DeepEval and RAGAS?</h3>
-    <p>
-      DeepEval is the general evaluation framework — hallucination, toxicity, relevance, bias and
-      custom judge metrics. RAGAS is specialised for retrieval: faithfulness, answer relevance,
-      context precision and context recall. Reach for RAGAS when retrieval quality is the thing
-      under test.
-    </p>
-  </section>
-
-  <section class="era">
-    <div class="era-head">
-      <span class="era-no">CLOSING</span>
-      <h2>2 AM incident, or 2 AM code review</h2>
-    </div>
-
-    <p>
-      Traditional testing caught bugs after users found them. LLM judges let you catch them before
-      they reach production.
-    </p>
-    <p>
-      This isn't perfect. LLMs make mistakes. Your reference dataset will be incomplete. Consensus
-      scoring costs real money. But the alternative — hoping your changes don't break things — is
-      worse.
-    </p>
-    <p>
-      The pattern is emerging: LLMs evaluating LLMs. It is not just a test framework, it is a
-      different way to think about quality. Every time you deploy an agent, you are not only
-      shipping code — you are shipping a system that can evaluate itself and defend against its own
-      degradation.
-    </p>
-    <p>
-      That 2 AM production incident? With judges catching regressions in CI, it becomes a 2 AM fix
-      in code review instead. Not zero incidents. But better. Much better.
-    </p>
-  </section>
+  <h2>Conclusion:</h2>
+  <p>
+    Traditional testing caught bugs <em>after</em> users found them. LLM judges let
+    you catch them
+    <em>before</em> they reach production.
+  </p>
+  <p>
+    This isn't perfect. LLMs will make mistakes. Your reference dataset might be
+    incomplete. Consensus scoring adds cost. But the alternative — hoping your
+    changes don't break things — is worse.
+  </p>
+  <p>
+    The pattern is emerging: LLMs evaluating LLMs. It's not just a test
+    framework; it's a new way to think about quality. Every time you deploy an
+    agent, you're not just shipping code. You're shipping a system that can
+    evaluate itself and defend against degradation.
+  </p>
+  <p>
+    The 2 AM production incident? With LLM judges catching regressions in CI, it
+    becomes a 2 AM fix in code review instead. Not zero-incident, but better.
+    Much better.
+  </p>
 
   <div class="next">
     <span class="tag">Also published</span>
@@ -659,42 +466,20 @@ const faqSchema = {
       > publication, where the comments live.
     </p>
   </div>
-
-  <div class="refs">
-    <h2>Related reading</h2>
-    <p>
-      Regression discipline in a very different domain — a payments platform where the tests that
-      mattered were load runs, not judges:
-      <a href="/blog/scaling-murabaha-10-to-5000-orders/"
-        >10 database bottlenecks we hit scaling to 5,000 orders</a
-      >
-      and <a href="/blog/scaling-queue-workers-3-to-122/"
-        >scaling queue workers from 3 containers to 122 processes</a
-      >.
-    </p>
-  </div>
 </div>
-
-<script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
 
 <style is:global>
   .judge-post {
     --muted: #5c6a63;
     --accent: #0e7a5f;
-    --accent-soft: #e3efea;
-    --incident: #a06f1f;
-    --incident-soft: #f6eedd;
     --line: #e2e1da;
     --card: #f2f1eb;
     font-size: 1rem;
   }
   html.dark .judge-post,
-  html[data-theme='dark'] .judge-post {
+  html[data-theme="dark"] .judge-post {
     --muted: #93a29a;
     --accent: #45c29b;
-    --accent-soft: #1a2b25;
-    --incident: #d8a24c;
-    --incident-soft: #2a2416;
     --line: #27302b;
     --card: #1a211d;
   }
@@ -707,34 +492,22 @@ const faqSchema = {
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
   }
-  .judge-post .era {
-    margin: 3.25rem 0 0;
-  }
-  .judge-post .era-head {
-    display: flex;
-    align-items: baseline;
-    gap: 0.85rem;
-    border-top: 2px solid currentColor;
-    padding-top: 0.85rem;
-  }
-  .judge-post .era-no {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.78rem;
-    color: var(--muted);
-    white-space: nowrap;
-  }
   .judge-post h2 {
-    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    font-family:
+      "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     font-size: 1.45rem;
     font-weight: 500;
     line-height: 1.25;
-    margin: 0;
+    margin: 2.5rem 0 0.85rem;
     text-wrap: balance;
   }
   .judge-post h3 {
-    font-size: 1.02rem;
+    font-size: 1.05rem;
     font-weight: 650;
-    margin: 1.6rem 0 0.5rem;
+    margin: 1.9rem 0 0.6rem;
+  }
+  .judge-post h3 a {
+    text-decoration-thickness: 2px;
   }
   .judge-post ul,
   .judge-post ol {
@@ -750,65 +523,9 @@ const faqSchema = {
   .judge-post li {
     margin-bottom: 0.45rem;
   }
-  .judge-post code {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.86em;
-    background: var(--card);
-    padding: 0.1em 0.35em;
-    border-radius: 3px;
-  }
-  .judge-post .incident,
-  .judge-post .metric {
-    padding: 0.85rem 1.1rem;
-    margin: 1.25rem 0;
-    font-size: 0.95rem;
-  }
-  .judge-post .incident {
-    border-left: 3px solid var(--incident);
-    background: var(--incident-soft);
-  }
-  .judge-post .metric {
-    border-left: 3px solid var(--accent);
-    background: var(--accent-soft);
-  }
-  .judge-post .incident .tag,
-  .judge-post .metric .tag,
-  .judge-post .next .tag {
-    display: block;
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    margin-bottom: 0.35rem;
-  }
-  .judge-post .incident .tag {
-    color: var(--incident);
-  }
-  .judge-post .metric .tag,
-  .judge-post .next .tag {
-    color: var(--accent);
-  }
-  .judge-post .incident p:last-child,
-  .judge-post .metric p:last-child,
-  .judge-post .next p:last-child {
-    margin-bottom: 0;
-  }
-  .judge-post .pair {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.85rem;
-    line-height: 1.9;
-  }
-  .judge-post .pair .lab {
-    display: inline-block;
-    min-width: 5.5rem;
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
   .judge-post .tablebox {
     overflow-x: auto;
-    margin: 1.5rem 0;
+    margin: 1.75rem 0;
     border: 1px solid var(--line);
   }
   .judge-post table {
@@ -818,7 +535,7 @@ const faqSchema = {
   }
   .judge-post th {
     text-align: left;
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.7rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -836,67 +553,32 @@ const faqSchema = {
   .judge-post tr:last-child td {
     border-bottom: none;
   }
-  .judge-post td.num {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
   .judge-post figure {
     margin: 1.75rem 0;
-    text-align: center;
   }
-  .judge-post figure svg {
-    max-width: 100%;
-    height: auto;
+  .judge-post figure img {
     display: block;
-    margin-inline: auto;
-  }
-  .judge-post figcaption {
-    font-size: 0.82rem;
-    color: var(--muted);
-    margin: 0.6rem auto 0;
-    max-width: 40rem;
-    text-align: left;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 6px;
   }
   .judge-post .next {
-    margin-top: 3.5rem;
+    margin-top: 3rem;
     border: 1px solid var(--line);
     background: var(--card);
     padding: 1.1rem 1.25rem;
   }
-  .judge-post .refs {
-    border-top: 1px solid var(--line);
-    margin-top: 2.5rem;
-    padding-top: 1.5rem;
-    font-size: 0.85rem;
-    color: var(--muted);
+  .judge-post .next .tag {
+    display: block;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
   }
-  .judge-post .refs h2 {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .judge-post .j-pulse {
-      animation: judge-pulse 2.6s ease-in-out infinite;
-    }
-    .judge-post .j-bar rect {
-      transform-box: fill-box;
-      transform-origin: left center;
-      animation: judge-grow 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
-    }
-  }
-  @keyframes judge-pulse {
-    0%,
-    100% {
-      fill-opacity: 1;
-    }
-    50% {
-      fill-opacity: 0.5;
-    }
-  }
-  @keyframes judge-grow {
-    from {
-      transform: scaleX(0);
-    }
+  .judge-post .next p:last-child {
+    margin-bottom: 0;
   }
 </style>
