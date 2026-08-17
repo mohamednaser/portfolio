@@ -7,7 +7,7 @@ import Seo from '../components/Seo.astro';
 import { defaultLang, getLangFromUrl, languages, type Lang } from '../i18n';
 import { useTranslations } from '../i18n/ui';
 import { siteMeta } from '../site.config';
-
+import { ClientRouter } from 'astro:transitions';
 interface Props {
   /** Defaults to the locale implied by the URL; pass explicitly on 404. */
   lang?: Lang;
@@ -50,6 +50,7 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
 <!doctype html>
 <html lang={htmlLang} dir={dir}>
   <head>
+    <ClientRouter />
     <Seo
       lang={lang}
       title={pageTitle}
@@ -150,6 +151,28 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
 
       // Re-initialize after Astro view transitions
       document.addEventListener('astro:page-load', initZoom);
+
+      function initScrollAnimations() {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -50px 0px', threshold: 0.1 }
+        );
+
+        document.querySelectorAll('.fade-up').forEach((el) => {
+          observer.observe(el);
+        });
+      }
+
+      // Initialize on load and after transitions
+      initScrollAnimations();
+      document.addEventListener('astro:page-load', initScrollAnimations);
     </script>
   </body>
 </html>
