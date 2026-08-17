@@ -104,6 +104,16 @@
     font-family: theme('fontFamily.arabic');
   }
 
+  /*
+   * Arabic diacritics (damma, shadda) sit above the letter body, and the ~1.0
+   * line-heights Tailwind pairs with text-4xl/5xl let them collide with the
+   * line above. Cursive Arabic also gains nothing from Latin heading tracking.
+   */
+  html[lang='ar'] :is(h1, h2, h3) {
+    line-height: 1.45;
+    letter-spacing: normal;
+  }
+
   /* Latin runs (brand names, tech stacks) inside Arabic copy stay LTR. */
   html[lang='ar'] code,
   html[lang='ar'] kbd,

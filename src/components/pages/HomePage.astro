@@ -4,7 +4,7 @@ import ProjectCard from '../ProjectCard.astro';
 import TestimonialsMarquee from '../TestimonialsMarquee.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getTestimonials } from '../../data/i18n';
-import { localizePath, type Lang } from '../../i18n';
+import { defaultLang, localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
 import { getProjects, projectSlug } from '../../lib/projects';
 import { site } from '../../site.config';
@@ -36,7 +36,12 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
     <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
       <div>
         <p
-          class="font-mono text-sm uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
+          class:list={[
+            'text-sm text-emerald-600 dark:text-emerald-400',
+            // Arabic is cursive: letter-spacing severs the joins between letters,
+            // and the mono stack has no Arabic face to fall back on.
+            lang === defaultLang ? 'font-mono uppercase tracking-widest' : 'font-medium',
+          ]}
         >
           {t.home.eyebrow}
         </p>
