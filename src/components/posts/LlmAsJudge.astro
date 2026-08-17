@@ -18,6 +18,17 @@ const base = "/images/blog/stop-breaking-production-llm-judge";
     generation. Features you didn't touch. Features you thought were working
     fine.
   </p>
+  <figure>
+    <img
+      src={`${base}/cascading-failure.jpg`}
+      alt="A line of dominoes toppling one into the next against a black background."
+      width="1363"
+      height="478"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
   <p>
     This is the LLM agent developer's nightmare: <strong
       >every change is a potential cascading failure waiting to happen.</strong
@@ -32,7 +43,8 @@ const base = "/images/blog/stop-breaking-production-llm-judge";
   <h2>The Problem: Manual Testing Doesn't Scale</h2>
   <p>
     Your first instinct is reasonable: <strong
-      >hire humans to write test scenarios.</strong>
+      >hire humans to write test scenarios.</strong
+    >
   </p>
   <p>You create a test suite of 500 Q&amp;A pairs. Each pair has:</p>
   <ul>
@@ -132,7 +144,8 @@ const base = "/images/blog/stop-breaking-production-llm-judge";
   <h2>Three Approaches to Judging: Pick Your Confidence Level</h2>
   <p>
     Now you need to decide: <em
-      >How confident do you want your evaluation to be?</em>
+      >How confident do you want your evaluation to be?</em
+    >
   </p>
 
   <h3>Approach 1: Single Judge</h3>
@@ -419,7 +432,8 @@ const base = "/images/blog/stop-breaking-production-llm-judge";
 
   <h3>
     <a href="https://docs.ragas.io/" target="_blank" rel="noopener noreferrer"
-      >RAGAS</a>
+      >RAGAS</a
+    >
   </h3>
   <p><strong>What it does:</strong> Specialized metrics for RAG systems.</p>
   <ul>
