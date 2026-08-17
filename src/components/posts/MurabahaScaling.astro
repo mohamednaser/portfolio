@@ -47,6 +47,16 @@
 </p>
 
 
+<p>
+  <strong>The stack, named once so the rest reads concretely.</strong> The platform is a
+  <strong>Laravel</strong> application on PHP&nbsp;8, with <strong>MySQL&nbsp;8 (InnoDB)</strong> as the
+  system of record, <strong>Redis</strong> behind the queues and locks, and the whole thing deployed as
+  Docker Compose services on a handful of Linux VMs. Where a case below turns on a specific behaviour of
+  one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling flags — it is named at the
+  point it matters, and glossed for readers who work somewhere else.
+</p>
+
+
 <div class="note">
   <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
   stress-test program — synthetic orders against test data — not from customer traffic, and no customer
@@ -121,10 +131,10 @@
     <span class="tag">The problem</span>
     <p>Then production started sending a new kind of message: <code>Lock wait timeout exceeded</code>.
     Orders that should have flown were standing in line behind a single <code>SELECT … FOR UPDATE</code>,
-    like shoppers queuing at the one open till. Underneath it sat something subtler: the database's default
-    isolation level — <em>REPEATABLE READ</em>, safe and strict — quietly locks the <em>gaps between</em>
-    rows, and when many transactions touch neighboring inventory rows, those gap locks collide into
-    deadlocks. We had the strange experience of adding capacity and watching throughput fall. More
+    like shoppers queuing at the one open till. Underneath it sat something subtler: MySQL's default
+    isolation level — <em>REPEATABLE READ</em>, safe and strict — has InnoDB lock not just the rows a
+    transaction touches but the <em>gaps between</em> them, and when many transactions touch neighboring
+    inventory rows, those gap locks collide into deadlocks. We had the strange experience of adding capacity and watching throughput fall. More
     concurrency meant more waiting.</p>
   </div>
   <div class="attempt">
@@ -134,8 +144,14 @@
     leave a confession). Every individual fix worked — and the class of problem kept coming back with a new
     address.</p>
     <p>In the second round, April 2025, we went after the class itself and switched the platform to
-    <strong>READ COMMITTED</strong>: giving up a strictness the Murabaha flow never actually needed, in
-    exchange for dramatically less lock contention.</p>
+    <strong>READ COMMITTED</strong>: dramatically less lock contention, in exchange for a strictness the
+    Murabaha flow never actually relied on. Worth being precise about that trade, because in a financial
+    system it sounds alarming. What REPEATABLE READ buys you is a stable snapshot across a long
+    transaction — read a row twice, see the same value both times. No step in this pipeline does that. Each
+    step reads the state it needs, acts, and commits inside a second, and the invariants that actually
+    matter — a unit belongs to one order, a counter never goes negative — are enforced by explicit row
+    locks and database constraints, not by the snapshot. We gave up a guarantee we were not using; the
+    ones we were using are still there.</p>
     <p>The third round came during the summer stress tests, when the sell path deadlocked anyway — the
     global setting was not reaching every transaction, so the hottest services got it explicitly. And the
     last deadlocks were removed the cheapest way of all: not by locking more, but by making every code path
@@ -205,7 +221,7 @@
     <span class="tag">The problem</span>
     <p>That summer we set ourselves a target — 500 orders without a single error — launched a 300-order run,
     and watched the first eleven orders die before doing anything at all. The culprit was a setting nobody
-    had ever had a reason to think about: the framework's <em>default 60-second job timeout</em>. No job was
+    had ever had a reason to think about: Laravel's <em>default 60-second job timeout</em>. No job was
     ever supposed to run for a minute. The timeout was not the disease; it was the thermometer — and it was
     telling us the purchase path simply did too much, one thing after another, for every single order.</p>
   </div>
@@ -217,8 +233,11 @@
     line. The search for eligible commodities was separated from order initiation, so five workers could do
     in parallel what one had been doing alone. Inventory scans switched to cursors. We even dropped foreign
     keys from the busiest join table — heresy in most engineering conversations, but their integrity checks
-    were pure cost on a table written millions of times a day, and the application already guaranteed those
-    invariants itself. And the units table finally got its first serious indexes.</p>
+    were pure cost on a table written millions of times a day, and every write to it already goes through a
+    single service that enforces the same invariants. It is a real trade rather than a free one: the
+    guarantee moved out of the engine and into code, where it stays honest by review and tests instead of
+    by construction. We would not make the same trade on a table that a dozen code paths could write to.
+    And the units table finally got its first serious indexes.</p>
   </div>
   <div class="metric">
     <span class="tag">The result</span>
@@ -583,7 +602,8 @@ private function toMinorUnits(float $value): int
     barely notices. If we had to name the single most important mechanism behind zero failed transactions,
     it is this one — most failures are temporary, and a platform that retries well simply does not lose
     them.</p>
-    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong>, so a duplicate
+    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong> — Laravel's
+    <code>ShouldBeUnique</code>, backed by the Redis lock store — so a duplicate
     dispatch from any server is refused at the queue itself, not caught after the damage. The locks learned
     to die: they expire shortly after the worker timeout, so a crashed worker's lock heals on its own, and
     an overlapping dispatch politely re-queues after a short delay instead of burning through its retries on
@@ -628,8 +648,12 @@ class PreventOverlapping extends WithoutOverlapping
   </div>
   <div class="metric">
     <span class="tag">The result</span>
-    A failed job stopped meaning a failed transaction. Transient faults heal themselves within seconds,
-    duplicates are impossible by construction, and dead workers clean up after themselves. The handful of
+    A failed job stopped meaning a failed transaction. Transient faults heal themselves within seconds, a
+    duplicate dispatch is refused at the queue instead of repaired after the damage, and dead workers clean
+    up after themselves. Uniqueness here is a lock, not a law of physics — it is only ever as good as the
+    lock store and the expiry window — which is why the money-moving steps also carry their own duplicate
+    check on the order reference underneath it. (That check is the very lookup that turns out to need an
+    index in Part&nbsp;3, Case&nbsp;11.) The handful of
     orders per 5,000-run that still strand — the genuinely non-transient failures — are exactly what the
     audited admin "Force Forward" tooling exists for. The 99.9%+ completion rates in this article are not
     the absence of failures. They are failures, handled.
