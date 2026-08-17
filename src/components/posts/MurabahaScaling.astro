@@ -114,7 +114,7 @@
     <span class="tag">What we tried</span>
     <p>We fixed the unglamorous things first: bigger disks. Then we gave the PDF service room to breathe —
     longer timeouts, more browser sessions, Chrome kept warm — which helped, though in hindsight we were
-    treating a symptom we would only cure properly a year later (Case&nbsp;04). The changes that mattered
+    treating a symptom we would only cure properly a year later (Case&nbsp;<a class="caseref" href="#case-04">04</a>). The changes that mattered
     were structural. Work that ran synchronously inside requests moved into queued jobs. Jobs started
     carrying lightweight record IDs instead of whole serialized objects, because one stuck serialization
     had been pinning entire orders. And the single shared queue became <strong>three dedicated worker
@@ -162,7 +162,7 @@
     last deadlocks were removed the cheapest way of all: not by locking more, but by making every code path
     <strong>write to tables in the same order</strong>, so transactions could no longer meet head-on.</p>
 <div class="codebox">
-  <span class="cap">app/Jobs/LocalMarket/states/PendingSellOrderStatus.php</span>
+  <span class="cap">The sell-order state job — isolation set on the transaction itself</span>
   <pre><code>public function handle(): void
 &#123;
     DB::statement('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
@@ -246,7 +246,7 @@
   </div>
   <div class="metric">
     <span class="tag">The result</span>
-    The 1,000-order August test in Case&nbsp;02 was this campaign's report card too: every order within
+    The 1,000-order August test in Case&nbsp;<a class="caseref" href="#case-02">02</a> was this campaign's report card too: every order within
     3–14 seconds. But the quieter outcome mattered more. From August 2025 the business team began running
     <strong>weekly performance tests</strong> with recorded percentiles — the moment performance stopped
     being a firefight and became a habit.
@@ -368,7 +368,7 @@
     <span class="tag">What we tried — three generations</span>
     <p><strong>Generation one: compute the truth on demand.</strong> Correct, simple, and ruinously
     expensive — every order paid the full scan, and those scans were most of the read pressure behind the
-    94-million-read index in Case&nbsp;09.</p>
+    94-million-read index in Case&nbsp;<a class="caseref" href="#case-09">09</a>.</p>
     <p><strong>Generation two: the "settled" feature.</strong> When an order completes, mark its units as
     settled back to the market — in bulk, with a cheap flag — so eligibility queries can skip whole classes
     of units without inspecting them. The scans shrank. But the settlement chain groaned under its own
@@ -381,7 +381,7 @@
     to let a counter go negative, and rebuild jobs can reconstruct any counter from the ground truth
     whenever we have a reason to doubt it.</p>
 <div class="codebox">
-  <span class="cap">database/migrations/2026_03_23_120001_make_eligible_quantity_non_negative_in_local_market_eligible_quantities_table.php</span>
+  <span class="cap">Migration — make the eligibility counter unable to go negative</span>
   <pre><code>public function up(): void
 &#123;
     // Make eligible_quantity non-negative by using an UNSIGNED integer.
@@ -429,7 +429,7 @@
     of thinking</strong>. One order failing fast with a useful message beats five thousand orders waiting
     behind a search that refuses to give up.</p>
 <div class="codebox">
-  <span class="cap">app/Services/LocalMarket/LoanCoverage/LoanCoverage.php</span>
+  <span class="cap">The commodity-combination search — bounded by config, not by hope</span>
   <pre><code>private const DECIMAL_SCALE = 2;
 
 public function __construct()
@@ -550,20 +550,18 @@ private function toMinorUnits(float $value): int
     millions of ownership writes slower, so each one had to earn its keep with measurements — index hygiene
     became a recurring chore, not a one-time setup.</p>
 <div class="codebox">
-  <span class="cap">$ ls database/migrations | grep -iE "index.*unit|unit.*index"</span>
-  <pre><code>2024_11_25_172633_add_previous_owners_index_to_units_table.php
-2024_12_12_092326_add_indexes_to_inventory_units_table.php
-2024_12_23_145322_add_indexes_columns_to_inventory_units_table.php
-2025_01_29_090733_remove_indexes_from_inventory_units_table.php
-2025_02_04_091400_create_index_inventory_units_table.php
-2025_03_10_112514_add_indexes_at_local_market_inventory_units_table.php
-2025_07_30_100055_add_index_to_local_market_inventory_units_table.php
-2025_10_28_000001_add_index_to_last_purchasing_order_id_in_local_market_inventory_units_table.php
-2025_11_26_073437_drop_index_for_previous_owner_grouping_to_local_market_inventory_units_table.php
-2025_11_26_074033_drop_index_for_previous_owner_grouping_to_local_market_inventory_units_table.php
-2025_11_26_075913_drop_index_for_previous_owner_grouping_to_local_market_inventory_unit.php
-2026_04_07_121000_add_covering_index_to_local_market_inventory_units_table.php
-2026_07_26_113500_drop_unused_indexes_from_local_market_inventory_units_table.php</code></pre>
+  <span class="cap">Index migrations on the units table, by month</span>
+  <pre><code>2024-11  add previous-owner index
+2024-12  add indexes to the inventory-units table
+2024-12  add more index columns to the same table
+2025-01  remove indexes from the inventory-units table
+2025-02  create a new index on the inventory-units table
+2025-03  add index (market inventory units)
+2025-07  add index (market inventory units)
+2025-10  add index on the last purchasing order
+2025-11  drop the previous-owner grouping index   (three times)
+2026-04  add a covering index
+2026-07  drop unused indexes</code></pre>
 </div>
 
     <p><strong>One experiment deserves its own confession.</strong> We added model-level caching to the hot
@@ -615,10 +613,10 @@ private function toMinorUnits(float $value): int
     the spot. Even deploys stopped being a hazard — a worker being shut down now finishes or hands back its
     job instead of taking it to the grave.</p>
 <div class="codebox">
-  <span class="cap">app/Support/Traders/Drivers/Lynk/Jobs/ProcessLynkTransferOwnershipToCustomer.php</span>
-  <pre><code>class ProcessLynkTransferOwnershipToCustomer implements ShouldBeUnique, ShouldQueue
+  <span class="cap">The ownership-transfer job — unique per order, with escalating backoff</span>
+  <pre><code>class TransferOwnershipToCustomer implements ShouldBeUnique, ShouldQueue
 &#123;
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, StopsTraderOrderOnJobFailure;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, StopsOrderOnJobFailure;
 
     public $tries = 5;
 
@@ -626,7 +624,7 @@ private function toMinorUnits(float $value): int
 </div>
 
 <div class="codebox">
-  <span class="cap">app/Jobs/Middleware/PreventOverlapping.php</span>
+  <span class="cap">Queue middleware — WithoutOverlapping with locks that expire</span>
   <pre><code>/**
  * WithoutOverlapping with safe defaults.
  *
@@ -658,7 +656,7 @@ class PreventOverlapping extends WithoutOverlapping
     up after themselves. Uniqueness here is a lock, not a law of physics — it is only ever as good as the
     lock store and the expiry window — which is why the money-moving steps also carry their own duplicate
     check on the order reference underneath it. (That check is the very lookup that turns out to need an
-    index in Part&nbsp;3, Case&nbsp;11.) The handful of
+    index in Part&nbsp;3, Case&nbsp;<a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">11</a>.) The handful of
     orders per 5,000-run that still strand — the genuinely non-transient failures — are exactly what the
     audited admin "Force Forward" tooling exists for. The 99.9%+ completion rates in this article are not
     the absence of failures. They are failures, handled.
@@ -758,7 +756,7 @@ class PreventOverlapping extends WithoutOverlapping
         <rect class="barv" style="animation-delay:0.05s" x="98" y="24" width="64" height="216" rx="2" fill="var(--accent)" opacity="0.45"><title>Aug 2025, before READ COMMITTED — 11.81s average</title></rect>
         <rect class="barv" style="animation-delay:0.18s" x="218" y="97" width="64" height="143" rx="2" fill="var(--accent)" opacity="0.7"><title>Aug 2025, after READ COMMITTED — 7.8s average</title></rect>
         <rect class="barv" style="animation-delay:0.31s" x="338" y="174" width="64" height="66" rx="2" fill="var(--accent)"><title>Jul 2026, before the queue split — 3.6s</title></rect>
-        <rect class="barv" style="animation-delay:0.44s" x="458" y="59" width="64" height="181" rx="2" fill="var(--incident)"><title>Jul 2026, immediately after the queue split — 9.9s (the regression of Case 11)</title></rect>
+        <rect class="barv" style="animation-delay:0.44s" x="458" y="59" width="64" height="181" rx="2" fill="var(--incident)"><title>Jul 2026, immediately after the queue split — 9.9s (the regression of Case <a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">11</a>)</title></rect>
         <rect class="barv" style="animation-delay:0.57s" x="578" y="235" width="64" height="5" rx="2" fill="var(--accent)"><title>Aug 2026 — 0.26s average</title></rect>
       </g>
       <g font-size="12" font-family="ui-monospace, Menlo, monospace" fill="currentColor" text-anchor="middle" class="blabel" style="animation-delay:1.1s" font-weight="700">
@@ -790,7 +788,7 @@ class PreventOverlapping extends WithoutOverlapping
     </svg>
     <figcaption>The purchase step, end to end, as one line: every number in this chart is quoted
     somewhere in this series. Two things are worth staring at. The first is the amber column — the
-    <em>fix</em> of Case&nbsp;11 briefly made this step almost three times slower, because removing the
+    <em>fix</em> of Case&nbsp;<a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">11</a> briefly made this step almost three times slower, because removing the
     queue's backpressure exposed a missing index upstream (Part&nbsp;3). The second is the last column:
     0.26 seconds, roughly <strong>45× faster</strong> than where this chart starts, and small enough that
     it is barely a bar at all.</figcaption>
@@ -808,7 +806,7 @@ class PreventOverlapping extends WithoutOverlapping
       sell steps is what made unattended 5,000-order runs possible at all — and mirrors how high-volume
       lenders want to operate.</li>
     <li><strong>Certificates on demand.</strong> Sharia-required documents are still produced — but at
-      download time, off the order's critical path (Case 04).</li>
+      download time, off the order's critical path (Case <a class="caseref" href="#case-04">04</a>).</li>
     <li><strong>Trade rotation count.</strong> A controlled pre-production A/B (five 2,500-order runs before
       and after) proved that reducing commodity trade rotations from 2 to 1 carried <em>no performance
       penalty</em>, clearing the way for the Specialized Entity flow on business merits alone.</li>
@@ -834,7 +832,7 @@ class PreventOverlapping extends WithoutOverlapping
   <h2>Further reading</h2>
   <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
-    <li id="ref-isolation"><strong>Isolation levels, and what READ COMMITTED actually changes</strong> (Case 02) — the
+    <li id="ref-isolation"><strong>Isolation levels, and what READ COMMITTED actually changes</strong> (Case <a class="caseref" href="#case-02">02</a>) — the
       per-statement snapshot, and the gap locks InnoDB stops taking once you leave REPEATABLE READ:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html">MySQL 8.0 Reference Manual, 17.7.2.1
       Transaction Isolation Levels</a>.</li>
@@ -845,26 +843,26 @@ class PreventOverlapping extends WithoutOverlapping
       <a href="https://github.com/ept/hermitage">Hermitage</a> turns it into runnable tests showing which
       anomalies each database really permits, and <a href="https://jepsen.io/consistency">Jepsen's
       consistency map</a> places the whole family in one picture.</li>
-    <li id="ref-locks"><strong>Record locks, gap locks and next-key locks</strong> (Cases 02, 09) — what is actually
+    <li id="ref-locks"><strong>Record locks, gap locks and next-key locks</strong> (Cases <a class="caseref" href="#case-02">02</a>, <a class="caseref" href="#case-09">09</a>) — what is actually
       being held while an order waits: <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html">MySQL 17.7.1, InnoDB Locking</a>.</li>
-    <li id="ref-locking-reads"><strong>Locking reads</strong> (Case 09) — <code>SELECT ... FOR UPDATE</code>, plus
+    <li id="ref-locking-reads"><strong>Locking reads</strong> (Case <a class="caseref" href="#case-09">09</a>) — <code>SELECT ... FOR UPDATE</code>, plus
       <code>NOWAIT</code> and <code>SKIP LOCKED</code>:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html">MySQL 17.7.2.4</a>; from the application side,
       <a href="https://laravel.com/docs/12.x/queries#pessimistic-locking">Laravel's pessimistic locking</a>.</li>
-    <li id="ref-deadlocks"><strong>Deadlocks are normal — the question is how you handle them</strong> (Case 02). The
+    <li id="ref-deadlocks"><strong>Deadlocks are normal — the question is how you handle them</strong> (Case <a class="caseref" href="#case-02">02</a>). The
       checklist we worked through, including "use READ COMMITTED" and "add the right index", is
       <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html">MySQL 17.7.5.3, How to Minimize and Handle
       Deadlocks</a>.</li>
-    <li id="ref-indexes"><strong>Indexes, and why one missing index cost seconds</strong> (Cases 03, 09) —
+    <li id="ref-indexes"><strong>Indexes, and why one missing index cost seconds</strong> (Cases <a class="caseref" href="#case-03">03</a>, <a class="caseref" href="#case-09">09</a>) —
       <a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-indexes.html">MySQL 10.3.1, How MySQL Uses Indexes</a> for the mechanics, and
       Markus Winand's <a href="https://use-the-index-luke.com/">Use The Index, Luke</a> for the best
       developer-facing treatment of index design anywhere.</li>
     <li id="ref-explain"><strong>Reading a query plan before changing anything</strong> —
       <a href="https://dev.mysql.com/doc/refman/8.0/en/using-explain.html">MySQL 10.8.1, Optimizing Queries with EXPLAIN</a>.</li>
-    <li id="ref-foreign-keys"><strong>Foreign keys, and what dropping them buys and costs</strong> (Case 09) — the referential
+    <li id="ref-foreign-keys"><strong>Foreign keys, and what dropping them buys and costs</strong> (Case <a class="caseref" href="#case-09">09</a>) — the referential
       actions we gave up, and the locking behaviour we gave up with them:
       <a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html">MySQL 15.1.20.5, FOREIGN KEY Constraints</a>.</li>
-    <li id="ref-nplusone"><strong>N+1 queries and eager loading</strong> (Case 07) — how one query becomes 114,000:
+    <li id="ref-nplusone"><strong>N+1 queries and eager loading</strong> (Case <a class="caseref" href="#case-07">07</a>) — how one query becomes 114,000:
       <a href="https://laravel.com/docs/12.x/eloquent-relationships#eager-loading">Laravel eager loading</a>. Transaction handling
       itself is in <a href="https://laravel.com/docs/12.x/database#database-transactions">Laravel's database docs</a>.</li>
     <li id="ref-ddia"><strong>If you only read one book on this.</strong> Martin Kleppmann,
@@ -1117,4 +1115,10 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
     margin: 1.6rem 0 1.3rem; max-width: 42rem; text-wrap: pretty;
   }
 .lynk-post .lede strong{ font-weight: 600; color: var(--accent); }
+
+.lynk-post .caseref{
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px dotted var(--accent-line); font-variant-numeric: tabular-nums;
+  }
+.lynk-post .caseref:hover, .lynk-post .caseref:focus-visible{ border-bottom-style: solid; }
 </style>

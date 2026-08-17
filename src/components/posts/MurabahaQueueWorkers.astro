@@ -122,7 +122,7 @@
     (about 100&nbsp;MB of logs a day at 5,000 orders), unused indexes dropped to cut write cost, and
     explicit connection budgets after the full worker fleet exhausted the database's connections.</p>
 <div class="codebox">
-  <span class="cap">database/migrations/..._add_external_order_no_index_to_local_market_orders_table.php</span>
+  <span class="cap">Migration — the index the upstream lookup had been missing</span>
   <pre><code>/**
  * local_market_orders has ~700k rows and no index on external_order_no, so
  * every lookup by reference (the duplicate check in CreateLocalMarketOrderAction
@@ -205,7 +205,7 @@ public function up(): void
         <text x="546" y="203" fill="var(--accent)" font-weight="700">queue wait ≈ 0</text>
       </g>
     </svg>
-    <figcaption>The queue split at the heart of Case 11. The jobs themselves ran in
+    <figcaption>The queue split at the heart of Case <a class="caseref" href="#case-11">11</a>. The jobs themselves ran in
     about one second; nearly all of the two-minute step was waiting behind auto-sell jobs in one shared
     8-worker queue. Splitting them removed the wait — and promptly exposed the missing index upstream.</figcaption>
   </figure>
@@ -224,7 +224,7 @@ public function up(): void
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
-    <p>Splitting queues, as Case&nbsp;11 shows, is how you stop unrelated work from queuing behind itself.
+    <p>Splitting queues, as Case&nbsp;<a class="caseref" href="#case-11">11</a> shows, is how you stop unrelated work from queuing behind itself.
     But every split leaves you with something new to run — and by 2026 the platform was no longer "an
     application on a server." It was <strong>22 queues, one worker service each, and 122 worker processes
     spread across three machines</strong>, plus a scheduler — one container per process, which is why the
@@ -251,7 +251,7 @@ public function up(): void
         <tr>
           <td>Dedicated queues for ownership and auto-sell<br><span class="tk">Jul 2026</span></td>
           <td>The two highest-volume job types were blocking each other on eight shared workers.</td>
-          <td>4 replicas each, on two machines. The ~118-second wait went to ~0 (Case&nbsp;11).</td>
+          <td>4 replicas each, on two machines. The ~118-second wait went to ~0 (Case&nbsp;<a class="caseref" href="#case-11">11</a>).</td>
         </tr>
         <tr>
           <td><code>trader_order_initiation</code> 5&nbsp;→&nbsp;10<br><span class="tk">Jul 2026</span></td>
@@ -314,7 +314,7 @@ public function up(): void
     the most important number in the fleet is a one.</p>
   </div>
 <div class="codebox">
-  <span class="cap">.github/scripts/deploy.sh — get_scale_flags()</span>
+  <span class="cap">The deploy script — worker scale flags, per environment</span>
   <pre><code>if [[ "$DEPLOY_ENV" == "sandbox" || "$DEPLOY_ENV" == "dev" ]]; then
     # Sandbox/Dev: 1 replica per worker type (all groups on 1 server),
     # except default-worker=4 as the default queue carries the two
@@ -372,7 +372,7 @@ fi</code></pre>
     machines</span> — the production and pre-production figure — and unlike the platform of 2024, every
     one of those numbers has a commit explaining it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
     went from three machines to two with <strong>total queue concurrency unchanged</strong>, and the hardest
-    part was proving that the second number had not quietly moved (Case&nbsp;15). The goal was never
+    part was proving that the second number had not quietly moved (Case&nbsp;<a class="caseref" href="#case-15">15</a>). The goal was never
     "more workers." It was <em>the right workers, in the right places, for reasons written down.</em>
   </div>
 </section>
@@ -411,7 +411,7 @@ fi</code></pre>
     Installing the extension and sending the signal the worker actually listens for dropped idle shutdown
     from about ten seconds to about one.</p>
 <div class="codebox">
-  <span class="cap">.github/scripts/deploy.sh — the rolling deploy</span>
+  <span class="cap">The deploy script — the rolling worker restart</span>
   <pre><code># Scale up: new containers alongside old ones
 docker compose -p lynk-backend $PROFILE_FLAGS up -d --no-recreate $SCALE_UP_FLAGS
 
@@ -503,7 +503,7 @@ fi</code></pre>
     profile was attached to the group being retired, so decommissioning it would have silently stopped every
     scheduled job on the platform; the trigger moved first. Merging two profile groups onto one host would
     have passed a scale flag twice for the same service — and Compose keeps the last value, quietly halving
-    two queues (Case&nbsp;12). And memory had to be sized by the <strong>rolling-deploy peak rather than the
+    two queues (Case&nbsp;<a class="caseref" href="#case-12">12</a>). And memory had to be sized by the <strong>rolling-deploy peak rather than the
     resting fleet</strong>: workers idle at about 82&nbsp;MiB each, but every replica doubles mid-deploy,
     which put the peak near 11&nbsp;GiB on 8&nbsp;GB boxes. Both nodes were resized to 16&nbsp;GB before
     anything moved.</p>
@@ -525,36 +525,36 @@ fi</code></pre>
   <div class="era-head"><h2>What two years taught us</h2></div>
   <ul style="margin-top:1rem;">
     <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
-      means the code is innocent; the queue topology is the product (Case 11).</li>
+      means the code is innocent; the queue topology is the product (Case <a class="caseref" href="#case-11">11</a>).</li>
     <li><strong>Every fix moves the bottleneck.</strong> Removing backpressure downstream will expose the next
-      unindexed query upstream. Budget for the second-order effect before celebrating the first (Case 11).</li>
+      unindexed query upstream. Budget for the second-order effect before celebrating the first (Case <a class="caseref" href="#case-11">11</a>).</li>
     <li><strong>Every job will eventually die mid-flight.</strong> Retries with escalating backoff,
       per-order uniqueness, and self-expiring locks turned "failed job" from a stuck transaction into a
-      non-event — retrying well is how you reach zero failed transactions (Part 2, Case 10).</li>
+      non-event — retrying well is how you reach zero failed transactions (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>).</li>
     <li><strong>Measurement must precede tuning.</strong> Per-step durations, weekly percentiles, and timing
       logs turned arguments into diffs. Our worst regression was caught in one week because a baseline
-      existed (Part 2, Case 08).</li>
+      existed (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">08</a>).</li>
     <li><strong>The best optimization is not doing the work.</strong> Two engineering attempts made PDF
-      generation faster; one business conversation made most of it unnecessary (Part 2, Case 04).</li>
+      generation faster; one business conversation made most of it unnecessary (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">04</a>).</li>
     <li><strong>A worker fleet needs an owner.</strong> Twenty-two queues and 122 worker processes only stay
       sane if every count is justified in code review and removed as deliberately as it was added
-      (Case 12).</li>
+      (Case <a class="caseref" href="#case-12">12</a>).</li>
     <li><strong>A deploy that only verifies the web tier is not a deploy.</strong> Workers ran a stale
       image — and a stale environment inside it — for weeks while every release reported success
-      (Case 13).</li>
+      (Case <a class="caseref" href="#case-13">13</a>).</li>
     <li><strong>Health checks lie by default.</strong> A probe that never touches your application will
       call a dead application healthy, and a node that has been out of rotation for six months looks
-      exactly like a node doing its job (Case 15).</li>
+      exactly like a node doing its job (Case <a class="caseref" href="#case-15">15</a>).</li>
     <li><strong>Scale failures are usually boring.</strong> Full disks (twice), a smallint overflow, a default
-      60-second timeout, and log volume did as much damage as any deadlock (Case 14).</li>
+      60-second timeout, and log volume did as much damage as any deadlock (Case <a class="caseref" href="#case-14">14</a>).</li>
     <li><strong>Isolation levels and locks are product decisions in disguise.</strong> READ COMMITTED, dropped
       foreign keys, trigger bypasses, and a deliberately single-threaded queue were all conscious trades of
-      theoretical strictness for real-world correctness under load (Part 2, Cases 02 and 09).</li>
+      theoretical strictness for real-world correctness under load (Part 2, Cases <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">02</a> and <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">09</a>).</li>
     <li><strong>Keep the failed experiments on the record.</strong> The caching that hurt, the fix that
       regressed, the timeout raise that only bought time — the retries are where the understanding came
       from.</li>
     <li><strong>The last 0.1% needs an operational answer, not a code one.</strong> At 5,000 orders, 99.9%
-      success still strands five orders. Force-forward tooling and auto-expiry close the loop (Case 14).</li>
+      success still strands five orders. Force-forward tooling and auto-expiry close the loop (Case <a class="caseref" href="#case-14">14</a>).</li>
   </ul>
   <p>
     Ten orders once broke the platform. Today, five thousand are a daily routine — and the same discipline
@@ -567,40 +567,40 @@ fi</code></pre>
   <h2>Further reading</h2>
   <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
-    <li id="ref-queues"><strong>Workers, connections and queues</strong> (Cases 11, 12) — the vocabulary this whole part
+    <li id="ref-queues"><strong>Workers, connections and queues</strong> (Cases <a class="caseref" href="#case-11">11</a>, <a class="caseref" href="#case-12">12</a>) — the vocabulary this whole part
       is built on, including why one worker process serves one queue list at a time:
       <a href="https://laravel.com/docs/12.x/queues">Laravel queues</a>.</li>
-    <li id="ref-unique"><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case 10) — what
+    <li id="ref-unique"><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) — what
       <code>ShouldBeUnique</code> does and, importantly, what it does not promise if the lock expires:
       <a href="https://laravel.com/docs/12.x/queues#unique-jobs">unique jobs</a>. The self-expiring locks used elsewhere in the flow
       are <a href="https://laravel.com/docs/12.x/cache#atomic-locks">atomic locks</a>.</li>
-    <li id="ref-retries"><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case 10) —
+    <li id="ref-retries"><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) —
       <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">Laravel's failed-job handling</a> for the mechanics, and
       the <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">AWS
       Builders' Library on timeouts, retries and backoff with jitter</a> for why synchronised retries
       make an overloaded system worse.</li>
-    <li id="ref-deploy"><strong>Deploying without killing in-flight jobs</strong> (Case 13) — why a worker keeps running
+    <li id="ref-deploy"><strong>Deploying without killing in-flight jobs</strong> (Case <a class="caseref" href="#case-13">13</a>) — why a worker keeps running
       old code until it is told not to: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">queue workers and
       deployment</a>.</li>
     <li id="ref-horizon"><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
-      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case 12 for you.</li>
+      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case <a class="caseref" href="#case-12">12</a> for you.</li>
     <li id="ref-brpop"><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
       a Redis queue: <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
-    <li id="ref-queue-wait"><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case 11) — the difference
+    <li id="ref-queue-wait"><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case <a class="caseref" href="#case-11">11</a>) — the difference
       between service time and queue wait, and how to find saturation:
       <a href="https://www.brendangregg.com/usemethod.html">Brendan Gregg's USE method</a>. For why
       adding workers eventually stops helping — and then hurts — see Neil Gunther's
       <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
       Law</a>.</li>
-    <li id="ref-connections"><strong>Sizing processes against a connection ceiling</strong> (Case 14) — the knob that was
+    <li id="ref-connections"><strong>Sizing processes against a connection ceiling</strong> (Case <a class="caseref" href="#case-14">14</a>) — the knob that was
       unbounded, and the ceiling it ran into:
       <a href="https://www.php.net/manual/en/install.fpm.configuration.php">PHP-FPM process manager
       configuration</a> and MySQL's
       <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a>.</li>
-    <li id="ref-replicas"><strong>Declaring replica counts</strong> (Case 12) — how many copies of a service run,
+    <li id="ref-replicas"><strong>Declaring replica counts</strong> (Case <a class="caseref" href="#case-12">12</a>) — how many copies of a service run,
       whether that is declared in the compose file or passed as a scale flag at deploy time:
       <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose deploy specification</a>.</li>
-    <li id="ref-healthcheck"><strong>Health checks that touch the application</strong> (Case 15) — a probe that only proves a
+    <li id="ref-healthcheck"><strong>Health checks that touch the application</strong> (Case <a class="caseref" href="#case-15">15</a>) — a probe that only proves a
       port is open will call a dead application healthy:
       <a href="https://microservices.io/patterns/observability/health-check-api.html">health check API
       pattern</a>, and <a href="https://12factor.net/disposability">12-factor disposability</a> for why a
@@ -837,4 +837,10 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
   }
 
 .lynk-post .era{ scroll-margin-top: 4.5rem; }
+
+.lynk-post .caseref{
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px dotted var(--accent-line); font-variant-numeric: tabular-nums;
+  }
+.lynk-post .caseref:hover, .lynk-post .caseref:focus-visible{ border-bottom-style: solid; }
 </style>
