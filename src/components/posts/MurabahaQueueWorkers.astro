@@ -66,11 +66,14 @@
     <span class="tag">The problem</span>
     <p>By mid-2026, 5,000-order runs were routine — and the daily test showed the Borrower Ownership step
     taking <strong>around two minutes</strong> for 4,000 of the 5,000 orders. The decisive clue came from an
-    exercise anyone can copy: we added up the actual CPU time of every job in the purchase step and got
-    <strong>521 milliseconds</strong> — inside a step that observably took <strong>seven and a half
-    seconds</strong>. The code was innocent. The other seven seconds were spent standing in line. And queue
-    wait has a cruel personality: invisible when the system is idle (~0s), noticeable under load (~7s at 91
-    orders a minute), catastrophic at peak (~118 seconds).</p>
+    exercise anyone can copy, and we ran it first on the purchase step next door: add up the actual CPU time
+    of every job in the step and compare it with the wall clock. The jobs came to
+    <strong>521 milliseconds</strong>, inside a step that observably took <strong>seven and a half
+    seconds</strong>. The same arithmetic on Borrower Ownership told the same story on a crueller scale —
+    about a second of work inside two minutes of elapsed time. The code was innocent in both cases; the
+    difference was time spent standing in line. And queue wait has a cruel personality: invisible when the
+    system is idle (~0s), noticeable under load (~7s at 91 orders a minute), catastrophic at peak
+    (~118 seconds).</p>
   </div>
   <figure>
     <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
@@ -224,8 +227,10 @@ public function up(): void
     <p>Splitting queues, as Case&nbsp;11 shows, is how you stop unrelated work from queuing behind itself.
     But every split leaves you with something new to run — and by 2026 the platform was no longer "an
     application on a server." It was <strong>22 queues, one worker service each, and 122 worker processes
-    spread across three machines</strong>, plus a scheduler. Every one of those processes is a small daemon
-    holding database connections, consuming memory, and fully capable of ruining the others' day. And 122
+    spread across three machines</strong>, plus a scheduler — one container per process, which is why the
+    two words are used interchangeably from here on. Every one of those processes is a small daemon holding
+    a MySQL connection and a Redis connection, consuming memory, and fully capable of ruining the others'
+    day. And 122
     is only the resting number: a rolling deploy brings the new generation up alongside the old one, so for
     a few minutes on every release the fleet is <strong>244</strong>.</p>
     <p>Nobody designs that on day one. It accumulates, and it accumulates asymmetrically: a queue that was
@@ -261,12 +266,12 @@ public function up(): void
         <tr>
           <td>Rebalance four queues across machines<br><span class="tk">Jul 2026</span></td>
           <td>One server carried 63 worker processes while another carried 22.</td>
-          <td>35&nbsp;/&nbsp;40&nbsp;/&nbsp;36. No queue's total concurrency changed — only which machine ran it.</td>
+          <td>Per-server steady totals 22&nbsp;/&nbsp;63&nbsp;/&nbsp;28&nbsp;→&nbsp;35&nbsp;/&nbsp;40&nbsp;/&nbsp;36 — a fleet of about 111 at that point, which the increases above and after took to today's 122. No queue's total concurrency changed; only which machine ran it.</td>
         </tr>
         <tr>
           <td>Delete two dead workers<br><span class="tk">Jul 2026</span></td>
-          <td>No producer anywhere in the codebase. Five replicas were polling a queue nothing ever wrote to.</td>
-          <td>Five processes reclaimed — and ten orphaned containers discovered still running.</td>
+          <td>No producer anywhere in the codebase for either one — the larger had five replicas polling a queue nothing ever wrote to, the other had one.</td>
+          <td>Six processes reclaimed across the two services — and ten containers from earlier deletions found still running.</td>
         </tr>
         <tr>
           <td>Rename <code>…units_logging</code> → <code>…units_creation</code><br><span class="tk">Jul 2026</span></td>
@@ -347,11 +352,11 @@ fi</code></pre>
     at once.</p>
     <p><strong>Deleting a service does not stop its containers.</strong> Removing a worker from the file
     leaves the running containers behind unless the deploy is explicitly told to remove orphans — and even
-    then, containers whose profile is no longer active survive the sweep. Five of them came back after a
-    routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
+    then, containers whose profile is no longer active survive the sweep. Five such orphans came back after
+    a routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
     <p><strong>The real ceiling is connections, not CPU.</strong> In June 2026 a smaller environment was
-    running all three groups at production replicas on one server: <strong>86 worker containers against a
-    database connection limit of 151</strong>, with an unbounded pool of web processes competing for what
+    running all three groups at production replicas on one server: <strong>86 worker containers against
+    MySQL's default connection limit of 151</strong>, with an unbounded pool of web processes competing for what
     was left. The fix was a budget rather than a bigger database — web processes capped at 10 and recycled
     every 500 requests, small environments pinned to one replica per queue, which brought the whole
     environment to about 28 connections instead of 86.</p>
