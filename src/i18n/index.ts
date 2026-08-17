@@ -30,8 +30,8 @@ export const defaultLang: Lang = 'en';
 
 export const langCodes = Object.keys(languages) as Lang[];
 
-/** Routes that exist in English only — the blog is not localised yet. */
-const englishOnly = [/^\/blog(\/|$)/, /^\/rss\.xml$/];
+/** Routes that exist in English only — the blog and its series hubs are not localised yet. */
+const englishOnly = [/^\/blog(\/|$)/, /^\/series(\/|$)/, /^\/rss\.xml$/];
 
 export function isLang(value: string): value is Lang {
   return value in languages;

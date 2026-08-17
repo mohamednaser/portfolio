@@ -5,8 +5,18 @@
 
 <div class="lynk-post">
 
+<p class="kicker">LYNK Engineering · Murabaha Platform · <a href="/series/scaling-murabaha/">Part 1 of 3</a></p>
+
+
 <!-- SECTION 1 -->
-<section class="section">
+<div class="note">
+  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
+  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
+  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
+  the opinions, and any errors, are my own.
+</div>
+
+<section class="section" id="section-01">
   <div class="section-head"><span class="section-no">SECTION 01</span><h2 style="margin:0; font-size:1.35rem;">What LYNK is, and what we do</h2></div>
   <p style="margin-top:1rem;">
     LYNK is a Saudi fintech platform that provides the infrastructure for <strong>commodity Murabaha
@@ -94,7 +104,7 @@
 </section>
 
 <!-- SECTION 2 -->
-<section class="section">
+<section class="section" id="section-02">
   <div class="section-head"><span class="section-no">SECTION 02</span><h2 style="margin:0; font-size:1.35rem;">The Murabaha process — and why every step must happen</h2></div>
   <p style="margin-top:1rem;">
     A commodity Murabaha on LYNK is a sequence of real transactions, each with a distinct legal meaning.
@@ -213,7 +223,7 @@
   </p>
 
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-2.gif" alt="A busy commodity warehouse with tall racks of stock and workers moving pallets."
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-2.webp" alt="A busy commodity warehouse with tall racks of stock and workers moving pallets."
          style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>A commodity market is a real warehouse before it is a database. LYNK's job is to give every
     unit on those shelves a code, an owner, and a history.</figcaption>
@@ -317,7 +327,7 @@
 </section>
 
 <!-- SECTION 3 -->
-<section class="section">
+<section class="section" id="section-03">
   <div class="section-head"><span class="section-no">SECTION 03</span><h2 style="margin:0; font-size:1.35rem;">The goals: what "a better platform" means for LYNK</h2></div>
   <p style="margin-top:1rem;">
     Institutions do not create Murabaha orders one at a time. A consumer-finance company disburses hundreds
@@ -424,7 +434,7 @@
 </section>
 
 <!-- SECTION 4: how we test performance -->
-<section class="section">
+<section class="section" id="section-04">
   <div class="section-head"><span class="section-no">SECTION 04</span><h2 style="margin:0; font-size:1.35rem;">How we test our performance</h2></div>
   <p style="margin-top:1rem;">
     Claims like "seconds per step" mean nothing without a way to prove them — so performance testing is a
@@ -435,7 +445,7 @@
     within days.
   </p>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-3.gif" alt="A presenter pointing at a large bar chart on an easel."
+    <img loading="lazy" decoding="async" src="/images/blog/commodity-murabaha-platform/figure-3.webp" alt="A presenter pointing at a large bar chart on an easel."
          style="max-width: 20rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>Every test run ends the same way: someone pointing at a chart. The numbers below are what
     we point at.</figcaption>
@@ -554,7 +564,7 @@
 </section>
 
 <!-- SECTION 5: the cliffhanger -->
-<section class="section">
+<section class="section" id="section-05">
   <div class="section-head"><span class="section-no">SECTION 05</span><h2 style="margin:0; font-size:1.35rem;">None of this came easy</h2></div>
   <p style="margin-top:1rem;">
     Everything described above — five legal steps in seconds, millions of tracked units, four products on
@@ -770,4 +780,27 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
 .lynk-post figure{text-align:center}
 .lynk-post figure img,.lynk-post figure svg{margin-left:auto;margin-right:auto}
 .lynk-post figcaption{margin-left:auto;margin-right:auto;text-align:left}
+
+/* --- review pass: code blocks, case index, disclosure --- */
+.lynk-post .codebox{ margin:1.35rem 0; border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; }
+.lynk-post .codebox .cap{ display:block; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.68rem; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted); padding:0.5rem 0.9rem; border-bottom:1px solid var(--line); word-break:break-all; }
+.lynk-post .codebox pre{ margin:0; padding:0.9rem 1rem; overflow-x:auto; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.76rem; line-height:1.6; color:var(--ink); -webkit-overflow-scrolling:touch; }
+.lynk-post .codebox pre code{ background:none; padding:0; font-size:inherit; color:inherit; white-space:pre; }
+.lynk-post .caseindex{ border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; background:var(--card); padding:1.05rem 1.2rem; margin:2rem 0; }
+.lynk-post .caseindex .tag{ display:block; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:0.7rem; }
+.lynk-post .caseindex ol{ margin:0; padding:0; list-style:none; }
+.lynk-post .caseindex li{ margin:0.3rem 0; font-size:0.93rem; padding-left:0; }
+.lynk-post .caseindex li::before{ content:none; }
+.lynk-post .caseindex li a{ text-decoration:none; border-bottom:1px solid transparent; }
+.lynk-post .caseindex li a:hover{ border-bottom-color:var(--accent); }
+.lynk-post .caseindex .cn{ font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:0.75rem; color:var(--muted); margin-right:0.5rem; }
+.lynk-post .note{ border:1px solid var(--line); border-radius:10px; background:var(--card); padding:0.9rem 1.1rem; margin:2rem 0; font-size:0.86rem; color:var(--muted); }
+.lynk-post .note strong{ color:var(--ink); }
+.lynk-post .kicker{ margin-top:0; }
+.lynk-post .stats{ margin-bottom:2rem; }
+@media (max-width:34rem){ .lynk-post .codebox pre{ font-size:0.7rem; } }
+@keyframes growbarv { from { transform: scaleY(0); } }
+@media (prefers-reduced-motion: no-preference){
+  .lynk-post .barv{ transform-box:fill-box; transform-origin:center bottom; animation:growbarv 0.9s cubic-bezier(0.2,0.7,0.3,1) backwards; }
+}
 </style>
