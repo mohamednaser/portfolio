@@ -1,5 +1,5 @@
 ---
-// Article body for /blog/scaling-murabaha-10-to-5000-orders/
+// Article body for /blog/mysql-under-load-sharia-compliant-pipeline/
 // Generated from murabaha-scaling-article.html — edit the canonical HTML, not this file.
 ---
 
@@ -15,7 +15,7 @@
 
 <div class="prev">
   <span class="tag">Part 1 of this series</span>
-  <strong><a href="/blog/commodity-murabaha-platform/">Commodity Murabaha, Explained for Engineers</a></strong> —
+  <strong><a href="/blog/murabaha-as-a-state-machine/">Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —
   what LYNK is, its financial products, how the commodity Murabaha process works step by step, and the two
   goals that frame everything below: maximum concurrent transactions, with full Sharia validity as a hard
   constraint.
@@ -31,7 +31,7 @@
 <p>
   What follows are the ten battles that made the difference, in the order we fought them — the ones
   fought inside the code and the database. The infrastructure battles that came after, once the code
-  had stopped being the constraint, are <a href="/blog/scaling-queue-workers-3-to-122/">Part 3</a>. We have kept
+  had stopped being the constraint, are <a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Part 3</a>. We have kept
   the scars visible. Each case tells you <strong style="color:var(--incident)">what was actually going
   wrong</strong>, <strong style="color:var(--muted)">what we tried</strong> — including the ideas that did
   not survive contact with production — and <strong style="color:var(--accent)">what the numbers said</strong>
@@ -100,7 +100,7 @@
     — 44 of 45 GB. Not a race condition, not a deadlock. A full disk.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-1.webp" alt="A dense traffic jam, cars barely moving."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-1.webp" alt="A dense traffic jam, cars barely moving."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The order pipeline, late 2024: every order waiting for every other order (dramatization).</figcaption>
   </figure>
@@ -261,7 +261,7 @@
     backed up, and whole orders stood still — waiting not for money or commodities, but for paperwork.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-2.webp" alt="A letterpress printing machine producing one card at a time."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-2.webp" alt="A letterpress printing machine producing one card at a time."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The certificate press at work: one document at a time, on the critical path of every order.</figcaption>
   </figure>
@@ -472,7 +472,7 @@ private function toMinorUnits(float $value): int
     of them faithfully documenting our own waste.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-murabaha-10-to-5000-orders/figure-3.webp" alt="Two identical Spider-Men pointing at each other."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-3.webp" alt="Two identical Spider-Men pointing at each other."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The moment we traced the 228,291 queries back to their source.</figcaption>
   </figure>
@@ -869,7 +869,7 @@ class PreventOverlapping extends WithoutOverlapping
 </section>
 <div class="next">
   <span class="tag">Continue to Part 3</span>
-  <strong><a href="/blog/scaling-queue-workers-3-to-122/">Laravel Queues at Scale: From 3 Containers to 122 Workers</a></strong> —
+  <strong><a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Laravel Queue Workers in a Regulated Trade Pipeline</a></strong> —
   the infrastructure half of the story: a purchase step containing <strong>0.52 seconds of work inside 7.5
   seconds</strong>, how three worker containers became <strong>122 processes across 22 queues</strong>, why
   each of those numbers changed, and how the same discipline later took three machines back down to two.

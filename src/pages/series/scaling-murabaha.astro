@@ -4,9 +4,9 @@ import { contentSlug } from '../../lib/slug';
 import { getCollection } from 'astro:content';
 
 const ORDER = [
-  'commodity-murabaha-platform',
-  'scaling-murabaha-10-to-5000-orders',
-  'scaling-queue-workers-3-to-122',
+  'murabaha-as-a-state-machine',
+  'mysql-under-load-sharia-compliant-pipeline',
+  'laravel-queue-workers-regulated-trade-pipeline',
 ];
 
 const posts = await getCollection('blog', ({ data }) => !data.draft);
@@ -23,7 +23,7 @@ const description =
   title={title}
   seoTitle={title}
   description={description}
-  image="/images/blog/scaling-murabaha-10-to-5000-orders/cover.jpg"
+  image="/images/blog/mysql-under-load-sharia-compliant-pipeline/cover.jpg"
   keywords={[
     'commodity murabaha',
     'scaling fintech',

@@ -1,5 +1,5 @@
 ---
-// Article body for /blog/scaling-queue-workers-3-to-122/
+// Article body for /blog/laravel-queue-workers-regulated-trade-pipeline/
 // Generated from murabaha-fleet-article.html — edit the canonical HTML, not this file.
 ---
 
@@ -16,10 +16,10 @@
 
 <div class="prev">
   <span class="tag">Earlier in this series</span>
-  <strong><a href="/blog/commodity-murabaha-platform/">Part 1 · Commodity Murabaha, Explained for Engineers</a></strong> — what LYNK is, how a
+  <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> — what LYNK is, how a
   commodity Murabaha actually works step by step, and the two goals that frame everything: maximum
   concurrent transactions, with full Sharia validity as a hard constraint.<br>
-  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · MySQL Under Load: 10 Bottlenecks Scaling to 5,000 Orders</a></strong> — the ten
+  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · MySQL Under Load in a Sharia-Compliant Pipeline</a></strong> — the ten
   battles fought in the code and the database, from <strong>4-of-10 stuck</strong> to <strong>99.94% of
   5,200 orders</strong>.
 </div>
@@ -102,7 +102,7 @@
   </figure>
 
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-1.webp" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-1.webp" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>Actual footage of a Borrower Ownership job, 0.5 seconds of work done, waiting its turn
     behind the auto-sell queue.</figcaption>
@@ -454,7 +454,7 @@ fi</code></pre>
     connections. Deploys that killed whatever jobs were running.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/scaling-queue-workers-3-to-122/figure-2.webp" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-2.webp" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The platform at 98% disk usage, moments before our first stuck-orders investigation.</figcaption>
   </figure>

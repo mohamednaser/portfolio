@@ -39,5 +39,9 @@ export default defineConfig({
     '/single-blog.html': '/blog',
     '/portfolio.html': '/projects',
     '/services.html': '/projects',
+    // Murabaha series: slugs renamed to match retitled posts (Aug 2026).
+    '/blog/commodity-murabaha-platform': '/blog/murabaha-as-a-state-machine',
+    '/blog/scaling-murabaha-10-to-5000-orders': '/blog/mysql-under-load-sharia-compliant-pipeline',
+    '/blog/scaling-queue-workers-3-to-122': '/blog/laravel-queue-workers-regulated-trade-pipeline',
   },
 });
