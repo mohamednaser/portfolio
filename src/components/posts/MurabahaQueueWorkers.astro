@@ -19,7 +19,7 @@
   <strong><a href="/blog/commodity-murabaha-platform/">Part 1 · Commodity Murabaha, Explained for Engineers</a></strong> — what LYNK is, how a
   commodity Murabaha actually works step by step, and the two goals that frame everything: maximum
   concurrent transactions, with full Sharia validity as a hard constraint.<br>
-  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · 10 Database Bottlenecks We Hit Scaling to 5,000 Orders</a></strong> — the ten
+  <strong><a href="/blog/scaling-murabaha-10-to-5000-orders/">Part 2 · MySQL Under Load: 10 Bottlenecks Scaling to 5,000 Orders</a></strong> — the ten
   battles fought in the code and the database, from <strong>4-of-10 stuck</strong> to <strong>99.94% of
   5,200 orders</strong>.
 </div>
@@ -66,11 +66,14 @@
     <span class="tag">The problem</span>
     <p>By mid-2026, 5,000-order runs were routine — and the daily test showed the Borrower Ownership step
     taking <strong>around two minutes</strong> for 4,000 of the 5,000 orders. The decisive clue came from an
-    exercise anyone can copy: we added up the actual CPU time of every job in the purchase step and got
-    <strong>521 milliseconds</strong> — inside a step that observably took <strong>seven and a half
-    seconds</strong>. The code was innocent. The other seven seconds were spent standing in line. And queue
-    wait has a cruel personality: invisible when the system is idle (~0s), noticeable under load (~7s at 91
-    orders a minute), catastrophic at peak (~118 seconds).</p>
+    exercise anyone can copy, and we ran it first on the purchase step next door: add up the actual CPU time
+    of every job in the step and compare it with the wall clock. The jobs came to
+    <strong>521 milliseconds</strong>, inside a step that observably took <strong>seven and a half
+    seconds</strong>. The same arithmetic on Borrower Ownership told the same story on a crueller scale —
+    about a second of work inside two minutes of elapsed time. The code was innocent in both cases; the
+    difference was time spent standing in line. And queue wait has a cruel personality: invisible when the
+    system is idle (~0s), noticeable under load (~7s at 91 orders a minute), catastrophic at peak
+    (~118 seconds).</p>
   </div>
   <figure>
     <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
@@ -224,8 +227,10 @@ public function up(): void
     <p>Splitting queues, as Case&nbsp;11 shows, is how you stop unrelated work from queuing behind itself.
     But every split leaves you with something new to run — and by 2026 the platform was no longer "an
     application on a server." It was <strong>22 queues, one worker service each, and 122 worker processes
-    spread across three machines</strong>, plus a scheduler. Every one of those processes is a small daemon
-    holding database connections, consuming memory, and fully capable of ruining the others' day. And 122
+    spread across three machines</strong>, plus a scheduler — one container per process, which is why the
+    two words are used interchangeably from here on. Every one of those processes is a small daemon holding
+    a MySQL connection and a Redis connection, consuming memory, and fully capable of ruining the others'
+    day. And 122
     is only the resting number: a rolling deploy brings the new generation up alongside the old one, so for
     a few minutes on every release the fleet is <strong>244</strong>.</p>
     <p>Nobody designs that on day one. It accumulates, and it accumulates asymmetrically: a queue that was
@@ -261,12 +266,12 @@ public function up(): void
         <tr>
           <td>Rebalance four queues across machines<br><span class="tk">Jul 2026</span></td>
           <td>One server carried 63 worker processes while another carried 22.</td>
-          <td>35&nbsp;/&nbsp;40&nbsp;/&nbsp;36. No queue's total concurrency changed — only which machine ran it.</td>
+          <td>Per-server steady totals 22&nbsp;/&nbsp;63&nbsp;/&nbsp;28&nbsp;→&nbsp;35&nbsp;/&nbsp;40&nbsp;/&nbsp;36 — a fleet of about 111 at that point, which the increases above and after took to today's 122. No queue's total concurrency changed; only which machine ran it.</td>
         </tr>
         <tr>
           <td>Delete two dead workers<br><span class="tk">Jul 2026</span></td>
-          <td>No producer anywhere in the codebase. Five replicas were polling a queue nothing ever wrote to.</td>
-          <td>Five processes reclaimed — and ten orphaned containers discovered still running.</td>
+          <td>No producer anywhere in the codebase for either one — the larger had five replicas polling a queue nothing ever wrote to, the other had one.</td>
+          <td>Six processes reclaimed across the two services — and ten containers from earlier deletions found still running.</td>
         </tr>
         <tr>
           <td>Rename <code>…units_logging</code> → <code>…units_creation</code><br><span class="tk">Jul 2026</span></td>
@@ -347,11 +352,11 @@ fi</code></pre>
     at once.</p>
     <p><strong>Deleting a service does not stop its containers.</strong> Removing a worker from the file
     leaves the running containers behind unless the deploy is explicitly told to remove orphans — and even
-    then, containers whose profile is no longer active survive the sweep. Five of them came back after a
-    routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
+    then, containers whose profile is no longer active survive the sweep. Five such orphans came back after
+    a routine reboot, restarted by their own restart policy, quietly serving a three-week-old image.</p>
     <p><strong>The real ceiling is connections, not CPU.</strong> In June 2026 a smaller environment was
-    running all three groups at production replicas on one server: <strong>86 worker containers against a
-    database connection limit of 151</strong>, with an unbounded pool of web processes competing for what
+    running all three groups at production replicas on one server: <strong>86 worker containers against
+    MySQL's default connection limit of 151</strong>, with an unbounded pool of web processes competing for what
     was left. The fix was a budget rather than a bigger database — web processes capped at 10 and recycled
     every 500 requests, small environments pinned to one replica per queue, which brought the whole
     environment to about 28 connections instead of 86.</p>
@@ -558,6 +563,51 @@ fi</code></pre>
   </p>
 </section>
 
+<section class="refs" id="further-reading">
+  <h2>Further reading</h2>
+  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <ul>
+    <li><strong>Workers, connections and queues</strong> (Cases 11, 12) — the vocabulary this whole part
+      is built on, including why one worker process serves one queue list at a time:
+      <a href="https://laravel.com/docs/12.x/queues">Laravel queues</a>.</li>
+    <li><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case 10) — what
+      <code>ShouldBeUnique</code> does and, importantly, what it does not promise if the lock expires:
+      <a href="https://laravel.com/docs/12.x/queues#unique-jobs">unique jobs</a>. The self-expiring locks used elsewhere in the flow
+      are <a href="https://laravel.com/docs/12.x/cache#atomic-locks">atomic locks</a>.</li>
+    <li><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case 10) —
+      <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">Laravel's failed-job handling</a> for the mechanics, and
+      the <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">AWS
+      Builders' Library on timeouts, retries and backoff with jitter</a> for why synchronised retries
+      make an overloaded system worse.</li>
+    <li><strong>Deploying without killing in-flight jobs</strong> (Case 13) — why a worker keeps running
+      old code until it is told not to: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">queue workers and
+      deployment</a>.</li>
+    <li><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
+      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case 12 for you.</li>
+    <li><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
+      a Redis queue: <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
+    <li><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case 11) — the difference
+      between service time and queue wait, and how to find saturation:
+      <a href="https://www.brendangregg.com/usemethod.html">Brendan Gregg's USE method</a>. For why
+      adding workers eventually stops helping — and then hurts — see Neil Gunther's
+      <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
+      Law</a>.</li>
+    <li><strong>Sizing processes against a connection ceiling</strong> (Case 14) — the knob that was
+      unbounded, and the ceiling it ran into:
+      <a href="https://www.php.net/manual/en/install.fpm.configuration.php">PHP-FPM process manager
+      configuration</a> and MySQL's
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a>.</li>
+    <li><strong>Declaring replica counts</strong> (Case 12) — how many copies of a service run,
+      whether that is declared in the compose file or passed as a scale flag at deploy time:
+      <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose deploy specification</a>.</li>
+    <li><strong>Health checks that touch the application</strong> (Case 15) — a probe that only proves a
+      port is open will call a dead application healthy:
+      <a href="https://microservices.io/patterns/observability/health-check-api.html">health check API
+      pattern</a>, and <a href="https://12factor.net/disposability">12-factor disposability</a> for why a
+      worker must survive being killed mid-job.</li>
+  </ul>
+</section>
+
 </div>
 
 <style is:global>
@@ -690,6 +740,9 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
   }
 .lynk-post .refs{ border-top: 1px solid var(--line); margin-top: 3.5rem; padding-top: 1.5rem; font-size: 0.82rem; color: var(--muted); }
 .lynk-post .refs h2{ font-size: 1.1rem; }
+.lynk-post .refs strong{ color: var(--ink); font-weight: 600; }
+.lynk-post .refs p{ max-width: 40rem; }
+.lynk-post .refs li{ margin-bottom: 0.6rem; }
 .lynk-post footer{ margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
 @keyframes growbar{ from { transform: scaleX(0); } }
 @keyframes fadein{ from { opacity: 0; } }
