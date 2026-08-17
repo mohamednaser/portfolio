@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import Analytics from '../components/Analytics.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import Seo from '../components/Seo.astro';
@@ -115,6 +116,7 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
         document.addEventListener('astro:page-load', bindToggle);
       })();
     </script>
+    <Analytics />
   </head>
   <body
     class="min-h-screen bg-white text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100"

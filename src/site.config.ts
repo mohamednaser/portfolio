@@ -22,6 +22,15 @@ export const site = {
   },
 } as const;
 
+/**
+ * Third-party measurement. The GA4 measurement ID is public (it ships in the
+ * page source), so it lives here rather than in an env var. An empty string
+ * disables analytics entirely — no script tag is emitted.
+ */
+export const analytics = {
+  googleMeasurementId: 'G-M0CCSGXYDD',
+};
+
 export type SiteMeta = {
   name: string;
   title: string;

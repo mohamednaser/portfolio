@@ -1,0 +1,30 @@
+---
+import { analytics } from '../site.config';
+
+const id = analytics.googleMeasurementId;
+
+/**
+ * Production builds only — `npm run dev` and `npm run preview` of a dev build
+ * must never pollute the property with local traffic.
+ */
+const enabled = import.meta.env.PROD && id.length > 0;
+---
+
+{
+  enabled && (
+    <>
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${id}`} is:inline />
+      <script define:vars={{ id }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          // gtag.js replays dataLayer entries as an Arguments object; rest
+          // params would push a plain Array and break the config call.
+          // eslint-disable-next-line prefer-rest-params
+          window.dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', id);
+      </script>
+    </>
+  )
+}
