@@ -53,6 +53,7 @@ import '../../styles/posts/murabaha-queue-workers.css';
 
 <section class="era" id="case-11">
   <div class="era-head"><h2>Case 07 · The Ghost Latency Between Jobs</h2></div>
+  <p class="case-hook"><em>Application telemetry told us a job took 0.5 seconds. End-to-end telemetry told us it took 7.5 seconds. We were optimizing service time, completely blind to the silent killer: queue wait time.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -221,6 +222,7 @@ public function up(): void
 
 <section class="era" id="case-10">
   <div class="era-head"><h2>Case 08 · Idempotency in a Violent Environment</h2></div>
+  <p class="case-hook"><em>In a distributed system, you cannot prevent workers from dying. Servers will crash, networks will partition, and jobs will be violently killed in the exact middle of a financial transaction.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">failed job ≠ failed transaction</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -303,6 +305,7 @@ class PreventOverlapping extends WithoutOverlapping
 
 <section class="era" id="case-12">
   <div class="era-head"><h2>Case 09 · Designing Dedicated Worker Topologies</h2></div>
+  <p class="case-hook"><em>We had enough workers, but they were all stuck waiting behind slow jobs. Restructuring 122 processes across 22 dedicated queues proved that topology matters just as much as raw compute power.</em></p>
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -460,6 +463,7 @@ fi</code></pre>
 
 <section class="era" id="case-13">
   <div class="era-head"><h2>Case 10 · The Phantom Deployments</h2></div>
+  <p class="case-hook"><em>A perfectly successful deployment left the background workers silently executing the old application state. It was a humbling reminder that persistent memory requires persistent orchestration.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
   <div class="incident">
     <span class="tag">The problem</span>

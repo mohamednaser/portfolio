@@ -230,3 +230,14 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
     border-bottom: 1px dotted var(--accent-line); font-variant-numeric: tabular-nums;
   }
 .lynk-post .caseref:hover, .lynk-post .caseref:focus-visible{ border-bottom-style: solid; }
+
+.case-hook {
+  font-size: 1.15rem;
+  color: var(--text-color);
+  opacity: 0.9;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  border-left: 3px solid var(--primary-color);
+  padding-left: 1rem;
+}

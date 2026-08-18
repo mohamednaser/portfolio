@@ -263,3 +263,14 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
   .lynk-post .case-impact{ margin-left: 0; margin-top: 0.4rem; }
   .lynk-post .caseindex .cn{ display: block; min-width: 0; margin-bottom: 0.1rem; }
 }
+
+.case-hook {
+  font-size: 1.15rem;
+  color: var(--text-color);
+  opacity: 0.9;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  border-left: 3px solid var(--primary-color);
+  padding-left: 1rem;
+}

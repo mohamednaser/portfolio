@@ -80,6 +80,7 @@ import '../../styles/posts/murabaha-scaling.css';
 
 <section class="era" id="case-02">
   <div class="era-head"><h2>Case 01 · The Isolation Level Deadlocks</h2></div>
+  <p class="case-hook"><em>When 31 concurrent orders triggered a cascading deadlock, we realized our mathematically perfect state machine had collided with the physical reality of InnoDB gap locks.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">P95 28s → 13s · slow tail 21.9% → 0</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -178,6 +179,7 @@ import '../../styles/posts/murabaha-scaling.css';
 
 <section class="era" id="case-07">
   <div class="era-head"><h2>Case 02 · DDoSing Ourselves with N+1 Queries</h2></div>
+  <p class="case-hook"><em>A single missing framework clause turned a linear application into an exponential attack, hammering our database with 114,000 queries per second during a routine 500-order load test.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">database load −85%</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -223,6 +225,7 @@ import '../../styles/posts/murabaha-scaling.css';
 
 <section class="era" id="case-09">
   <div class="era-head"><h2>Case 03 · Race Conditions in the Financial Ledger</h2></div>
+  <p class="case-hook"><em>Caching financial inventory creates a terrifying risk: double-selling the same physical asset. We had to abandon row-based triggers entirely to keep the ledger mathematically pure under heavy load.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">3,300 orders · 100% · ledger intact</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -277,6 +280,7 @@ import '../../styles/posts/murabaha-scaling.css';
 
 <section class="era" id="case-06">
   <div class="era-head"><h2>Case 04 · The Algorithmic Knapsack Problem</h2></div>
+  <p class="case-hook"><em>Finding the exact combination of commodities to fulfill an arbitrary order value isn't just a query—it's a variation of the Knapsack Problem. Running it live against a highly concurrent database was architectural suicide.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">gateway timeouts → milliseconds</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -386,6 +390,7 @@ private function toMinorUnits(float $value): int
 
 <section class="era" id="case-05">
   <div class="era-head"><h2>Case 05 · Pre-Computing Eligibility at Scale</h2></div>
+  <p class="case-hook"><em>As our inventory grew to millions of units, scanning the database to enforce complex Sharia eligibility rules at runtime became impossible. We had to stop searching and start pre-computing.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">scan millions of rows → read a counter</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -437,6 +442,7 @@ private function toMinorUnits(float $value): int
 
 <section class="era" id="case-04">
   <div class="era-head"><h2>Case 06 · The Synchronous I/O Tax</h2></div>
+  <p class="case-hook"><em>Generating a legally binding PDF certificate during a database transaction held the entire worker pool hostage. It taught us a brutal lesson: never do synchronous I/O in the critical path.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">0 seconds per step</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
