@@ -2,6 +2,8 @@
 // Article body for /blog/laravel-queue-workers-regulated-trade-pipeline/
 // Generated from murabaha-fleet-article.html — edit the canonical HTML, not this file.
 import '../../styles/posts/murabaha-queue-workers.css';
+import GhostLatencyWidget from "../widgets/GhostLatencyWidget.astro";
+
 ---
 
 <div class="lynk-post">
@@ -58,12 +60,7 @@ import '../../styles/posts/murabaha-queue-workers.css';
     (~118 seconds)</span>.</p>
   </div>
 
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/queue_wait_iceberg_concept.jpg" width="1376" height="768"
-         alt="A conceptual illustration of an iceberg demonstrating the hidden cost of queue wait time vs actual work."
-         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>Queue wait time acts like an iceberg: the actual CPU execution time is just the visible tip, while the time spent waiting in line forms a massive, hidden cost that sinks performance under load.</figcaption>
-  </figure>
+    <GhostLatencyWidget />
 
   <figure>
     <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">

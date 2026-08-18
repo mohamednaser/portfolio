@@ -2,6 +2,8 @@
 // Article body for /blog/mysql-under-load-sharia-compliant-pipeline/
 // Generated from murabaha-scaling-article.html — edit the canonical HTML, not this file.
 import '../../styles/posts/murabaha-scaling.css';
+import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
+
 ---
 
 <div class="lynk-post">
@@ -172,6 +174,8 @@ import '../../styles/posts/murabaha-scaling.css';
     <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.<a class="refmark" href="#ref-nplusone">n+1 ↓</a>
     The first alarm had been, embarrassingly, the monitoring bill: millions of recorded events per day, all
     of them faithfully documenting our own waste.</p>
+    <NPlusOneWidget />
+
     <p>That lookup existed because of how an order remembers itself. Every step an order takes is appended
     to its status history as a new row, and nothing is ever overwritten — in a regulated pipeline the trail
     <em>is</em> the point. But almost everything the platform wanted to know came down to a single question:

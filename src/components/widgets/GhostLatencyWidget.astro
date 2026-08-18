@@ -1,0 +1,146 @@
+---
+---
+<div class="ghost-latency-widget" aria-label="Ghost Latency Visualizer">
+  <div class="widget-header">
+    <h3>The 7.5 Second Illusion</h3>
+    <p>Hover over the timeline to see what actually happened during the transaction.</p>
+  </div>
+  
+  <div class="timeline-container">
+    <div class="timeline-bar">
+      <!-- The moving dot -->
+      <div class="job-dot"></div>
+      
+      <!-- Sections -->
+      <div class="timeline-section wait-section" title="Queue Wait Time: 7.0s&#10;Job is sitting idle in Redis waiting for a worker to become available.">
+        <span class="section-label">Wait (7.0s)</span>
+      </div>
+      <div class="timeline-section service-section" title="Service Time: 0.5s&#10;Actual CPU execution time.">
+        <span class="section-label">Run (0.5s)</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="legend">
+    <div class="legend-item"><span class="color-box wait-color"></span> Queue Wait Time (93%)</div>
+    <div class="legend-item"><span class="color-box service-color"></span> Service Time (7%)</div>
+  </div>
+</div>
+
+<style>
+  .ghost-latency-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .widget-header h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .widget-header p {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #6b7280);
+  }
+  .timeline-container {
+    position: relative;
+    height: 60px;
+    background: #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    cursor: help;
+  }
+  .timeline-bar {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+  .timeline-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .timeline-section:hover {
+    opacity: 0.9;
+  }
+  .wait-section {
+    width: 93.3%;
+    background-color: #9ca3af;
+  }
+  .service-section {
+    width: 6.7%;
+    background-color: #10b981;
+    color: #064e3b;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .job-dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border: 3px solid #3b82f6;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    animation: travel 7.5s linear infinite;
+  }
+  
+  @keyframes travel {
+    0% { left: 0%; }
+    93.3% { left: 93.3%; } /* 7 seconds in */
+    100% { left: 100%; } /* 0.5 seconds later */
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted, #6b7280);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .wait-color { background-color: #9ca3af; }
+  .service-color { background-color: #10b981; }
+  
+  @media (prefers-color-scheme: dark) {
+    .ghost-latency-widget {
+      background-color: #1f2937;
+      border-color: #374151;
+    }
+    .timeline-container {
+      background: #374151;
+    }
+    .wait-section {
+      background-color: #4b5563;
+    }
+    .service-section {
+      background-color: #059669;
+      color: #d1fae5;
+    }
+    .wait-color { background-color: #4b5563; }
+    .service-color { background-color: #059669; }
+  }
+</style>

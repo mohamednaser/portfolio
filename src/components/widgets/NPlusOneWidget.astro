@@ -1,0 +1,184 @@
+---
+---
+<div class="n-plus-one-widget" aria-label="N+1 Query Visualizer">
+  <div class="widget-header">
+    <h3>The N+1 Cascade Effect</h3>
+    <p>Slide to simulate the load test and watch the query volume explode.</p>
+  </div>
+  
+  <div class="slider-container">
+    <label for="orderSlider">Simulated Orders: <span id="orderValue">1</span></label>
+    <input type="range" id="orderSlider" min="1" max="500" value="1" class="widget-slider" />
+  </div>
+
+  <div class="metrics-container">
+    <div class="metric">
+      <span class="metric-label">Active Orders</span>
+      <span class="metric-value" id="activeOrders">1</span>
+    </div>
+    <div class="metric" id="queryMetric">
+      <span class="metric-label">Queries Fired</span>
+      <span class="metric-value" id="totalQueries">228</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .n-plus-one-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .widget-header h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .widget-header p {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #6b7280);
+  }
+  .slider-container {
+    margin-bottom: 2rem;
+  }
+  .slider-container label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .widget-slider {
+    width: 100%;
+    accent-color: var(--accent-color, #10b981);
+    cursor: pointer;
+  }
+  .metrics-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .metric {
+    flex: 1;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .metric-label {
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.5rem;
+  }
+  .metric-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* Dynamic states */
+  .metric.warning {
+    border-color: #f59e0b;
+    background-color: #fffbeb;
+  }
+  .metric.warning .metric-value {
+    color: #d97706;
+  }
+  
+  .metric.danger {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+    animation: pulse-danger 1s infinite;
+  }
+  .metric.danger .metric-value {
+    color: #dc2626;
+  }
+
+  @keyframes pulse-danger {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .n-plus-one-widget {
+      background-color: #1f2937;
+      border-color: #374151;
+    }
+    .metric {
+      background-color: #111827;
+      border-color: #374151;
+    }
+    .metric-value {
+      color: #f3f4f6;
+    }
+    .metric.warning {
+      background-color: #422006;
+      border-color: #b45309;
+    }
+    .metric.warning .metric-value {
+      color: #fcd34d;
+    }
+    .metric.danger {
+      background-color: #450a0a;
+      border-color: #b91c1c;
+    }
+    .metric.danger .metric-value {
+      color: #fca5a5;
+    }
+  }
+</style>
+
+<script>
+  function initWidget() {
+    const slider = document.getElementById('orderSlider') as HTMLInputElement;
+    const orderValueDisplay = document.getElementById('orderValue');
+    const activeOrdersDisplay = document.getElementById('activeOrders');
+    const totalQueriesDisplay = document.getElementById('totalQueries');
+    const queryMetricBox = document.getElementById('queryMetric');
+    
+    // The multiplier calculated from text: 114,000 queries / 500 orders = 228 queries per order.
+    const QUERIES_PER_ORDER = 228;
+
+    if (!slider || !totalQueriesDisplay) return;
+
+    function updateWidget() {
+      const orders = parseInt(slider.value, 10);
+      const queries = orders * QUERIES_PER_ORDER;
+      
+      if (orderValueDisplay) orderValueDisplay.textContent = orders.toLocaleString();
+      if (activeOrdersDisplay) activeOrdersDisplay.textContent = orders.toLocaleString();
+      if (totalQueriesDisplay) totalQueriesDisplay.textContent = queries.toLocaleString();
+      
+      if (queryMetricBox) {
+        queryMetricBox.classList.remove('warning', 'danger');
+        if (queries >= 100000) {
+          queryMetricBox.classList.add('danger');
+        } else if (queries >= 10000) {
+          queryMetricBox.classList.add('warning');
+        }
+      }
+    }
+
+    slider.addEventListener('input', updateWidget);
+    updateWidget(); // init
+  }
+
+  // Handle Astro page transitions if they exist
+  document.addEventListener('astro:page-load', initWidget);
+  document.addEventListener('DOMContentLoaded', initWidget);
+  
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initWidget();
+  }
+</script>
