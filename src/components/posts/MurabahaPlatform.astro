@@ -391,26 +391,6 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
 </section>
 
 <!-- SECTION 5: the cliffhanger -->
-<section class="section" id="section-architecture">
-  <div class="section-head"><h2>The Platform Architecture</h2></div>
-  <p>
-  <strong>The stack, named once.</strong> <strong>Laravel</strong> on PHP&nbsp;8,
-  <strong>MySQL&nbsp;8 (InnoDB)</strong> as the system of record, <strong>Redis</strong> behind the queues
-  and locks, deployed as Docker Compose services on a handful of Linux VMs. Where a case turns on a
-  specific behaviour of one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling
-  flags — it is named and glossed at the point it matters.
-</p>
-
-<figure>
-  <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/stack.webp"
-       width="1024" height="559"
-       alt="Platform and deployment architecture: a user request reaches the Laravel application on PHP 8, which writes transactional data to MySQL 8 (InnoDB) as the system of record and manages distributed job queues and locks in Redis; queue workers read those jobs and write back into MySQL. The whole thing is deployed as Docker Compose services — app, db, redis and scaled worker replicas — spread across a handful of Linux VMs."
-       style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-  <figcaption>The platform behind every case in this series: one Laravel application, MySQL as the system of
-  record, Redis carrying the queues and locks, and worker replicas scaled per queue across a handful of
-  Linux VMs. Almost every battle across Parts 2 and 3 is a fight between two of these boxes.</figcaption>
-</figure>
-</section>
 
 <section class="section" id="section-05">
   <div class="section-head"><h2>None of this came easy</h2></div>
