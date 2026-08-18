@@ -1,0 +1,27 @@
+---
+title: 'The Database Battles: Scaling MySQL for Fintech'
+kicker: 'Scaling Murabaha · Part 2'
+searchTitle: 'The Database Battles: Scaling MySQL for Fintech'
+description: 'How we fixed deadlocks, N+1 queries, and lock timeouts to scale a regulated Murabaha trade pipeline from 10 stuck orders to 5,000 successful ones.'
+excerpt: "We had a mathematically perfect state machine that guaranteed Sharia compliance. But when we hit it with just 31 concurrent orders, the entire system choked. The rigid consistency required by the Murabaha contract turned our database into a bottleneck of deadlocks and lock timeouts."
+pubDate: 2026-08-18
+coverImage: '/images/blog/mysql-under-load-sharia-compliant-pipeline/cover.jpg'
+readingTime: '20 min read'
+tags:
+  - MySQL
+  - System design
+  - Performance
+  - Fintech
+keywords:
+  - mysql scaling
+  - database deadlocks
+  - innodb gap locks
+  - N+1 query optimization
+  - database performance
+  - fintech infrastructure
+  - system design
+---
+
+import Body from '../../components/posts/ScalingMurabahaV2Part2.astro';
+
+<Body />

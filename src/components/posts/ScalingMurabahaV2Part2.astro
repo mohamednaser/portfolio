@@ -1,0 +1,198 @@
+---
+import '../../styles/posts/murabaha-scaling.css';
+---
+
+<div class="lynk-post">
+
+<div class="stats">
+  <div class="stat"><span class="n">5,200</span><span class="l">automated orders per test run</span></div>
+  <div class="stat"><span class="n">99.94%</span><span class="l">end-to-end completion rate</span></div>
+  <div class="stat"><span class="n">11.8s → 0.26s</span><span class="l">purchase step execution time</span></div>
+  <div class="stat"><span class="n">0</span><span class="l">lost or doubly-assigned units</span></div>
+</div>
+
+<p class="lede">
+  In Part 1, we established that a Murabaha order isn't just a row insert—it's a multi-step, multi-party saga that must happen in exact sequence. When we load-tested this sequence, MySQL didn't just slow down; it ground to a halt. What follows is how we fixed it—how we went from four stuck orders out of ten to running <strong>5,200 orders end to end at 99.94%</strong>.
+</p>
+
+<div class="prev">
+  <span class="tag">Earlier in this series</span>
+  <strong><a href="/blog/building-sharia-compliant-state-machine/">Part 1 · Building a Sharia-Compliant State Machine at Scale</a></strong>
+</div>
+
+<p>
+  When you map a strictly ordered financial contract to a relational database, you run into the physical limits of concurrency very quickly. We had a mathematically perfect state machine that guaranteed Sharia compliance. But when we hit it with just 31 concurrent orders, the entire system choked. 
+</p>
+<p>
+  The rigid consistency required by the Murabaha contract turned our database into a bottleneck. Here are the most profound architectural battles we fought to scale the data layer, moving away from simple fixes and focusing on the underlying engineering tradeoffs.
+</p>
+
+<h2>Theme 1: The Database Bottlenecks</h2>
+<p>How MySQL behaved under extreme concurrent load, and the traps of framework conveniences.</p>
+
+<section class="era" id="case-deadlocks">
+  <div class="era-head"><h3>The Database Fights Back</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>We triggered 31 orders simultaneously. Instead of processing them, the system froze. Error logs filled up with <code>1213 Deadlock found when trying to get lock</code> and <code>1205 Lock wait timeout exceeded</code>. The database was rejecting perfectly valid transactions, and our throughput collapsed to zero.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>Our first assumption was that we had written bad queries or needed more indexes. But looking at <code>SHOW ENGINE INNODB STATUS</code>, the queries were fully indexed. The database wasn't slow; it was intentionally blocking execution. The Murabaha sequence requires us to read a unit's status, verify it's available, and then lock it. In a highly concurrent environment, 31 processes were trying to read and lock the same rows simultaneously.</p>
+  </div>
+  
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg" width="1376" height="768" alt="Database Gap Locks" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>InnoDB's default isolation level issues Next-Key locks that block inserts in the gap between records, causing cascading deadlocks under concurrent load.</figcaption>
+  </figure>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The culprit was MySQL's default isolation level: <code>REPEATABLE READ</code>. To guarantee that a repeated read returns the exact same rows, InnoDB issues "gap locks" — locking the empty space between rows to prevent new inserts. When dozens of workers tried to insert new ledger entries simultaneously, their gap locks collided, causing cascading deadlocks.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We dropped the isolation level to <code>READ COMMITTED</code> for the high-volume pipelines. This eliminated gap locks entirely. A transaction only locks the specific row it touches, and only reads data that was committed before the statement began. We combined this with strict <code>SELECT ... FOR UPDATE SKIP LOCKED</code> to ensure workers only picked up free units without blocking each other.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    Deadlocks disappeared completely. The purchase step P95 dropped from 28 seconds to 13 seconds, and the maximum execution time dropped from 65 seconds to 14.
+  </div>
+</section>
+
+<section class="era" id="case-n-plus-one">
+  <div class="era-head"><h3>The Silent Killer: N+1 at Scale</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>When we ran our first real volume test, the database CPU spiked to 100% and stayed there. The platform was effectively DDoSing itself. We were processing 500 orders, but our telemetry showed the database was answering <strong>114,000 individual queries</strong>.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>Our first instinct was to blame the infrastructure. We assumed we just needed a larger MySQL instance to handle the "complex" Murabaha state machine. But when we looked at the query logs, the database wasn't doing complex math—it was answering the exact same simple <code>SELECT</code> statement tens of thousands of times a second.</p>
+  </div>
+  
+  <figure>
+    <img loading="lazy" decoding="async" src="/Users/mohamednaser/.gemini/antigravity-ide/brain/c6ded8a3-62b5-496e-984b-efd715c6f97a/n_plus_one_diagram_1787068202930.jpg" width="1376" height="768" alt="N+1 Query Diagram" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>A missing with() clause turns a linear application into an exponential database attack.</figcaption>
+  </figure>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The culprit was the classic framework trap: the N+1 query. In development, loading a relationship inside a loop is harmless. But in a distributed pipeline where 500 orders are processed concurrently by dozens of workers, a single missing <code>with()</code> clause in Laravel turns a linear operation into an exponential database attack. Every worker was individually asking the database for the same configuration data, row by row.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We replaced the lazy-loaded loops with strict eager loading (<code>with()</code>) across the execution engine, and cached the static configuration states that every order needed.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    By changing a few lines of Eloquent logic, query volume plummeted by <strong>85%</strong>. The database CPU dropped back to idle, proving that throwing hardware at a software problem is almost always the wrong move.
+  </div>
+</section>
+
+<section class="era" id="case-unit-ledger">
+  <div class="era-head"><h3>The Unit Ledger Siege</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>Our core unit ledger table was hit with 94 million read queries in a single day. The system was struggling to maintain a simple count of "how many units are available."</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We tried standard caching. We put the available unit counts in Redis. But in a trading system, caching write-heavy financial inventory creates dangerous race conditions. The cache was constantly out of sync with the true database state, risking double-selling.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>Caching the <em>read</em> was the wrong approach because the <em>writes</em> were the bottleneck. The system was relying on row-based triggers to update aggregate counts every time a single unit changed state. Under heavy load, this created massive contention on the aggregate tables.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We abandoned caching and row-based triggers entirely. Instead, we moved to set-based bulk operations. We compute the available units dynamically when needed using optimized indexes, and rely on the transaction isolation (from our earlier fix) to ensure accuracy without the overhead of maintaining aggregate caches.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    Read queries dropped from 94 million to manageable levels, and the risk of cache-desynchronization was entirely eliminated.
+  </div>
+</section>
+
+<h2>Theme 2: Algorithmic & Architectural Tradeoffs</h2>
+<p>Changing the shape of the work rather than just optimizing the code.</p>
+
+<section class="era" id="case-sync-work">
+  <div class="era-head"><h3>The Cost of Synchronous Work</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>The application servers started throwing Out Of Memory (OOM) errors, and the purchase step was taking over 10 seconds to complete, severely backing up the queues.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We initially focused on optimizing our PDF generation library. We thought the library was just slow, so we switched rendering engines multiple times, trying to squeeze out a few milliseconds of performance.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The rendering engine wasn't the problem; <em>doing the rendering synchronously</em> was. Generating a legal PDF document during the critical path of a transaction meant holding the database connection and the worker process hostage until the PDF was finished. We were doing heavy I/O work inside a financial transaction block.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We completely deferred the work. We stopped generating PDFs during the transaction. Instead, we only save the raw data state. The actual PDF is generated <em>on-demand</em> the first time a user clicks "Download," and then cached.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    The purchase step execution time dropped by over 60%, and OOM errors disappeared entirely. The critical path was freed from I/O bounds.
+  </div>
+</section>
+
+<section class="era" id="case-eligibility">
+  <div class="era-head"><h3>The Eligibility & Allocation Bottleneck</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>As our inventory grew to millions of units, the system struggled to find eligible units for new orders. The database queries to match a customer with valid units were timing out.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We tried adding more complex compound indexes to the units table to speed up the runtime search. But scanning millions of rows at runtime, checking multiple eligibility rules (age, supplier, price), is fundamentally unscalable, no matter how many indexes you add.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>We realized this was an algorithmic problem, not a database tuning problem. Searching for a combination of units to match an exact order value is a variation of the Knapsack problem. Doing this against a live, highly-concurrent table is architectural suicide.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We precomputed the data. We built an "Eligibility Ledger" that pre-calculates which orders can use which units asynchronously. When an order arrives, it doesn't search the inventory; it simply claims its pre-allocated units using a highly optimized allocation algorithm.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    Unit allocation went from a multi-second complex join to a sub-millisecond key lookup.
+  </div>
+</section>
+
+<div class="next">
+  <span class="tag">Continue the series</span>
+  <p>The database was finally breathing easy, settling thousands of rows a second. But when we looked at the application layer, our server logs were still filled with killed processes. MySQL was saved, but our worker fleet was drowning.</p>
+  <strong><a href="/blog/queue-infrastructure-at-scale/">Part 3 · The Queue Infrastructure: What Breaks at 5,000 Jobs</a></strong> —
+  the infrastructure half of the story: how three worker containers became <strong>122 processes across 22 queues</strong>, and how the same discipline later took three machines back down to two.
+</div>
+
+</div>
