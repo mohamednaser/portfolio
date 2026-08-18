@@ -8,6 +8,13 @@ const blog = defineCollection({
     description: z.string(),
     /** Optional longer teaser for the blog index card. Falls back to description. */
     excerpt: z.string().optional(),
+    /**
+     * Short, query-shaped title used only for the document `<title>`, i.e. the
+     * search result line. The headline keeps its editorial voice on the page and
+     * in Open Graph; this is what someone typing "mysql lock wait timeout" sees.
+     * Aim for <= 44 characters, since the site name is appended.
+     */
+    searchTitle: z.string().optional(),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     draft: z.boolean().optional().default(false),

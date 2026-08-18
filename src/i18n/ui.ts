@@ -172,7 +172,7 @@ const en = {
     eyebrow: 'Series · 3 parts',
     title: 'Scaling a Commodity Murabaha Platform',
     metaDescription:
-      'A three-part engineering series on taking a Sharia-compliant Murabaha platform from ten orders to five thousand: the process, the database battles, and the worker fleet.',
+      'Ten automated orders, four stuck. Eighteen months later: 5,200 orders at 99.94%. A three-part series on the database battles and the worker fleet in between.',
     intro:
       'In January 2025 a stress test of ten automated orders left four of them stuck. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%, and 5,000-order runs became a daily routine. This is what happened in between — fifteen case files, the failed attempts included.',
     /** `%n%` is replaced with the part number. */
@@ -347,7 +347,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     eyebrow: 'سلسلة · ثلاثة أجزاء',
     title: 'توسيع منصّة مرابحة سلعية',
     metaDescription:
-      'سلسلة هندسية من ثلاثة أجزاء عن نقل منصّة مرابحة متوافقة مع الشريعة من عشرة طلبات إلى خمسة آلاف: العملية، ومعارك قاعدة البيانات، وأسطول العمّال.',
+      'عشرة طلبات آلية، تعثّر منها أربعة. وبعد ثمانية عشر شهرًا: 5,200 طلب بنسبة 99.94%. سلسلة من ثلاثة أجزاء عن معارك قاعدة البيانات وأسطول العمّال بينهما.',
     intro:
       'في يناير 2025 تعثّرت أربعة من عشرة طلبات آلية في اختبار ضغط. وبعد ثمانية عشر شهرًا نفّذت المنصّة نفسها 5,200 طلب من البداية إلى النهاية بنسبة نجاح 99.94%، وصارت جولات الخمسة آلاف طلب روتينًا يوميًّا. هذا ما جرى بينهما — خمس عشرة حالة موثّقة، بما فيها المحاولات الفاشلة.',
     part: 'الجزء %n%',

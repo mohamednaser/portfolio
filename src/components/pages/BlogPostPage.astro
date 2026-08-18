@@ -46,7 +46,7 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
 
 <BaseLayout
   lang={lang}
-  title={post.data.title}
+  title={post.data.searchTitle ?? post.data.title}
   seoTitle={post.data.title}
   description={post.data.description}
   image={cover}
