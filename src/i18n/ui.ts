@@ -17,6 +17,8 @@ const en = {
     mainNav: 'Main',
     mobileNav: 'Mobile',
     switchLanguage: 'اقرأ بالعربية',
+    copyCode: 'Copy code',
+    copied: 'Copied',
   },
   nav: {
     home: 'Home',
@@ -97,7 +99,7 @@ const en = {
   projects: {
     title: 'Projects',
     metaDescription:
-      'Products and repositories — stack, achievements, and write-ups for Blog Generator and more.',
+      'Products and platforms — stack, achievements, and write-ups for each, from Lynk and Carefer to earlier enterprise work.',
     intro:
       'Everything I build or govern — each project has a detail page with stack, achievements, and links.',
     viewProject: 'View project →',
@@ -125,9 +127,14 @@ const en = {
       'Mohamed Naser',
     ],
     intro:
-      'Writing on AI-augmented engineering, agent quality, and technical leadership. Summaries and SEO live here; full articles on Medium.',
+      'Long-form engineering writing on scaling fintech platforms, databases under load, and AI-augmented delivery — with the failed attempts left in.',
     rss: 'RSS feed',
     empty: 'No posts yet.',
+    /** Points at `/series/scaling-murabaha`, which nothing else on the index links to. */
+    seriesEyebrow: 'Start here',
+    seriesBlurb:
+      'Three of the posts below are one story: taking a Sharia-compliant Murabaha platform from ten orders to five thousand.',
+    seriesCta: 'Read the series →',
     /** Shown to Arabic readers only; empty in English, where it says nothing. */
     languageNote: '',
   },
@@ -150,6 +157,13 @@ const en = {
     authorLinkedin: 'LinkedIn',
     authorContact: 'Get in touch',
     back: '← Blog',
+    /** Jump list built from the article's own `h2` headings. */
+    onThisPage: 'On this page',
+    /** Series footer. `%n%` is the part number, `%total%` the number of parts. */
+    seriesPartOf: 'Part %n% of %total% · %series%',
+    seriesAllParts: 'All parts',
+    seriesPrevious: '← Previous',
+    seriesNext: 'Next →',
     /** Shown above translated articles only; empty in the source language. */
     translationNote: '',
     readOriginal: '',
@@ -187,9 +201,11 @@ const ar: DeepReadonlyLike<typeof en> = {
     toggleTheme: 'تبديل الوضع الداكن',
     openMenu: 'فتح القائمة',
     closeMenu: 'إغلاق القائمة',
-    mainNav: 'الرئيسية',
+    mainNav: 'التنقّل الرئيسي',
     mobileNav: 'قائمة الجوال',
     switchLanguage: 'Read in English',
+    copyCode: 'انسخ الكود',
+    copied: 'تم النسخ',
   },
   nav: {
     home: 'الرئيسية',
@@ -267,7 +283,7 @@ const ar: DeepReadonlyLike<typeof en> = {
   projects: {
     title: 'المشاريع',
     metaDescription:
-      'منتجات ومستودعات — التقنيات والإنجازات والمقالات لكل مشروع، من Lynk وCarefer إلى Blog Generator.',
+      'منتجات ومنصّات — التقنيات والإنجازات والمقالات لكل مشروع، من Lynk وCarefer إلى أعمال المؤسّسات الأسبق.',
     intro: 'كل ما أبنيه أو أشرف عليه — لكل مشروع صفحة تفصيلية بالتقنيات والإنجازات والروابط.',
     viewProject: 'عرض المشروع ←',
     deliveredAt: 'أُنجِز أثناء العمل في',
@@ -293,9 +309,13 @@ const ar: DeepReadonlyLike<typeof en> = {
       'محمد ناصر',
     ],
     intro:
-      'كتاباتي عن الهندسة المعزَّزة بالذكاء الاصطناعي، وجودة الوكلاء، والقيادة التقنية. الملخّصات هنا، والمقالات كاملةً على Medium.',
+      'كتابات هندسية مطوّلة عن توسيع منصّات التقنية المالية، وقواعد البيانات تحت الحِمل، والتسليم المعزَّز بالذكاء الاصطناعي — بما في ذلك المحاولات الفاشلة.',
     rss: 'خلاصة RSS',
     empty: 'لا توجد مقالات بعد.',
+    seriesEyebrow: 'ابدأ من هنا',
+    seriesBlurb:
+      'ثلاثة من المقالات أدناه تروي قصة واحدة: نقل منصّة مرابحة متوافقة مع الشريعة من عشرة طلبات إلى خمسة آلاف.',
+    seriesCta: 'اقرأ السلسلة ←',
     languageNote: 'المقالات متاحة بالعربية والإنجليزية؛ بدّل اللغة من أعلى الصفحة.',
   },
   post: {
@@ -315,6 +335,11 @@ const ar: DeepReadonlyLike<typeof en> = {
     authorLinkedin: 'لينكدإن',
     authorContact: 'تواصل معي',
     back: '→ المدوّنة',
+    onThisPage: 'محتويات المقال',
+    seriesPartOf: 'الجزء %n% من %total% · %series%',
+    seriesAllParts: 'كل الأجزاء',
+    seriesPrevious: 'السابق →',
+    seriesNext: '← التالي',
     translationNote: 'هذا المقال مترجم عن نسخته الإنجليزية الأصلية.',
     readOriginal: 'اقرأ النسخة الإنجليزية →',
   },

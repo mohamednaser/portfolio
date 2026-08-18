@@ -38,4 +38,10 @@ export const skillGroups = [
   },
 ] as const;
 
-export const topSkills = ['Security', 'DevOps', 'Agile', 'Fintech', 'Team leadership'] as const;
+export const topSkills = [
+  'Fintech architecture',
+  'Distributed systems',
+  'Scaling under load',
+  'Engineering leadership',
+  'AI-augmented delivery',
+] as const;

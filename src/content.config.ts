@@ -13,8 +13,13 @@ const blog = defineCollection({
     draft: z.boolean().optional().default(false),
     /** Path under /public, e.g. /images/blog/my-post.png */
     coverImage: z.string().optional(),
-    /** SEO / JSON-LD keywords */
+    /** SEO / JSON-LD keywords. Never rendered — see `tags` for the visible chips. */
     keywords: z.array(z.string()).default([]),
+    /**
+     * Short, human-facing topic labels shown on the card and article header.
+     * Kept separate from `keywords` so search phrases stay out of the page body.
+     */
+    tags: z.array(z.string()).default([]),
     /** When true, on-site page is a teaser + outbound links (no full article body). */
     external: z.boolean().optional().default(false),
     mediumUrl: z.string().url().optional(),

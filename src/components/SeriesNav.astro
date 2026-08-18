@@ -1,0 +1,88 @@
+---
+import { defaultLang, type Lang } from '../i18n';
+import { fill, useTranslations } from '../i18n/ui';
+import { blogLang, blogPath } from '../lib/blog';
+import type { SeriesPart, SeriesPosition } from '../lib/series';
+
+interface Props {
+  position: SeriesPosition;
+  lang: Lang;
+  seriesTitle: string;
+}
+
+const { position, lang, seriesTitle } = Astro.props;
+const t = useTranslations(lang);
+const { previous, next, current, total, hubHref } = position;
+
+const label = fill(t.post.seriesPartOf, {
+  n: current.number,
+  total,
+  series: seriesTitle,
+});
+
+/** Arabic is cursive: Latin tracking would sever the joins between letters. */
+const eyebrow =
+  lang === defaultLang
+    ? 'text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400'
+    : 'text-xs text-slate-500 dark:text-slate-400';
+
+/** An untranslated part keeps its English title — isolate it from the RTL run. */
+const isolate = (part: SeriesPart) =>
+  blogLang(part.post) !== lang ? { lang: 'en', dir: 'ltr' as const } : {};
+---
+
+<nav
+  class="mt-14 rounded-xl border border-slate-200 p-6 dark:border-slate-800"
+  aria-label={seriesTitle}
+>
+  <div class="flex flex-wrap items-baseline justify-between gap-3">
+    <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</p>
+    <a
+      href={hubHref}
+      class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+    >
+      {t.post.seriesAllParts}
+    </a>
+  </div>
+
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    {
+      previous && (
+        <a
+          href={blogPath(previous.post, lang)}
+          rel="prev"
+          class="group rounded-lg border border-slate-200 p-4 transition hover:border-emerald-500 dark:border-slate-800 dark:hover:border-emerald-500"
+        >
+          <span class={eyebrow}>{t.post.seriesPrevious}</span>
+          <span
+            class="mt-1 block text-sm font-medium text-slate-900 group-hover:text-emerald-600 dark:text-slate-100 dark:group-hover:text-emerald-400"
+            {...isolate(previous)}
+          >
+            {previous.post.data.title}
+          </span>
+        </a>
+      )
+    }
+    {
+      next && (
+        <a
+          href={blogPath(next.post, lang)}
+          rel="next"
+          class:list={[
+            'group rounded-lg border border-slate-200 p-4 transition hover:border-emerald-500 dark:border-slate-800 dark:hover:border-emerald-500 sm:text-end',
+            // Part 1 has no previous card; keep "next" in the second column.
+            !previous && 'sm:col-start-2',
+          ]}
+        >
+          <span class={eyebrow}>{t.post.seriesNext}</span>
+          <span
+            class="mt-1 block text-sm font-medium text-slate-900 group-hover:text-emerald-600 dark:text-slate-100 dark:group-hover:text-emerald-400"
+            {...isolate(next)}
+          >
+            {next.post.data.title}
+          </span>
+        </a>
+      )
+    }
+  </div>
+</nav>

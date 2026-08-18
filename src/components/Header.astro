@@ -106,12 +106,35 @@ function isActive(href: string, root: boolean): boolean {
 </header>
 
 <script>
-  const btn = document.getElementById('mobile-menu-btn');
-  const menu = document.getElementById('mobile-menu');
-  btn?.addEventListener('click', () => {
-    const open = menu?.classList.toggle('hidden') === false;
-    btn.setAttribute('aria-expanded', String(open));
-    const label = open ? btn.dataset.labelClose : btn.dataset.labelOpen;
-    if (label) btn.setAttribute('aria-label', label);
-  });
+  /*
+   * Rebound on every navigation: the ClientRouter swaps the header DOM but does
+   * not re-run this module, so binding once left the button dead from the second
+   * page onward.
+   */
+  function bindMobileMenu() {
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    if (!btn || !menu || btn.dataset.menuBound === 'true') return;
+    btn.dataset.menuBound = 'true';
+
+    function setOpen(open: boolean) {
+      menu!.classList.toggle('hidden', !open);
+      btn!.setAttribute('aria-expanded', String(open));
+      const label = open ? btn!.dataset.labelClose : btn!.dataset.labelOpen;
+      if (label) btn!.setAttribute('aria-label', label);
+    }
+
+    btn.addEventListener('click', () => {
+      setOpen(menu.classList.contains('hidden'));
+    });
+
+    // Escape closes the menu and returns focus to the control that opened it.
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      btn.focus();
+    });
+  }
+
+  document.addEventListener('astro:page-load', bindMobileMenu);
 </script>

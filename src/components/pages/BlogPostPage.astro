@@ -1,9 +1,12 @@
 ---
 import BlogReadLinks from '../BlogReadLinks.astro';
+import PostToc from '../PostToc.astro';
+import SeriesNav from '../SeriesNav.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { defaultLang, localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
 import { blogLang, blogSlug, type BlogEntry } from '../../lib/blog';
+import { getSeriesPosition } from '../../lib/series';
 import { site, siteMeta } from '../../site.config';
 import { render } from 'astro:content';
 
@@ -36,6 +39,9 @@ const formattedDate = post.data.pubDate.toLocaleDateString(t.post.dateLocale, {
 const mediumAnchor = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 underline dark:text-emerald-400">Medium</a>`;
 const externalHtml = fill(t.post.externalHtml, { medium: mediumAnchor });
 const originalHref = `/blog/${blogSlug(post)}/`;
+
+/** Only the Murabaha parts get prev/next; everything else gets `null`. */
+const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
 ---
 
 <BaseLayout
@@ -120,12 +126,12 @@ const originalHref = `/blog/${blogSlug(post)}/`;
       />
 
       {
-        post.data.keywords.length > 0 && (
-          <ul class="mt-8 flex flex-wrap gap-2" aria-label={t.post.keywords}>
-            {post.data.keywords.map((keyword) => (
+        post.data.tags.length > 0 && (
+          <ul class="mt-8 flex flex-wrap gap-2" aria-label={t.post.topics}>
+            {post.data.tags.map((tag) => (
               <li>
                 <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {keyword}
+                  {tag}
                 </span>
               </li>
             ))}
@@ -133,6 +139,8 @@ const originalHref = `/blog/${blogSlug(post)}/`;
         )
       }
     </header>
+
+    {!isExternal && <PostToc lang={lang} />}
 
     {
       !isExternal && (
@@ -195,6 +203,16 @@ const originalHref = `/blog/${blogSlug(post)}/`;
             </p>
           </div>
         </aside>
+      )
+    }
+
+    {
+      seriesPosition && (
+        <SeriesNav
+          position={seriesPosition}
+          lang={lang}
+          seriesTitle={t.series.title}
+        />
       )
     }
 

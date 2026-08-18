@@ -106,7 +106,7 @@ import '../../styles/posts/murabaha-scaling.css';
     — 44 of 45 GB. Not a race condition, not a deadlock. A full disk.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-1.webp" alt="A dense traffic jam, cars barely moving."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-1.webp" width="320" height="180" alt="A dense traffic jam, cars barely moving."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The order pipeline, late 2024: every order waiting for every other order (dramatization).</figcaption>
   </figure>
@@ -145,7 +145,7 @@ import '../../styles/posts/murabaha-scaling.css';
   </div>
 
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg"
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg" width="1376" height="768"
          alt="A conceptual abstract illustration of a database table experiencing 'gap locks' causing deadlocks."
          style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
     <figcaption>InnoDB's REPEATABLE READ isolation level locks not just rows, but the gaps between them, causing transactions to tangle into deadlocks under high concurrency.</figcaption>
@@ -275,7 +275,7 @@ import '../../styles/posts/murabaha-scaling.css';
     backed up, and whole orders stood still — waiting not for money or commodities, but for paperwork.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-2.webp" alt="A letterpress printing machine producing one card at a time."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-2.webp" width="400" height="266" alt="A letterpress printing machine producing one card at a time."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The certificate press at work: one document at a time, on the critical path of every order.</figcaption>
   </figure>
@@ -537,7 +537,7 @@ private function toMinorUnits(float $value): int
     every job decided whether it was allowed to run. A list of a hundred orders asked it a hundred times.</p>
   </div>
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-3.webp" alt="Two identical Spider-Men pointing at each other."
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-3.webp" width="400" height="223" alt="Two identical Spider-Men pointing at each other."
          style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
     <figcaption>The moment we traced the 228,291 queries back to their source.</figcaption>
   </figure>

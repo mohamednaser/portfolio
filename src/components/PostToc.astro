@@ -1,0 +1,131 @@
+---
+import { type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+{/*
+  Built client-side: these article bodies are imported `.astro` components, so
+  their headings never reach the MDX AST and `render()` returns no `headings`.
+  Stays `hidden` until the script finds at least two — a one-item contents list
+  is worse than none.
+*/}
+<nav id="post-toc" class="post-toc mt-10" aria-labelledby="post-toc-label" hidden>
+  <details id="post-toc-details" class="rounded-xl border border-slate-200 dark:border-slate-800">
+    <summary
+      id="post-toc-label"
+      class="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-slate-900 marker:content-none dark:text-slate-100"
+    >
+      {t.post.onThisPage}
+    </summary>
+    <ol id="post-toc-list" class="space-y-2 px-5 pb-4 text-sm"></ol>
+  </details>
+</nav>
+
+<style>
+  /* The disclosure triangle is replaced by the +/− affordance below. */
+  .post-toc summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .post-toc summary::after {
+    content: '+';
+    float: inline-end;
+    font-weight: 400;
+  }
+
+  .post-toc details[open] > summary::after {
+    content: '−';
+  }
+</style>
+
+<script>
+  const HEADING_SELECTOR = 'article h2';
+
+  /**
+   * Latin headings get a readable anchor. Anything else falls back to an index:
+   * an Arabic heading like "الحالة 01 · …" would otherwise reduce to "01", which
+   * is not a valid CSS identifier.
+   */
+  function slugify(text: string, index: number): string {
+    const slug = text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return /^[a-z]/.test(slug) ? slug : `section-${index + 1}`;
+  }
+
+  function buildToc() {
+    const nav = document.getElementById('post-toc');
+    const list = document.getElementById('post-toc-list');
+    const details = document.getElementById('post-toc-details') as HTMLDetailsElement | null;
+    if (!nav || !list || !details) return;
+
+    list.replaceChildren();
+    const headings = [...document.querySelectorAll<HTMLHeadingElement>(HEADING_SELECTOR)];
+
+    // One entry is not a table of contents; leave the block hidden.
+    if (headings.length < 2) {
+      nav.hidden = true;
+      return;
+    }
+
+    const used = new Set<string>();
+    headings.forEach((heading, index) => {
+      const text = heading.textContent?.trim() ?? '';
+      if (!heading.id) {
+        let id = slugify(text, index);
+        while (used.has(id)) id = `${id}-${index}`;
+        heading.id = id;
+      }
+      used.add(heading.id);
+
+      const link = document.createElement('a');
+      link.href = `#${heading.id}`;
+      link.textContent = text;
+      link.className =
+        'block text-slate-600 transition-colors hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 aria-[current=true]:font-medium aria-[current=true]:text-emerald-600 dark:aria-[current=true]:text-emerald-400';
+
+      const item = document.createElement('li');
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+
+    nav.hidden = false;
+    // Open where vertical space is cheap; collapsed on phones.
+    details.open = window.matchMedia('(min-width: 1024px)').matches;
+
+    trackActiveHeading(headings, list);
+  }
+
+  /** Marks the heading currently at the top of the viewport. */
+  function trackActiveHeading(headings: HTMLHeadingElement[], list: HTMLElement) {
+    const links = [...list.querySelectorAll('a')];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = entry.target.id;
+          links.forEach((link) => {
+            link.setAttribute(
+              'aria-current',
+              link.getAttribute('href') === `#${id}` ? 'true' : 'false',
+            );
+          });
+        }
+      },
+      { rootMargin: '-80px 0px -70% 0px' },
+    );
+
+    headings.forEach((heading) => observer.observe(heading));
+  }
+
+  document.addEventListener('astro:page-load', buildToc);
+</script>

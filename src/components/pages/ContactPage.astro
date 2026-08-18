@@ -26,7 +26,10 @@ const [ctaBefore, ctaAfter = ''] = t.contact.emailCta.split('%email%');
       {siteMeta[lang].location}
     </p>
 
-    <a href={mailto} class="btn-primary mt-10">{ctaBefore}<bdi>{site.email}</bdi>{ctaAfter}</a>
+    <div class="mt-10 flex flex-wrap justify-center gap-4">
+      <a href={mailto} class="btn-primary">{ctaBefore}<bdi>{site.email}</bdi>{ctaAfter}</a>
+      <a href="/cv.pdf" class="btn-secondary" download>{t.about.downloadCv}</a>
+    </div>
 
     <section class="mt-14" aria-labelledby="social-heading">
       <h2 id="social-heading" class="text-lg font-semibold text-slate-900 dark:text-slate-50">

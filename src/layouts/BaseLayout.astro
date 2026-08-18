@@ -79,6 +79,10 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
     }
     <script is:inline>
       (function () {
+        // Paired with `html.js .fade-up` in global.css: scroll-reveal only hides
+        // content once we know a script is running to reveal it again.
+        document.documentElement.classList.add('js');
+
         const storageKey = 'mnaser-theme';
 
         function applyTheme(isDark) {
@@ -134,111 +138,129 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
       {t.common.skipToContent}
     </a>
     <Header lang={lang} />
-    <main id="main">
+    <main id="main" data-copy-label={t.common.copyCode} data-copied-label={t.common.copied}>
       <slot />
     </main>
     <Footer lang={lang} />
     <script>
       import mediumZoom from 'medium-zoom';
+      import type { Zoom } from 'medium-zoom';
+
+      const COPY_ICON =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>';
+      const DONE_ICON =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+
+      /** Detached before each re-init: a new instance per navigation leaks handlers. */
+      let zoom: Zoom | null = null;
 
       function initZoom() {
-        // Select all images in the main content area
-        // Customize the selector if needed (e.g., '.lynk-post img')
-        const images = document.querySelectorAll('main img');
-        mediumZoom(images, {
+        zoom?.detach();
+        zoom = mediumZoom(document.querySelectorAll('main img'), {
           margin: 24,
           background: 'rgba(0, 0, 0, 0.8)',
         });
       }
 
-      // Initialize on load
-      initZoom();
-
-      // Re-initialize after Astro view transitions
-      document.addEventListener('astro:page-load', initZoom);
-
       function initScrollAnimations() {
+        const targets = document.querySelectorAll('.fade-up:not(.is-visible)');
+        if (!targets.length) return;
+
+        // Reduced-motion users get the content outright; the CSS drops the
+        // transition, so observing would only add work for no visible effect.
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          targets.forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+
         const observer = new IntersectionObserver(
           (entries) => {
-            let delayCount = 0;
+            let shown = 0;
             entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                // Add staggered delay based on order of appearance in viewport
-                (entry.target as HTMLElement).style.transitionDelay = `${delayCount * 100}ms`;
-                entry.target.classList.add('is-visible');
-                observer.unobserve(entry.target);
-                delayCount++;
-                
-                // Reset transition delay after animation completes so it doesn't affect other states
-                setTimeout(() => {
-                  (entry.target as HTMLElement).style.transitionDelay = '0ms';
-                }, 1000);
-              }
+              if (!entry.isIntersecting) return;
+              const el = entry.target as HTMLElement;
+              // Stagger only within a batch; the delay is cleared on transitionend
+              // so it never leaks into a later hover or theme transition.
+              el.style.transitionDelay = `${shown * 100}ms`;
+              el.addEventListener(
+                'transitionend',
+                () => {
+                  el.style.transitionDelay = '';
+                },
+                { once: true },
+              );
+              el.classList.add('is-visible');
+              observer.unobserve(el);
+              shown++;
             });
           },
-          { rootMargin: '0px 0px -50px 0px', threshold: 0.1 }
+          { rootMargin: '0px 0px -50px 0px', threshold: 0.1 },
         );
 
-        document.querySelectorAll('.fade-up').forEach((el) => {
-          observer.observe(el);
-        });
+        targets.forEach((el) => observer.observe(el));
       }
 
-      // Initialize on load and after transitions
-      initScrollAnimations();
-      document.addEventListener('astro:page-load', initScrollAnimations);
-
-      // --- 1. Reading Progress Bar ---
       function updateReadingProgress() {
-        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const bar = document.getElementById('reading-progress');
+        if (!bar) return;
         const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        const scrolled = (winScroll / height) * 100;
-        const progressBar = document.getElementById('reading-progress');
-        if (progressBar) {
-          progressBar.style.width = scrolled + '%';
-        }
+        const scrolled = height > 0 ? (window.scrollY / height) * 100 : 0;
+        bar.style.width = `${scrolled}%`;
       }
-      window.addEventListener('scroll', updateReadingProgress);
 
-      // --- 4. Interactive Copy Buttons on Code Blocks ---
       function initCopyButtons() {
-        const blocks = document.querySelectorAll('pre');
-        blocks.forEach((block) => {
-          // Prevent adding multiple buttons if initialized multiple times
-          if (block.parentNode && (block.parentNode as Element).classList.contains('code-block-wrapper')) return;
+        const main = document.getElementById('main');
+        const copyLabel = main?.dataset.copyLabel ?? 'Copy code';
+        const copiedLabel = main?.dataset.copiedLabel ?? 'Copied';
+
+        document.querySelectorAll('main pre').forEach((block) => {
+          const parent = block.parentElement;
+          if (parent?.classList.contains('code-block-wrapper')) return;
 
           const wrapper = document.createElement('div');
           wrapper.className = 'code-block-wrapper group relative';
-          
-          if (block.parentNode) {
-            block.parentNode.insertBefore(wrapper, block);
-          }
+          parent?.insertBefore(wrapper, block);
           wrapper.appendChild(block);
 
           const button = document.createElement('button');
+          button.type = 'button';
           button.className =
-            'copy-btn absolute right-2 top-2 rounded-md border border-slate-700 bg-slate-800 p-1.5 text-slate-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-slate-700 hover:text-white dark:border-slate-600 dark:bg-slate-900';
-          button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>';
-          
+            'copy-btn absolute end-2 top-2 rounded-md border border-slate-700 bg-slate-800 p-1.5 text-slate-400 opacity-0 transition-all focus-visible:opacity-100 group-hover:opacity-100 hover:bg-slate-700 hover:text-white dark:border-slate-600 dark:bg-slate-900';
+          button.setAttribute('aria-label', copyLabel);
+          button.title = copyLabel;
+          button.innerHTML = COPY_ICON;
+
           button.addEventListener('click', async () => {
-            const code = block.querySelector('code');
-            if (!code) return;
+            const code = block.querySelector('code') ?? block;
             try {
-              await navigator.clipboard.writeText(code.innerText);
-              button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
-              setTimeout(() => {
-                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>';
-              }, 2000);
-            } catch (err) {
-              console.error('Failed to copy text: ', err);
+              await navigator.clipboard.writeText((code as HTMLElement).innerText);
+            } catch {
+              return;
             }
+            button.innerHTML = DONE_ICON;
+            button.setAttribute('aria-label', copiedLabel);
+            button.title = copiedLabel;
+            setTimeout(() => {
+              button.innerHTML = COPY_ICON;
+              button.setAttribute('aria-label', copyLabel);
+              button.title = copyLabel;
+            }, 2000);
           });
+
           wrapper.appendChild(button);
         });
       }
 
-      initCopyButtons();
-      document.addEventListener('astro:page-load', initCopyButtons);
+      window.addEventListener('scroll', updateReadingProgress, { passive: true });
+
+      // `astro:page-load` fires on the first load as well as after every view
+      // transition, so calling the initializers here alone avoids double-init.
+      document.addEventListener('astro:page-load', () => {
+        initZoom();
+        initScrollAnimations();
+        initCopyButtons();
+        updateReadingProgress();
+      });
     </script>
   </body>
 </html>

@@ -34,7 +34,9 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
 <BaseLayout lang={lang}>
   <div class="relative overflow-hidden">
     <div class="hero-mesh"></div>
-    <section class="fade-up relative z-10 mx-auto max-w-5xl px-6 py-16 sm:py-24">
+    <!-- No `fade-up` here: the hero is the LCP element, and gating it on the
+         scroll-reveal script delays first paint of the page's main content. -->
+    <section class="relative z-10 mx-auto max-w-5xl px-6 py-16 sm:py-24">
       <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
       <div>
         <p

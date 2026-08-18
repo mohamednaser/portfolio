@@ -2,7 +2,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
-import { blogLang, blogPath, blogSlug, getBlogPosts } from '../../lib/blog';
+import { blogLang, blogPath } from '../../lib/blog';
+import { getSeriesParts } from '../../lib/series';
 
 interface Props {
   lang: Lang;
@@ -11,16 +12,8 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
-const ORDER = [
-  'murabaha-as-a-state-machine',
-  'mysql-under-load-sharia-compliant-pipeline',
-  'laravel-queue-workers-regulated-trade-pipeline',
-];
-
-const posts = await getBlogPosts(lang);
-const parts = ORDER.map((slug) =>
-  posts.find((post) => blogSlug(post) === slug),
-).filter((post): post is NonNullable<typeof post> => Boolean(post));
+/** Order and numbering are shared with the per-article prev/next navigation. */
+const parts = await getSeriesParts(lang);
 ---
 
 <BaseLayout
@@ -48,7 +41,7 @@ const parts = ORDER.map((slug) =>
 
     <ol class="mt-12 space-y-6">
       {
-        parts.map((post, i) => (
+        parts.map(({ post, number }) => (
           <li>
             <a
               href={blogPath(post, lang)}
@@ -70,7 +63,7 @@ const parts = ORDER.map((slug) =>
                 dir={blogLang(post) !== lang ? 'ltr' : undefined}
               >
                 <p class="font-mono text-xs uppercase tracking-widest text-slate-500">
-                  {fill(t.series.part, { n: i + 1 })}
+                  {fill(t.series.part, { n: number })}
                   {post.data.readingTime && (
                     <span class="ms-2">· {post.data.readingTime}</span>
                   )}
