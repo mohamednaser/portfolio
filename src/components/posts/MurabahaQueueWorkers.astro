@@ -52,7 +52,7 @@ import '../../styles/posts/murabaha-queue-workers.css';
 </nav>
 
 <section class="era" id="case-11">
-  <div class="era-head"><h2>Case 11 · The seven seconds between the jobs</h2></div>
+  <div class="era-head"><h2>Case 07 · The Ghost Latency Between Jobs</h2></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -219,8 +219,90 @@ public function up(): void
   </div>
 </section>
 
+<section class="era" id="case-10">
+  <div class="era-head"><h2>Case 08 · Idempotency in a Violent Environment</h2></div>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">failed job ≠ failed transaction</span></p>
+  <div class="incident">
+    <span class="tag">The problem</span>
+    <p>Everything in this platform is a job — every step transition, every certificate, every settlement.
+    That is what makes 5,000 concurrent orders possible, and it carries a sober corollary: whatever happens
+    to a job happens to a customer's transaction.</p>
+    <p>In the early platform, a job's life could end three ways, and all of them were bad. A failed job
+    simply <em>died</em> — there was no retry, so a database hiccup lasting one second froze a customer's
+    Murabaha until an engineer went in by hand. Nothing stopped two workers on two different servers from
+    grabbing the same work — and <span class="k-rule">in a system that moves money and transfers ownership, doing something twice
+    is as dangerous as not doing it at all.</span> And when we first added locks to prevent that, the locks never
+    expired: a worker killed mid-job left its lock behind forever, blocking the order with a "max attempts
+    exceeded" error whose cause you could never find — because the cause was a ghost.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">What we built</span>
+    <p>The platform we run now starts from a different assumption: <em>every job will eventually die
+    mid-flight</em> — the work is making that boring. Jobs retry on their own, waiting 1, 2, 3, 5, then 30
+    seconds between attempts<a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-retries">retries ↓</a>: patient enough for a transient fault to clear, quick enough that the order
+    barely notices. If we had to name the single most important mechanism behind zero failed transactions,
+    it is this one — most failures are temporary, and a platform that retries well simply does not lose
+    them.</p>
+    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong><a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-unique">unique jobs ↓</a> — Laravel's
+    <code>ShouldBeUnique</code>, backed by the Redis lock store — so a duplicate
+    dispatch from any server is refused at the queue itself, not caught after the damage. The locks learned
+    to die: they expire shortly after the worker timeout, so a crashed worker's lock heals on its own, and
+    an overlapping dispatch politely re-queues after a short delay instead of burning through its retries on
+    the spot. Even deploys stopped being a hazard — a worker being shut down now finishes or hands back its
+    job instead of taking it to the grave.</p>
+<div class="codebox">
+  <span class="cap">The ownership-transfer job — unique per order, with escalating backoff</span>
+  <pre><code>class TransferOwnershipToCustomer implements ShouldBeUnique, ShouldQueue
+&#123;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, StopsOrderOnJobFailure;
+
+    public $tries = 5;
+
+    public $backoff = [1, 2, 3, 5, 30];</code></pre>
+</div>
+
+<div class="codebox">
+  <span class="cap">Queue middleware — WithoutOverlapping with locks that expire</span>
+  <pre><code>/**
+ * WithoutOverlapping with safe defaults.
+ *
+ * Laravel's WithoutOverlapping defaults to expiresAfter = 0, meaning the lock
+ * never expires. When a worker is killed mid-job (timeout, OOM, deploy) the
+ * lock is orphaned forever, permanently blocking that order's job and producing
+ * MaxAttemptsExceededException with no underlying error. These defaults make a
+ * dead worker's lock self-heal:
+ *
+ * - expiresAfter: comfortably above the worker --timeout (120s) so a legitimately
+ *   long-running job keeps its lock, while a crashed worker's lock is reclaimed.
+ * - releaseAfter: re-queue an overlapping dispatch after a delay instead of
+ *   spinning and burning all retry attempts instantly.
+ */
+class PreventOverlapping extends WithoutOverlapping
+&#123;
+    public function __construct($key = '', $releaseAfter = 10, $expiresAfter = 180)
+    &#123;
+        parent::__construct($key, $releaseAfter, $expiresAfter);
+    &#125;
+&#125;</code></pre>
+</div>
+
+  </div>
+  <div class="metric">
+    <span class="tag">The result</span>
+    A failed job stopped meaning a failed transaction. Transient faults heal themselves within seconds, a
+    duplicate dispatch is refused at the queue instead of repaired after the damage, and dead workers clean
+    up after themselves. Uniqueness here is a lock, not a law of physics — it is only ever as good as the
+    lock store and the expiry window — which is why the money-moving steps also carry their own duplicate
+    check on the order reference underneath it. (That check is the very lookup that turns out to need an
+    index in Part&nbsp;3, Case&nbsp;<a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">11</a>.) The handful of
+    orders per 5,000-run that still strand — the genuinely non-transient failures — are exactly what the
+    audited admin "Force Forward" tooling exists for. The 99.9%+ completion rates in this article are not
+    the absence of failures. They are failures, handled.
+  </div>
+</section>
+
 <section class="era" id="case-12">
-  <div class="era-head"><h2>Case 12 · Running a fleet, not a server</h2></div>
+  <div class="era-head"><h2>Case 09 · Designing Dedicated Worker Topologies</h2></div>
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -377,7 +459,7 @@ fi</code></pre>
 </section>
 
 <section class="era" id="case-13">
-  <div class="era-head"><h2>Case 13 · The workers were running last month's code</h2></div>
+  <div class="era-head"><h2>Case 10 · The Phantom Deployments</h2></div>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
@@ -440,172 +522,7 @@ fi</code></pre>
   </div>
 </section>
 
-<section class="era" id="case-14">
-  <div class="era-head"><h2>Case 14 · The boring failures</h2></div>
-  <p class="impact-pill"><span class="lab">Impact</span><span class="val">surprises moved out of production</span></p>
-  <div class="incident">
-    <span class="tag">The problem</span>
-    <p>Not every scale failure is clever. The stress-test program kept tripping over limits nobody had ever
-    written down: a test server's disk at 98% (December 2024), and stress-test environments filling their
-    disks with logs again in March 2026. A <code>smallint</code> column that overflowed when test data
-    pushed past <strong>32,000 registered companies</strong> — the database equivalent of an odometer
-    rolling over. The default 60-second job timeout. The day the full worker fleet exhausted the database's
-    connections. Deploys that killed whatever jobs were running.</p>
-  </div>
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-2.webp" width="340" height="191" alt="The 'This is fine' dog sitting calmly in a burning room with a cup of coffee."
-         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>The platform at 98% disk usage, moments before our first stuck-orders investigation.</figcaption>
-  </figure>
 
-  <div class="attempt">
-    <span class="tag">What we tried</span>
-    <p>Each one got the boring fix it deserved: standardized log rotation, wider column types, explicit
-    connection budgets per environment (smaller environments hold ~28 database connections instead of ~86 at
-    full scale), graceful worker shutdown. But the real fix is the habit around them: the stress tests run
-    <span class="k-rule">daily precisely so that the next limit nobody wrote down fails in a test, in
-    pre-production, at dawn — instead of in production, at noon, with customers watching</span>.</p>
-  </div>
-  <div class="metric">
-    <span class="tag">The result</span>
-    The last classes of surprise moved from production incidents to test findings. What still strands at
-    5,000-order scale — a handful of orders per campaign — is handled operationally: an audited per-step
-    "Force Forward" action for admins, with automatic order expiry as the second safety net.
-  </div>
-</section>
-
-<section class="era" id="case-15">
-  <div class="era-head"><h2>Case 15 · Two machines instead of three</h2></div>
-  <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 nodes → 2 · concurrency unchanged</span></p>
-  <div class="incident">
-    <span class="tag">The problem</span>
-    <p>By August 2026 the case for three application servers in pre-production was mostly historical.
-    Sizing them down was the easy part. The surprise was finding out what they had been doing.</p>
-    <p>One node was serving <strong>100% of the HTTP traffic</strong>. The second node's access log had been
-    empty since February. The third received nothing but 404s. "Three web nodes" was a fiction: two of them
-    had been worker-only for six months and nobody had noticed, because the workers kept working and the
-    site kept answering.</p>
-    <p>The cause was a few lines of web-server config. The load balancer's health check is a bare request
-    for <code>/</code> with no host header, so it lands on whichever virtual host the server treats as its
-    default. Only one node had a catch-all default vhost — serving a static welcome page — so only that node
-    answered 200. On the others the API's own hostname became the implicit default and returned 404 to a
-    probe that had never asked for it. Permanently unhealthy, permanently out of rotation.</p>
-    <p>Worth noting what that probe does <em>not</em> do: the page it hits is static. It never touches the
-    application. <span class="k-rule">A completely dead app tier would have gone on reporting itself healthy.</span><a class="refmark" href="#ref-healthcheck">health checks ↓</a></p>
-  </div>
-  <div class="attempt">
-    <span class="tag">What we tried</span>
-    <p>The consolidation was a redistribution, not a reduction. The retiring node's queues were reassigned
-    across the two survivors with <span class="k-win">every queue’s total concurrency held identical</span> — the same
-    122 worker processes, split 66 and 56, weighted so the node that also serves HTTP carries fewer.</p>
-    <p>Three things nearly went wrong and were caught in review rather than in production. The scheduler's
-    profile was attached to the group being retired, so decommissioning it would have silently stopped every
-    scheduled job on the platform; the trigger moved first. Merging two profile groups onto one host would
-    have passed a scale flag twice for the same service — and Compose keeps the last value, quietly halving
-    two queues (Case&nbsp;<a class="caseref" href="#case-12">12</a>). And memory had to be sized by the <strong>rolling-deploy peak rather than the
-    resting fleet</strong>: workers idle at about 82&nbsp;MiB each, but every replica doubles mid-deploy,
-    which put the peak near 11&nbsp;GiB on 8&nbsp;GB boxes. Both nodes were resized to 16&nbsp;GB before
-    anything moved.</p>
-  </div>
-  <div class="metric">
-    <span class="tag">The result</span>
-    <p>Two nodes now run the same 122 worker processes at the concurrency three used to, on an identical
-    image, with every queue depth at zero — and the node that had been invisible to the load balancer since
-    February is back in rotation serving traffic.</p>
-    <p>One honest caveat, since this series keeps the scars visible: the worker split is still the
-    asymmetric 66/56 that was drawn on the assumption that the second node had no web tier, and the
-    three-node baseline it will be compared against had one node absorbing all the traffic. Any timing
-    comparison across that boundary conflates two changes at once. The next run is the one that will
-    mean something.</p>
-  </div>
-</section>
-
-<section class="era" id="lessons">
-  <div class="era-head"><h2>What two years taught us</h2></div>
-  <ul style="margin-top:1rem;">
-    <li><strong>Sum your job times before optimizing your job code.</strong> 0.52s of work inside a 7.5s step
-      means the code is innocent; the queue topology is the product (Case <a class="caseref" href="#case-11">11</a>).</li>
-    <li><strong>Every fix moves the bottleneck.</strong> Removing backpressure downstream will expose the next
-      unindexed query upstream. Budget for the second-order effect before celebrating the first (Case <a class="caseref" href="#case-11">11</a>).</li>
-    <li><strong>Every job will eventually die mid-flight.</strong> Retries with escalating backoff,
-      per-order uniqueness, and self-expiring locks turned "failed job" from a stuck transaction into a
-      non-event — retrying well is how you reach zero failed transactions (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>).</li>
-    <li><strong>Measurement must precede tuning.</strong> Per-step durations, weekly percentiles, and timing
-      logs turned arguments into diffs. Our worst regression was caught in one week because a baseline
-      existed (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">08</a>).</li>
-    <li><strong>The best optimization is not doing the work.</strong> Two engineering attempts made PDF
-      generation faster; one business conversation made most of it unnecessary (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">04</a>).</li>
-    <li><strong>A worker fleet needs an owner.</strong> Twenty-two queues and 122 worker processes only stay
-      sane if every count is justified in code review and removed as deliberately as it was added
-      (Case <a class="caseref" href="#case-12">12</a>).</li>
-    <li><strong>A deploy that only verifies the web tier is not a deploy.</strong> Workers ran a stale
-      image — and a stale environment inside it — for weeks while every release reported success
-      (Case <a class="caseref" href="#case-13">13</a>).</li>
-    <li><strong>Health checks lie by default.</strong> A probe that never touches your application will
-      call a dead application healthy, and a node that has been out of rotation for six months looks
-      exactly like a node doing its job (Case <a class="caseref" href="#case-15">15</a>).</li>
-    <li><strong>Scale failures are usually boring.</strong> Full disks (twice), a smallint overflow, a default
-      60-second timeout, and log volume did as much damage as any deadlock (Case <a class="caseref" href="#case-14">14</a>).</li>
-    <li><strong>Isolation levels and locks are product decisions in disguise.</strong> READ COMMITTED, dropped
-      foreign keys, trigger bypasses, and a deliberately single-threaded queue were all conscious trades of
-      theoretical strictness for real-world correctness under load (Part 2, Cases <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">02</a> and <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">09</a>).</li>
-    <li><strong>Keep the failed experiments on the record.</strong> The caching that hurt, the fix that
-      regressed, the timeout raise that only bought time — the retries are where the understanding came
-      from.</li>
-    <li><strong>The last 0.1% needs an operational answer, not a code one.</strong> At 5,000 orders, 99.9%
-      success still strands five orders. Force-forward tooling and auto-expiry close the loop (Case <a class="caseref" href="#case-14">14</a>).</li>
-  </ul>
-  <p>
-    Ten orders once broke the platform. Today, five thousand are a daily routine — and the same discipline
-    that got us here (measure, split, index, budget, re-measure) is already pointed at the next order of
-    magnitude.
-  </p>
-</section>
-
-<section class="refs" id="further-reading">
-  <h2>Further reading</h2>
-  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
-  <ul>
-    <li id="ref-queues"><strong>Workers, connections and queues</strong> (Cases <a class="caseref" href="#case-11">11</a>, <a class="caseref" href="#case-12">12</a>) — the vocabulary this whole part
-      is built on, including why one worker process serves one queue list at a time:
-      <a href="https://laravel.com/docs/12.x/queues">Laravel queues</a>.</li>
-    <li id="ref-unique"><strong>Uniqueness is a lock, not a guarantee</strong> (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) — what
-      <code>ShouldBeUnique</code> does and, importantly, what it does not promise if the lock expires:
-      <a href="https://laravel.com/docs/12.x/queues#unique-jobs">unique jobs</a>. The self-expiring locks used elsewhere in the flow
-      are <a href="https://laravel.com/docs/12.x/cache#atomic-locks">atomic locks</a>.</li>
-    <li id="ref-retries"><strong>Retries, backoff, and why jitter matters</strong> (Part 2, Case <a class="caseref" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) —
-      <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">Laravel's failed-job handling</a> for the mechanics, and
-      the <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">AWS
-      Builders' Library on timeouts, retries and backoff with jitter</a> for why synchronised retries
-      make an overloaded system worse.</li>
-    <li id="ref-deploy"><strong>Deploying without killing in-flight jobs</strong> (Case <a class="caseref" href="#case-13">13</a>) — why a worker keeps running
-      old code until it is told not to: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">queue workers and
-      deployment</a>.</li>
-    <li id="ref-horizon"><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
-      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case <a class="caseref" href="#case-12">12</a> for you.</li>
-    <li id="ref-brpop"><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
-      a Redis queue: <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
-    <li id="ref-queue-wait"><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case <a class="caseref" href="#case-11">11</a>) — the difference
-      between service time and queue wait, and how to find saturation:
-      <a href="https://www.brendangregg.com/usemethod.html">Brendan Gregg's USE method</a>. For why
-      adding workers eventually stops helping — and then hurts — see Neil Gunther's
-      <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
-      Law</a>.</li>
-    <li id="ref-connections"><strong>Sizing processes against a connection ceiling</strong> (Case <a class="caseref" href="#case-14">14</a>) — the knob that was
-      unbounded, and the ceiling it ran into:
-      <a href="https://www.php.net/manual/en/install.fpm.configuration.php">PHP-FPM process manager
-      configuration</a> and MySQL's
-      <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a>.</li>
-    <li id="ref-replicas"><strong>Declaring replica counts</strong> (Case <a class="caseref" href="#case-12">12</a>) — how many copies of a service run,
-      whether that is declared in the compose file or passed as a scale flag at deploy time:
-      <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose deploy specification</a>.</li>
-    <li id="ref-healthcheck"><strong>Health checks that touch the application</strong> (Case <a class="caseref" href="#case-15">15</a>) — a probe that only proves a
-      port is open will call a dead application healthy:
-      <a href="https://microservices.io/patterns/observability/health-check-api.html">health check API
-      pattern</a>, and <a href="https://12factor.net/disposability">12-factor disposability</a> for why a
-      worker must survive being killed mid-job.</li>
-  </ul>
-</section>
 
 <div class="next">
   <span class="tag">The rest of the series</span>
