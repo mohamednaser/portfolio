@@ -15,13 +15,13 @@ import '../../styles/posts/murabaha-queue-workers.css';
 
 <div class="prev">
   <span class="tag">Earlier in this series</span>
-  <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> — what LYNK is, how a
-  commodity Murabaha actually works step by step, and the two goals that frame everything: maximum
-  concurrent transactions, with full Sharia validity as a hard constraint.<br>
-  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · MySQL Under Load in a Sharia-Compliant Pipeline</a></strong> — the ten
-  battles fought in the code and the database, from <strong>4-of-10 stuck</strong> to <strong>99.94% of
-  5,200 orders</strong>.
+  <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong><br>
+  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · MySQL Under Load in a Sharia-Compliant Pipeline</a></strong>
 </div>
+
+<p class="lede">
+  Fixing the database in Part 2 meant we could finally push real volume through the pipeline. But volume doesn't just test your data layer; it tests your queue architecture. We thought we had enough workers. We were wrong. Here is how our infrastructure cracked under pressure, and how we rebuilt it.
+</p>
 
 <p>
   Part 2 ends where the code stops being the problem. Every case in it was a fix you could point at in a
