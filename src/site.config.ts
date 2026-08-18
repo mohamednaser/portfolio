@@ -3,9 +3,9 @@ import type { Lang } from './i18n';
 /** Locale-independent facts: URLs, handles, assets. */
 export const site = {
   name: 'Mohamed Naser',
-  title: 'Mohamed Naser — Problem Solver | Experienced Developer | AI for Teams',
+  title: 'Mohamed Naser — Technical Lead | Fintech & scalable systems',
   description:
-    'Experienced developer and problem solver across fintech, mobility, and platforms — empowering teams and products with AI. Technical Lead at Lynk; writes on Medium.',
+    "I architect systems that don't blink under pressure—and lead the teams that build them. Technical Lead with 10+ years scaling fintech, mobility, and engineering cultures.",
   url: 'https://mnaser.me',
   email: 'nc_m.naser@hotmail.com',
   location: 'Cairo, Egypt',
@@ -50,9 +50,9 @@ export const siteMeta: Record<Lang, SiteMeta> = {
   },
   ar: {
     name: 'محمد ناصر',
-    title: 'محمد ناصر — حلّال مشكلات | مطوّر خبير | الذكاء الاصطناعي للفرق',
+    title: 'محمد ناصر — قائد تقني | التقنية المالية والأنظمة القابلة للتوسّع',
     description:
-      'مطوّر خبير وحلّال مشكلات في التقنية المالية والتنقّل والمنصّات — أُمكّن الفرق والمنتجات بالذكاء الاصطناعي. قائد تقني في Lynk، وأكتب على Medium.',
+      'أصمم أنظمة لا تنهار تحت الضغط — وأقود الفرق التي تبنيها. قائد تقني بخبرة تزيد عن ١٠ سنوات في قيادة وتوسيع الأنظمة المالية وفرق البرمجيات.',
     location: 'القاهرة، مصر',
     jobTitle: 'قائد تقني',
   },
