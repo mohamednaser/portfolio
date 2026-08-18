@@ -20,6 +20,12 @@ const blog = defineCollection({
     draft: z.boolean().optional().default(false),
     /** Path under /public, e.g. /images/blog/my-post.png */
     coverImage: z.string().optional(),
+    /**
+     * Publication line shown above the title, e.g. "LYNK Engineering · Murabaha
+     * Platform". The series position ("Part 2 of 3") is appended from the series
+     * data rather than written here, so it cannot drift.
+     */
+    kicker: z.string().optional(),
     /** SEO / JSON-LD keywords. Never rendered — see `tags` for the visible chips. */
     keywords: z.array(z.string()).default([]),
     /**

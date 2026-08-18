@@ -1,7 +1,6 @@
 ---
 import BlogReadLinks from '../BlogReadLinks.astro';
 import PostToc from '../PostToc.astro';
-import SeriesNav from '../SeriesNav.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { defaultLang, localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
@@ -32,9 +31,12 @@ const publishedTime = post.data.pubDate.toISOString();
 const modifiedTime = (post.data.updatedDate ?? post.data.pubDate).toISOString();
 const formattedDate = post.data.pubDate.toLocaleDateString(t.post.dateLocale, {
   year: 'numeric',
-  month: 'long',
+  month: 'short',
   day: 'numeric',
 });
+
+/** Publication line above the title; the series part is appended in the markup. */
+const kickerText = post.data.kicker;
 
 const mediumAnchor = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-700 underline dark:text-emerald-400">Medium</a>`;
 const externalHtml = fill(t.post.externalHtml, { medium: mediumAnchor });
@@ -59,33 +61,58 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
   <article class="mx-auto max-w-5xl px-6 py-16 lg:grid lg:grid-cols-[1fr_240px] lg:items-start lg:gap-12">
     <div class="min-w-0 max-w-3xl w-full">
     <header>
-      <time datetime={publishedTime} class="text-sm text-slate-500">
-        {formattedDate}
-        {
-          post.data.readingTime && (
-            <span class="before:mx-2 before:content-['·']">
-              {post.data.readingTime}
-            </span>
-          )
-        }
-      </time>
+      {
+        kickerText && (
+          <p class="text-xs font-medium uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            {kickerText}
+            {seriesPosition && (
+              <>
+                <span aria-hidden="true"> · </span>
+                {/* Underlined, not just coloured: against the slate kicker the
+                    emerald is 1.15:1, so colour alone would not mark it a link. */}
+                <a
+                  href={seriesPosition.hubHref}
+                  class="text-emerald-700 underline underline-offset-2 hover:decoration-2 dark:text-emerald-400"
+                >
+                  {fill(t.post.seriesPartShort, {
+                    n: seriesPosition.current.number,
+                    total: seriesPosition.total,
+                  })}
+                </a>
+              </>
+            )}
+          </p>
+        )
+      }
       <h1
-        class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl"
+        class:list={[
+          'text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl',
+          kickerText ? 'mt-3' : 'mt-0',
+        ]}
         lang={isFallback ? 'en' : undefined}
         dir={isFallback ? 'ltr' : undefined}
       >
         {post.data.title}
       </h1>
-      <p class="mt-3 text-sm text-slate-600 dark:text-slate-400">
-        {t.post.by}
-        <span class="font-medium text-slate-900 dark:text-slate-100"
-          >{meta.name}</span
-        >
-        <span class="before:mx-2 before:content-['·']">{t.post.authorRole}</span
-        >
+
+      {/* One line of metadata rather than a byline block: on a personal site the
+          author is already established, and the bio card closes the article. */}
+      <p class="mt-4 flex flex-wrap items-center gap-x-2 text-sm text-slate-500 dark:text-slate-400">
+        <span class="font-medium text-slate-700 dark:text-slate-300">{meta.name}</span>
+        <span aria-hidden="true">·</span>
+        <time datetime={publishedTime}>{formattedDate}</time>
+        {
+          post.data.readingTime && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{post.data.readingTime}</span>
+            </>
+          )
+        }
       </p>
+
       <p
-        class="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400"
+        class="mt-6 text-lg leading-relaxed text-slate-600 dark:text-slate-400"
         lang={isFallback ? 'en' : undefined}
         dir={isFallback ? 'ltr' : undefined}
       >
@@ -107,38 +134,11 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
         )
       }
 
-      {
-        post.data.coverImage && (
-          <img
-            src={post.data.coverImage}
-            alt={post.data.title}
-            width={800}
-            height={420}
-            class="mt-8 aspect-[1200/630] w-full rounded-xl object-cover"
-            loading="eager"
-          />
-        )
-      }
-
       <BlogReadLinks
         mediumUrl={post.data.mediumUrl}
         linkedinUrl={post.data.linkedinUrl}
-        class="mt-8"
+        class="mt-6"
       />
-
-      {
-        post.data.tags.length > 0 && (
-          <ul class="mt-8 flex flex-wrap gap-2" aria-label={t.post.topics}>
-            {post.data.tags.map((tag) => (
-              <li>
-                <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {tag}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )
-      }
     </header>
 
     {!isExternal && <div class="lg:hidden"><PostToc lang={lang} /></div>}
@@ -163,6 +163,20 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
             set:html={externalHtml}
           />
         </div>
+      )
+    }
+
+    {
+      post.data.tags.length > 0 && (
+        <ul class="mt-12 flex flex-wrap gap-2" aria-label={t.post.topics}>
+          {post.data.tags.map((tag) => (
+            <li>
+              <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                {tag}
+              </span>
+            </li>
+          ))}
+        </ul>
       )
     }
 
@@ -209,11 +223,19 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
 
     {
       seriesPosition && (
-        <SeriesNav
-          position={seriesPosition}
-          lang={lang}
-          seriesTitle={t.series.title}
-        />
+        <p class="mt-12 text-sm text-slate-500 dark:text-slate-400">
+          {fill(t.post.seriesPartOf, {
+            n: seriesPosition.current.number,
+            total: seriesPosition.total,
+            series: t.series.title,
+          })}
+          <a
+            href={seriesPosition.hubHref}
+            class="ms-2 font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            {t.post.seriesAllParts}
+          </a>
+        </p>
       )
     }
 

@@ -161,6 +161,8 @@ const en = {
     onThisPage: 'On this page',
     /** Series footer. `%n%` is the part number, `%total%` the number of parts. */
     seriesPartOf: 'Part %n% of %total% · %series%',
+    /** Compact form for the kicker above the title. */
+    seriesPartShort: 'Part %n% of %total%',
     seriesAllParts: 'All parts',
     seriesPrevious: '← Previous',
     seriesNext: 'Next →',
@@ -337,6 +339,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     back: '→ المدوّنة',
     onThisPage: 'محتويات المقال',
     seriesPartOf: 'الجزء %n% من %total% · %series%',
+    seriesPartShort: 'الجزء %n% من %total%',
     seriesAllParts: 'كل الأجزاء',
     seriesPrevious: 'السابق →',
     seriesNext: '← التالي',

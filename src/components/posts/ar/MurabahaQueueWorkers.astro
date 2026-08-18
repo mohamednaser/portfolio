@@ -9,14 +9,12 @@ import '../../../styles/posts/rtl.css';
 
 <div class="lynk-post">
 
-<p class="kicker">هندسة LYNK · منصّة المرابحة · <a href="/ar/series/scaling-murabaha/">الجزء 3 من 3</a></p>
 <div class="stats">
     <div class="stat"><span class="n">0.52s / 7.5s</span><span class="l">العمل الفعلي داخل خطوة الشراء</span></div>
     <div class="stat"><span class="n">118s → ~0</span><span class="l">انتظار طابور ملكية المقترض</span></div>
     <div class="stat"><span class="n">3 → 122</span><span class="l">عمليات العمّال، يناير 2025 ← اليوم</span></div>
     <div class="stat"><span class="n">3 → 2</span><span class="l">آلات، بالتزامن الكلّي نفسه</span></div>
   </div>
-
 
 <div class="prev">
   <span class="tag">سابقًا في هذه السلسلة</span>
@@ -43,12 +41,6 @@ import '../../../styles/posts/rtl.css';
   و<strong style="color:var(--accent)">بما قالته الأرقام</strong> بعد ذلك.
 </p>
 
-
-<div class="note">
-  <strong>عن هذه الأرقام.</strong> كل رقم في هذه السلسلة مصدره برنامج اختبارات الضغط لدى LYNK في بيئة
-  ما قبل الإنتاج — طلبات اصطناعية على بيانات اختبارية — وليس حركة عملاء، ولا تظهر فيه أي بيانات عملاء
-  إطلاقًا. ولقطات الشاشة من بيئات اختبار. نُشر بعلم LYNK؛ والآراء — وأي أخطاء — تخصّني وحدي.
-</div>
 <nav class="caseindex" aria-label="فهرس الحالات">
   <span class="tag">الحالات الخمس</span>
   <ol>
@@ -342,7 +334,6 @@ else
 fi</code></pre>
 </div>
 
-
   <div class="incident">
     <span class="tag">حيث يعضّ الأسطول</span>
     <p><strong>رايةٌ مكرّرة تنصّف طابورًا بصمت.</strong><a class="refmark" href="#ref-replicas">النسخ ↓</a> فـCompose يحتفظ بالقيمة الأخيرة فقط حين
@@ -599,5 +590,21 @@ fi</code></pre>
       لماذا يجب أن ينجو العامل من قتله في منتصف المهمّة.</li>
   </ul>
 </section>
+
+<div class="next">
+  <span class="tag">بقيّة السلسلة</span>
+  <strong><a href="/ar/blog/murabaha-as-a-state-machine/">الجزء 1 · التمويل الإسلامي للمهندسين: المرابحة بوصفها آلة حالات</a></strong> —
+  الآلة نفسها: الانتقالات التي يجب أن تمرّ بها المرابحة السلعية، ولماذا كل انتقال منها حامل للحكم
+  الشرعي، ولماذا يجب أن يوجد المخزون <strong>وحداتٍ مرمَّزة فرديًّا</strong>.<br>
+  <strong><a href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/">الجزء 2 · MySQL تحت الحِمل في خطّ متوافق مع الشريعة</a></strong> —
+  المعارك العشر التي خيضت في الكود وقاعدة البيانات: الجمود، ومهلات انتظار القفل، وفهرس مفقود، وهجوم
+  حرمان خدمة ذاتي. من <strong>أربعة متعثّرة من عشرة</strong> إلى <strong>99.94% من 5,200 طلب</strong>.
+</div>
+
+<div class="note">
+  <strong>عن هذه الأرقام.</strong> كل رقم في هذه السلسلة مصدره برنامج اختبارات الضغط لدى LYNK في بيئة
+  ما قبل الإنتاج — طلبات اصطناعية على بيانات اختبارية — وليس حركة عملاء، ولا تظهر فيه أي بيانات عملاء
+  إطلاقًا. ولقطات الشاشة من بيئات اختبار. نُشر بعلم LYNK؛ والآراء — وأي أخطاء — تخصّني وحدي.
+</div>
 
 </div>

@@ -6,13 +6,11 @@ import '../../styles/posts/murabaha-scaling.css';
 
 <div class="lynk-post">
 
-<p class="kicker">LYNK Engineering · Murabaha Platform · <a href="/series/scaling-murabaha/">Part 2 of 3</a></p>
 <div class="stats">
     <div class="stat"><span class="n">10 → 5,200</span><span class="l">stress-test scale, Jan 2025 → Apr 2026</span></div>
     <div class="stat"><span class="n">99.94%</span><span class="l">completion at 5,200 orders</span></div>
     <div class="stat"><span class="n">11.8s → 0.26s</span><span class="l">purchase-step average, 2025 → today</span></div>
   </div>
-
 
 <p class="lede">
   In January 2025 we ran ten automated Murabaha orders through the platform. Four of them got stuck.
@@ -62,13 +60,6 @@ import '../../styles/posts/murabaha-scaling.css';
   Linux VMs. Almost every battle in this article is a fight between two of these boxes.</figcaption>
 </figure>
 
-
-<div class="note">
-  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
-  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
-  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
-  the opinions, and any errors, are my own.
-</div>
 <nav class="caseindex" aria-label="Case index">
   <span class="tag">The ten cases</span>
   <ol>
@@ -939,6 +930,13 @@ class PreventOverlapping extends WithoutOverlapping
   the infrastructure half of the story: a purchase step containing <strong>0.52 seconds of work inside 7.5
   seconds</strong>, how three worker containers became <strong>122 processes across 22 queues</strong>, why
   each of those numbers changed, and how the same discipline later took three machines back down to two.
+</div>
+
+<div class="note">
+  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
+  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
+  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
+  the opinions, and any errors, are my own.
 </div>
 
 </div>

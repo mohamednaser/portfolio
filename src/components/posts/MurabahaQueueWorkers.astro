@@ -6,14 +6,12 @@ import '../../styles/posts/murabaha-queue-workers.css';
 
 <div class="lynk-post">
 
-<p class="kicker">LYNK Engineering · Murabaha Platform · <a href="/series/scaling-murabaha/">Part 3 of 3</a></p>
 <div class="stats">
     <div class="stat"><span class="n">0.52s / 7.5s</span><span class="l">real work inside the purchase step</span></div>
     <div class="stat"><span class="n">118s → ~0</span><span class="l">borrower-ownership queue wait</span></div>
     <div class="stat"><span class="n">3 → 122</span><span class="l">worker processes, Jan 2025 → today</span></div>
     <div class="stat"><span class="n">3 → 2</span><span class="l">machines, same total concurrency</span></div>
   </div>
-
 
 <div class="prev">
   <span class="tag">Earlier in this series</span>
@@ -41,13 +39,6 @@ import '../../styles/posts/murabaha-queue-workers.css';
   afterwards.
 </p>
 
-
-<div class="note">
-  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
-  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
-  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
-  the opinions, and any errors, are my own.
-</div>
 <nav class="caseindex" aria-label="Case index">
   <span class="tag">The five cases</span>
   <ol>
@@ -348,7 +339,6 @@ else
 fi</code></pre>
 </div>
 
-
   <div class="incident">
     <span class="tag">Where a fleet bites back</span>
     <p><strong>A duplicate flag silently halves a queue.</strong><a class="refmark" href="#ref-replicas">replicas ↓</a> Compose keeps only the last value when the
@@ -616,5 +606,22 @@ fi</code></pre>
       worker must survive being killed mid-job.</li>
   </ul>
 </section>
+
+<div class="next">
+  <span class="tag">The rest of the series</span>
+  <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —
+  the machine itself: the transitions a commodity Murabaha must pass through, why each one is
+  legally load-bearing, and why stock has to exist as <strong>individually coded units</strong>.<br>
+  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · MySQL Under Load in a Sharia-Compliant Pipeline</a></strong> —
+  the ten battles fought in the code and the database: deadlocks, lock timeouts, a missing index and
+  one self-inflicted DDoS. From <strong>4-of-10 stuck</strong> to <strong>99.94% of 5,200 orders</strong>.
+</div>
+
+<div class="note">
+  <strong>About these numbers.</strong> Every figure in this series comes from LYNK's pre-production
+  stress-test program — synthetic orders against test data — not from customer traffic, and no customer
+  data appears anywhere in it. Screenshots are of test environments. Published with LYNK's knowledge;
+  the opinions, and any errors, are my own.
+</div>
 
 </div>
