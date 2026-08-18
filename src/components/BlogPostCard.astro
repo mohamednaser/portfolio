@@ -68,7 +68,7 @@ const isolateLtr = blogLang(post) !== lang;
           <ul class="mt-4 flex flex-wrap gap-2" aria-label={t.post.topics}>
             {post.data.keywords.slice(0, 5).map((keyword) => (
               <li>
-                <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-800 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200">
                   {keyword}
                 </span>
               </li>

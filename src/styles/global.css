@@ -218,4 +218,30 @@
     opacity: 1;
     transform: translateY(0);
   }
+
+  /* Dynamic Hero Mesh Background */
+  .hero-mesh {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.06), transparent 25%);
+    background-size: 200% 200%;
+    animation: mesh-movement 15s ease-in-out infinite alternate;
+  }
+
+  html.dark .hero-mesh {
+    background: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.03), transparent 25%);
+  }
+
+  @keyframes mesh-movement {
+    0% {
+      background-position: 0% 0%;
+    }
+    100% {
+      background-position: 100% 100%;
+    }
+  }
 }

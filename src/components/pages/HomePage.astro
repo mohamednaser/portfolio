@@ -32,8 +32,10 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
 ---
 
 <BaseLayout lang={lang}>
-  <section class="fade-up mx-auto max-w-5xl px-6 py-16 sm:py-24">
-    <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
+  <div class="relative overflow-hidden">
+    <div class="hero-mesh"></div>
+    <section class="fade-up relative z-10 mx-auto max-w-5xl px-6 py-16 sm:py-24">
+      <div class="grid items-center gap-12 lg:grid-cols-[1fr_280px]">
       <div>
         <p
           class:list={[
@@ -70,6 +72,7 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
       />
     </div>
   </section>
+  </div>
 
   <section class="fade-up mx-auto max-w-5xl px-6 py-16">
     <h2 class="section-heading">{t.home.selectedProjects}</h2>

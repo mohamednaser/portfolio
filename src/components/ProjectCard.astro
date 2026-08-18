@@ -46,7 +46,7 @@ const pillTags = tags.length > 0 ? tags : stack.slice(0, 4);
     pillTags.length > 0 && (
       <ul class="mt-4 flex flex-wrap gap-2">
         {pillTags.map((tag) => (
-          <li class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+          <li class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800 transition-colors hover:bg-emerald-100 hover:text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900 dark:hover:text-emerald-200">
             {tag}
           </li>
         ))}
