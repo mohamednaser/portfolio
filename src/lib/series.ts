@@ -9,7 +9,6 @@ import { localizePath, type Lang } from '../i18n';
 export const SERIES_SLUGS = [
   'murabaha-as-a-state-machine',
   'mysql-under-load-sharia-compliant-pipeline',
-  'laravel-queue-workers-regulated-trade-pipeline',
 ] as const;
 
 export const SERIES_PATH = '/series/scaling-murabaha';

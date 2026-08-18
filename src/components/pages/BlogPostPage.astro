@@ -6,7 +6,6 @@ import { defaultLang, localizePath, type Lang } from '../../i18n';
 import { fill, useTranslations } from '../../i18n/ui';
 import { blogLang, blogSlug, type BlogEntry } from '../../lib/blog';
 import { getSeriesPosition } from '../../lib/series';
-import { getSeriesPosition as getSeriesPositionV2 } from '../../lib/seriesV2';
 import { site, siteMeta } from '../../site.config';
 import { render } from 'astro:content';
 
@@ -44,9 +43,7 @@ const externalHtml = fill(t.post.externalHtml, { medium: mediumAnchor });
 const originalHref = `/blog/${blogSlug(post)}/`;
 
 /** Only the Murabaha parts get prev/next; everything else gets `null`. */
-const seriesPositionV1 = isExternal ? null : await getSeriesPosition(post, lang);
-const seriesPositionV2 = isExternal ? null : await getSeriesPositionV2(post, lang);
-const seriesPosition = seriesPositionV1 || seriesPositionV2;
+const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
 ---
 
 <BaseLayout
