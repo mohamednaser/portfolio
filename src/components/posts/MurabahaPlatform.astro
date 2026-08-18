@@ -493,59 +493,10 @@ import '../../styles/posts/murabaha-platform.css';
     Everything described above — five legal steps in seconds, millions of tracked units, four products on
     one pipeline — is where the platform <em>ended up</em>. It is not where it started. In January 2025,
     a test of just <span class="k-cost">ten automated orders left four of them stuck</span>. Between that day and
-    today's routine 5,000-order runs stand fifteen hard-won battles — the first ten fought in the code
-    and the database, the last five in the infrastructure underneath it:
+    today's routine 5,000-order runs stand ten hard-won battles — the first six fought in the code
+    and the database, the last four in the infrastructure underneath it.
   </p>
-  <ul class="teasers">
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-01">CASE 01</a><span class="hook"><strong>Everything waited for everything.</strong>
-      The first order couldn't purchase until all 49 others finished searching — and the first "stuck orders"
-      root cause was a disk at <span class="n">98%</span>.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">CASE 02</a><span class="hook"><strong>The database fought back.</strong>
-      Deadlocks and lock timeouts that took <span class="n">three rounds</span> of fixes — the last one
-      cut the worst order from <span class="n">65s to 14s</span>.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-03">CASE 03</a><span class="hook"><strong>A timeout nobody knew existed</strong>
-      killed the first 11 orders of a 300-order run — and triggered a summer-long campaign on the purchase
-      path.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">CASE 04</a><span class="hook"><strong>Every certificate cost a browser
-      session.</strong> Tuning Chrome bought headroom, a PHP engine bought <span class="n">7×</span> — but
-      the winning move was a business decision: generate on demand, and the cost per step fell to
-      <span class="n">0 seconds</span>.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-05">CASE 05</a><span class="hook"><strong>"Which units can this customer even
-      buy?"</strong> — answering it scanned <span class="n">millions</span> of rows per order, until a
-      settled flag, and finally a precomputed eligibility ledger, made it a
-      <span class="n">0.1s</span> lookup.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-06">CASE 06</a><span class="hook"><strong>Cover 1,000,000 exactly, using only the
-      units this institution is allowed to hold.</strong> Two algorithms and a harness of invented markets
-      later, the search answers in <span class="n">milliseconds</span> — with a hard 3-second stop.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-07">CASE 07</a><span class="hook"><strong>The platform attacked itself:</strong>
-      one job dispatched <span class="n">22,400 times</span> in hours, one query executed
-      <span class="n">114,000 times</span> — fixed for an <span class="n">85%</span> query reduction.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">CASE 08</a><span class="hook"><strong>A bug-fix quietly added 2 seconds to every
-      order</strong> — caught within a week, only because a baseline existed.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">CASE 09</a><span class="hook"><strong>The unit ledger under siege:</strong>
-      <span class="n">94 million</span> reads on one index, race conditions on exclusive holds, and a caching
-      experiment that had to be rolled back.</span></li>
-    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">CASE 10</a><span class="hook"><strong>Everything is a job — and jobs died
-      silently.</strong> No retries, no overlap guards, locks that never expired: a transient blip froze an
-      order, and two servers could grab the same work. Retry with escalating backoff became the road to
-      <span class="n">0 failed transactions</span>.</span></li>
-    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">CASE 11</a><span class="hook"><strong>0.5 seconds of work inside a 7.5-second
-      step</strong> — the latency was hiding <em>between</em> the jobs, and fixing it made another step
-      <span class="n">3× slower</span> before it made everything faster.</span></li>
-    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-12">CASE 12</a><span class="hook"><strong>Every split leaves something new to
-      run.</strong> <span class="n">3</span> worker containers became <span class="n">122</span> processes
-      across <span class="n">22</span> queues — including one pinned forever at a single worker, on purpose.</span></li>
-    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-13">CASE 13</a><span class="hook"><strong>The workers were running last month's
-      code.</strong> Jobs finished, follow-ups never started, and no error was raised anywhere — every deploy
-      had been updating the web tier and <em>none</em> of the workers.</span></li>
-    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-14">CASE 14</a><span class="hook"><strong>The boring failures:</strong> full disks
-      (twice), a <span class="n">32,000</span>-company integer overflow, and connection exhaustion at full
-      worker scale.</span></li>
-    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-15">CASE 15</a><span class="hook"><strong>Three machines became two</strong> at
-      identical queue concurrency — after discovering one node had been serving
-      <span class="n">100%</span> of the traffic while another sat out of rotation for six months.</span></li>
-  </ul>
-</section>
+  </section>
 
 <section class="refs" id="further-reading">
   <h2>Further reading</h2>
