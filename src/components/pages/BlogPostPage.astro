@@ -36,7 +36,7 @@ const formattedDate = post.data.pubDate.toLocaleDateString(t.post.dateLocale, {
   day: 'numeric',
 });
 
-const mediumAnchor = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 underline dark:text-emerald-400">Medium</a>`;
+const mediumAnchor = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-700 underline dark:text-emerald-400">Medium</a>`;
 const externalHtml = fill(t.post.externalHtml, { medium: mediumAnchor });
 const originalHref = `/blog/${blogSlug(post)}/`;
 
@@ -99,7 +99,7 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
             <a
               href={originalHref}
               hreflang="en"
-              class="ms-1 font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+              class="ms-1 font-medium text-emerald-700 hover:underline dark:text-emerald-400"
             >
               {t.post.readOriginal}
             </a>
@@ -146,7 +146,7 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
     {
       !isExternal && (
         <div
-          class="mt-10 space-y-4 leading-relaxed text-slate-700 dark:text-slate-300 [&_a]:text-emerald-600 [&_a]:underline dark:[&_a]:text-emerald-400"
+          class="mt-10 space-y-4 leading-relaxed text-slate-700 dark:text-slate-300 [&_a]:text-emerald-700 [&_a]:underline dark:[&_a]:text-emerald-400"
           lang={isFallback ? 'en' : undefined}
           dir={isFallback ? 'ltr' : undefined}
         >
@@ -190,14 +190,14 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
                 href={site.social.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                class="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
               >
                 {t.post.authorLinkedin}
               </a>
               <span class="mx-2 text-slate-400">·</span>
               <a
                 href={localizePath('/contact', lang)}
-                class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                class="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
               >
                 {t.post.authorContact}
               </a>
@@ -220,7 +220,7 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
     <p class="mt-12">
       <a
         href={localizePath('/blog', lang)}
-        class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+        class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
       >
         {t.post.back}
       </a>

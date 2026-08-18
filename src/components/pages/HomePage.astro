@@ -27,7 +27,7 @@ const featuredProjects = (await getProjects(lang))
       homepageProjectSlugs.indexOf(projectSlug(a)) - homepageProjectSlugs.indexOf(projectSlug(b)),
   );
 
-const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 underline decoration-emerald-600/30 underline-offset-2 hover:decoration-emerald-600 dark:text-emerald-400 dark:decoration-emerald-400/30">Medium</a>`;
+const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-700 underline decoration-emerald-700/30 underline-offset-2 hover:decoration-emerald-700 dark:text-emerald-400 dark:decoration-emerald-400/30">Medium</a>`;
 const introHtml = fill(t.home.introHtml, { medium: mediumLink });
 ---
 
@@ -41,7 +41,7 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
       <div>
         <p
           class:list={[
-            'text-sm text-emerald-600 dark:text-emerald-400',
+            'text-sm text-emerald-700 dark:text-emerald-400',
             // Arabic is cursive: letter-spacing severs the joins between letters,
             // and the mono stack has no Arabic face to fall back on.
             lang === defaultLang ? 'font-mono uppercase tracking-widest' : 'font-medium',
@@ -87,7 +87,7 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
     <p class="mt-8">
       <a
         href={localizePath('/projects', lang)}
-        class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+        class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
       >
         {t.home.allProjects}
       </a>
@@ -105,7 +105,7 @@ const introHtml = fill(t.home.introHtml, { medium: mediumLink });
       <p class="mt-8 text-center">
         <a
           href={`${localizePath('/about', lang)}#testimonials`}
-          class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+          class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
         >
           {fill(t.home.allTestimonials, { count: testimonials.length })}
         </a>
