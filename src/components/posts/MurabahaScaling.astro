@@ -408,7 +408,7 @@ private function toMinorUnits(float $value): int
     <span class="tag">What we tried — three generations</span>
     <p><strong>Generation one: compute the truth on demand.</strong> Correct, simple, and ruinously
     expensive — every order paid the full scan, and those scans were most of the read pressure behind the
-    94-million-read index in Case&nbsp;<a class="caseref" href="#case-09">09</a>.</p>
+    94-million-read index in Case&nbsp;<a class="caseref" href="#case-03">03</a>.</p>
     <p><strong>Generation two: the "settled" feature.</strong> When an order completes, mark its units as
     settled back to the market — in bulk, with a cheap flag — so eligibility queries can skip whole classes
     of units without inspecting them. The scans shrank. But the settlement chain groaned under its own

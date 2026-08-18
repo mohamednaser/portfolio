@@ -206,7 +206,7 @@ public function up(): void
         <text x="546" y="203" fill="var(--accent)" font-weight="700">queue wait ≈ 0</text>
       </g>
     </svg>
-    <figcaption>The queue split at the heart of Case <a class="caseref" href="#case-11">11</a>. The jobs themselves ran in
+    <figcaption>The queue split at the heart of Case <a class="caseref" href="#case-07">07</a>. The jobs themselves ran in
     about one second; nearly all of the two-minute step was waiting behind auto-sell jobs in one shared
     8-worker queue. Splitting them removed the wait — and promptly exposed the missing index upstream.</figcaption>
   </figure>
@@ -216,7 +216,7 @@ public function up(): void
     5,000-order runs became a <strong>routine daily test</strong>, with the order-creation API averaging
     ~1.2 seconds while the pipeline runs at full load. Every queue split, though, leaves something new to
     run — which is how a platform that began with three worker containers ended up with a fleet to manage.
-    That is the next case.
+    
   </div>
 </section>
 
@@ -296,7 +296,7 @@ class PreventOverlapping extends WithoutOverlapping
     up after themselves. Uniqueness here is a lock, not a law of physics — it is only ever as good as the
     lock store and the expiry window — which is why the money-moving steps also carry their own duplicate
     check on the order reference underneath it. (That check is the very lookup that turns out to need an
-    index in Part&nbsp;3, Case&nbsp;<a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">11</a>.) The handful of
+    index in Part&nbsp;3, Case&nbsp;<a class="caseref" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-07">07</a>.) The handful of
     orders per 5,000-run that still strand — the genuinely non-transient failures — are exactly what the
     audited admin "Force Forward" tooling exists for. The 99.9%+ completion rates in this article are not
     the absence of failures. They are failures, handled.
@@ -309,7 +309,7 @@ class PreventOverlapping extends WithoutOverlapping
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
-    <p>Splitting queues, as Case&nbsp;<a class="caseref" href="#case-11">11</a> shows, is how you stop unrelated work from queuing behind itself.
+    <p>Splitting queues, as Case&nbsp;<a class="caseref" href="#case-07">07</a> shows, is how you stop unrelated work from queuing behind itself.
     But every split leaves you with something new to run — and by 2026 the platform was no longer "an
     application on a server." It was <strong>22 queues, one worker service each, and 122 worker processes
     spread across three machines</strong>, plus a scheduler — one container per process, which is why the
@@ -336,7 +336,7 @@ class PreventOverlapping extends WithoutOverlapping
         <tr>
           <td>Dedicated queues for ownership and auto-sell<br><span class="tk">Jul 2026</span></td>
           <td>The two highest-volume job types were blocking each other on eight shared workers.</td>
-          <td>4 replicas each, on two machines. The ~118-second wait went to ~0 (Case&nbsp;<a class="caseref" href="#case-11">11</a>).</td>
+          <td>4 replicas each, on two machines. The ~118-second wait went to ~0 (Case&nbsp;<a class="caseref" href="#case-07">07</a>).</td>
         </tr>
         <tr>
           <td><code>trader_order_initiation</code> 5&nbsp;→&nbsp;10<br><span class="tk">Jul 2026</span></td>
@@ -456,7 +456,7 @@ fi</code></pre>
     machines</span> — the production and pre-production figure — and unlike the platform of 2024, every
     one of those numbers has a commit explaining it. The proof that the discipline is real is that it now runs in reverse: in August 2026 pre-production
     went from three machines to two with <strong>total queue concurrency unchanged</strong>, and the hardest
-    part was proving that the second number had not quietly moved (Case&nbsp;<a class="caseref" href="#case-15">15</a>). The goal was never
+    part was proving that the second number had not quietly moved. The goal was never
     "more workers." It was <em>the right workers, in the right places, for reasons written down.</em>
   </div>
 </section>
