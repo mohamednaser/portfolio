@@ -12,307 +12,340 @@ import '../../styles/posts/murabaha-scaling.css';
 </div>
 
 <p class="lede">
-  In Part 1, we established that a Murabaha order isn't just a row insert—it's a multi-step, multi-party saga that must happen in exact sequence. When we load-tested this sequence, MySQL didn't just slow down; it ground to a halt. What follows is how we fixed it—how we went from four stuck orders out of ten to running <strong>5,200 orders end to end at 99.94%</strong>.
+  A Murabaha order is not a row insert. It is a multi-step, multi-party sequence that must happen in exact
+  order, because the order is what makes the trade legal. Load-test that sequence and MySQL does not slow
+  down gracefully — it stops. This is how we went from <strong>four stuck orders out of ten</strong> to
+  <strong>5,200 orders end to end at 99.94%</strong>, told as nine fights, ranked by what each one bought us.
 </p>
 
-<div class="prev">
-  <span class="tag">Earlier in this series</span>
-  <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Building a Sharia-Compliant State Machine at Scale</a></strong>
+<p>
+  When you map a strictly ordered financial contract onto a relational database, you hit the physical limits
+  of concurrency almost immediately. We had a mathematically correct state machine that guaranteed Sharia
+  compliance. At 31 concurrent orders, it froze. The rigid consistency the contract demands is exactly what
+  turned the database into the bottleneck.
+</p>
+<p>
+  Each fight below is written the same way: the symptom we saw, the trap we fell into first, the pivot that
+  reframed the problem, the fix, and the measured result. The traps are included on purpose — the wrong
+  first guess is usually the most useful part of the story.
+</p>
+
+<div class="note">
+  <strong>Background:</strong> if the contract itself is unfamiliar — why the steps cannot be reordered,
+  why stock has to exist as individually coded units — that is covered separately in
+  <a href="/blog/murabaha-as-a-state-machine/">Murabaha as a State Machine</a>. This article stands on its
+  own; that one explains the machine being scaled.
 </div>
 
-<p>
-  When you map a strictly ordered financial contract to a relational database, you run into the physical limits of concurrency very quickly. We had a mathematically perfect state machine that guaranteed Sharia compliance. But when we hit it with just 31 concurrent orders, the entire system choked. 
-</p>
-<p>
-  The rigid consistency required by the Murabaha contract turned our database into a bottleneck. Here are the most profound architectural battles we fought to scale the data layer, moving away from simple fixes and focusing on the underlying engineering tradeoffs.
-</p>
+<div class="caseindex">
+  <span class="tag">The nine fights, by what each one bought</span>
+  <ol>
+    <li><span class="cn">−85% queries</span><a href="#case-n-plus-one">The platform DDoSing itself</a></li>
+    <li><span class="cn">P95 28s → 13s</span><a href="#case-deadlocks">The database fights back</a></li>
+    <li><span class="cn">94M reads/day → 0</span><a href="#case-unit-ledger">The unit ledger siege</a></li>
+    <li><span class="cn">−60% step time</span><a href="#case-sync-work">The cost of synchronous work</a></li>
+    <li><span class="cn">seconds → sub-ms</span><a href="#case-eligibility">Eligibility and allocation</a></li>
+    <li><span class="cn">118s wait → ~0</span><a href="#case-latency-hiding">The seven seconds nobody was running</a></li>
+    <li><span class="cn">0 orders lost</span><a href="#case-silent-jobs">Jobs that die mid-transaction</a></li>
+    <li><span class="cn">prerequisite</span><a href="#case-disk-full">The boring physical limits</a></li>
+    <li><span class="cn">0 silent regressions</span><a href="#case-baselines">The value of a baseline</a></li>
+  </ol>
+</div>
 
-<h2>Theme 1: The Database Bottlenecks</h2>
-<p>How MySQL behaved under extreme concurrent load, and the traps of framework conveniences.</p>
+<h2>Where the database was the bottleneck</h2>
+<p>How MySQL behaved under extreme concurrent load, and the traps hidden inside framework conveniences.</p>
 
-<section class="era" id="case-deadlocks">
-  <div class="era-head"><h3>The Database Fights Back</h3></div>
-  
+<section class="case" id="case-n-plus-one">
+  <div class="case-head"><h3>The platform DDoSing itself</h3><span class="case-impact">−85% queries</span></div>
+
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>We triggered 31 orders simultaneously. Instead of processing them, the system froze. Error logs filled up with <code>1213 Deadlock found when trying to get lock</code> and <code>1205 Lock wait timeout exceeded</code>. The database was rejecting perfectly valid transactions, and our throughput collapsed to zero.</p>
+    <p>On our first real volume test the database CPU spiked to 100% and stayed there. We were processing 500 orders, and telemetry showed the database answering <strong>114,000 individual queries</strong>. The platform was effectively DDoSing itself.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>Our first assumption was that we had written bad queries or needed more indexes. But looking at <code>SHOW ENGINE INNODB STATUS</code>, the queries were fully indexed. The database wasn't slow; it was intentionally blocking execution. The Murabaha sequence requires us to read a unit's status, verify it's available, and then lock it. In a highly concurrent environment, 31 processes were trying to read and lock the same rows simultaneously.</p>
+    <p>Our first instinct was to blame the infrastructure. We assumed we simply needed a larger MySQL instance to handle the "complex" Murabaha state machine. But the query logs showed the database wasn't doing complex math — it was answering the same simple <code>SELECT</code> tens of thousands of times a second.</p>
   </div>
-  
+
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The culprit was the classic framework trap: the N+1 query. In development, loading a relationship inside a loop is harmless. In a distributed pipeline where 500 orders are processed concurrently by dozens of workers, one missing <code>with()</code> clause in Laravel turns a linear operation into an exponential attack on the database. Every worker was individually asking for the same configuration data, row by row.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We replaced the lazy-loaded loops with strict eager loading (<code>with()</code>) across the execution engine, and cached the static configuration states every order needed.</p>
+  </div>
+
+  <div class="metric">
+    <span class="tag">The Result</span>
+    A few lines of Eloquent logic cut query volume by <strong>85%</strong>. Database CPU dropped back to idle — proof that throwing hardware at a software problem is almost always the wrong move, and the cheapest fix in this entire article.
+  </div>
+</section>
+
+<section class="case" id="case-deadlocks">
+  <div class="case-head"><h3>The database fights back</h3><span class="case-impact">P95 28s → 13s</span></div>
+
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>We triggered 31 orders simultaneously. Instead of processing them, the system froze. Error logs filled with <code>1213 Deadlock found when trying to get lock</code> and <code>1205 Lock wait timeout exceeded</code>. The database was rejecting perfectly valid transactions, and throughput collapsed to zero.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We assumed we had written bad queries or needed more indexes. But <code>SHOW ENGINE INNODB STATUS</code> showed the queries were fully indexed. The database wasn't slow; it was deliberately blocking execution. The Murabaha sequence requires reading a unit's status, verifying it is available, and then locking it — and 31 processes were trying to read and lock the same rows at once.</p>
+  </div>
+
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg" width="1376" height="768" alt="Database Gap Locks" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>InnoDB's default isolation level issues Next-Key locks that block inserts in the gap between records, causing cascading deadlocks under concurrent load.</figcaption>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg" width="1376" height="768" alt="Database gap locks: InnoDB locking the empty space between records so concurrent inserts collide" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>InnoDB's default isolation level issues next-key locks that block inserts in the gap between records, causing cascading deadlocks under concurrent load.</figcaption>
   </figure>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>The culprit was MySQL's default isolation level: <code>REPEATABLE READ</code>. To guarantee that a repeated read returns the exact same rows, InnoDB issues "gap locks" — locking the empty space between rows to prevent new inserts. When dozens of workers tried to insert new ledger entries simultaneously, their gap locks collided, causing cascading deadlocks.</p>
+    <p>The culprit was MySQL's default isolation level: <code>REPEATABLE READ</code>. To guarantee that a repeated read returns the exact same rows, InnoDB issues gap locks — locking the empty space between rows to prevent new inserts. When dozens of workers tried to insert ledger entries simultaneously, their gap locks collided.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We dropped the isolation level to <code>READ COMMITTED</code> for the high-volume pipelines. This eliminated gap locks entirely. A transaction only locks the specific row it touches, and only reads data that was committed before the statement began. We combined this with strict <code>SELECT ... FOR UPDATE SKIP LOCKED</code> to ensure workers only picked up free units without blocking each other.</p>
+    <p>We dropped the isolation level to <code>READ COMMITTED</code> for the high-volume pipelines, which eliminates gap locks entirely: a transaction locks only the row it touches and reads only data committed before the statement began. We combined this with strict <code>SELECT ... FOR UPDATE SKIP LOCKED</code> so workers pick up free units without blocking each other.</p>
   </div>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
-    Deadlocks disappeared completely. The purchase step P95 dropped from 28 seconds to 13 seconds, and the maximum execution time dropped from 65 seconds to 14.
+    Deadlocks disappeared completely. The purchase step P95 dropped from 28 seconds to 13, and the worst case from 65 seconds to 14.
   </div>
 </section>
 
-<section class="era" id="case-n-plus-one">
-  <div class="era-head"><h3>The Silent Killer: N+1 at Scale</h3></div>
-  
+<section class="case" id="case-unit-ledger">
+  <div class="case-head"><h3>The unit ledger siege</h3><span class="case-impact">94M reads/day → 0</span></div>
+
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>When we ran our first real volume test, the database CPU spiked to 100% and stayed there. The platform was effectively DDoSing itself. We were processing 500 orders, but our telemetry showed the database was answering <strong>114,000 individual queries</strong>.</p>
+    <p>Our core unit ledger table was hit with 94 million read queries in a single day. The system was struggling to maintain a simple count of how many units were available.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>Our first instinct was to blame the infrastructure. We assumed we just needed a larger MySQL instance to handle the "complex" Murabaha state machine. But when we looked at the query logs, the database wasn't doing complex math—it was answering the exact same simple <code>SELECT</code> statement tens of thousands of times a second.</p>
+    <p>We tried standard caching and put the available unit counts in Redis. But in a trading system, caching write-heavy financial inventory creates dangerous race conditions. The cache was constantly out of sync with the true database state, risking double-selling.</p>
   </div>
-  
-  <figure>
-    <img loading="lazy" decoding="async" src="/Users/mohamednaser/.gemini/antigravity-ide/brain/c6ded8a3-62b5-496e-984b-efd715c6f97a/n_plus_one_diagram_1787068202930.jpg" width="1376" height="768" alt="N+1 Query Diagram" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>A missing with() clause turns a linear application into an exponential database attack.</figcaption>
-  </figure>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>The culprit was the classic framework trap: the N+1 query. In development, loading a relationship inside a loop is harmless. But in a distributed pipeline where 500 orders are processed concurrently by dozens of workers, a single missing <code>with()</code> clause in Laravel turns a linear operation into an exponential database attack. Every worker was individually asking the database for the same configuration data, row by row.</p>
+    <p>Caching the <em>read</em> was the wrong approach, because the <em>writes</em> were the bottleneck. The system relied on row-based triggers to update aggregate counts every time a single unit changed state, and under heavy load that created massive contention on the aggregate tables.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We replaced the lazy-loaded loops with strict eager loading (<code>with()</code>) across the execution engine, and cached the static configuration states that every order needed.</p>
+    <p>We abandoned caching and row-based triggers entirely and moved to set-based bulk operations. Available units are computed dynamically when needed using optimized indexes, relying on the <code>READ COMMITTED</code> isolation above for accuracy instead of maintaining aggregate caches.</p>
   </div>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
-    By changing a few lines of Eloquent logic, query volume plummeted by <strong>85%</strong>. The database CPU dropped back to idle, proving that throwing hardware at a software problem is almost always the wrong move.
+    Read queries dropped from 94 million a day to manageable levels, and the risk of cache desynchronization was eliminated rather than managed.
   </div>
 </section>
 
-<section class="era" id="case-unit-ledger">
-  <div class="era-head"><h3>The Unit Ledger Siege</h3></div>
-  
+<h2>Changing the shape of the work</h2>
+<p>Two fights that were not solved by faster code, but by moving the work somewhere else entirely.</p>
+
+<section class="case" id="case-sync-work">
+  <div class="case-head"><h3>The cost of synchronous work</h3><span class="case-impact">−60% step time</span></div>
+
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>Our core unit ledger table was hit with 94 million read queries in a single day. The system was struggling to maintain a simple count of "how many units are available."</p>
+    <p>The application servers started throwing Out Of Memory errors, and the purchase step was taking over 10 seconds to complete, severely backing up the queues.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>We tried standard caching. We put the available unit counts in Redis. But in a trading system, caching write-heavy financial inventory creates dangerous race conditions. The cache was constantly out of sync with the true database state, risking double-selling.</p>
+    <p>We focused on optimizing our PDF generation library. We assumed the library was slow, so we switched rendering engines several times, trying to squeeze out milliseconds.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>Caching the <em>read</em> was the wrong approach because the <em>writes</em> were the bottleneck. The system was relying on row-based triggers to update aggregate counts every time a single unit changed state. Under heavy load, this created massive contention on the aggregate tables.</p>
+    <p>The rendering engine wasn't the problem; <em>doing the rendering synchronously</em> was. Generating a legal PDF during the critical path of a transaction meant holding the database connection and the worker process hostage until the PDF finished. We were doing heavy I/O inside a financial transaction block.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We abandoned caching and row-based triggers entirely. Instead, we moved to set-based bulk operations. We compute the available units dynamically when needed using optimized indexes, and rely on the transaction isolation (from our earlier fix) to ensure accuracy without the overhead of maintaining aggregate caches.</p>
+    <p>We deferred the work completely. We stopped generating PDFs during the transaction and save only the raw data state. The PDF is generated <em>on demand</em> the first time a user clicks Download, then cached.</p>
   </div>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
-    Read queries dropped from 94 million to manageable levels, and the risk of cache-desynchronization was entirely eliminated.
+    The purchase step execution time dropped by over 60% and OOM errors disappeared entirely. The critical path was no longer I/O bound — which is also what made the queue work in the next section possible.
   </div>
 </section>
 
-<h2>Theme 2: Algorithmic & Architectural Tradeoffs</h2>
-<p>Changing the shape of the work rather than just optimizing the code.</p>
+<section class="case" id="case-eligibility">
+  <div class="case-head"><h3>Eligibility and allocation</h3><span class="case-impact">seconds → sub-ms</span></div>
 
-<section class="era" id="case-sync-work">
-  <div class="era-head"><h3>The Cost of Synchronous Work</h3></div>
-  
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>The application servers started throwing Out Of Memory (OOM) errors, and the purchase step was taking over 10 seconds to complete, severely backing up the queues.</p>
+    <p>As inventory grew to millions of units, the system struggled to find eligible units for new orders. The queries matching a customer to valid units were timing out.</p>
   </div>
-  
-  <div class="attempt">
-    <span class="tag">The Trap</span>
-    <p>We initially focused on optimizing our PDF generation library. We thought the library was just slow, so we switched rendering engines multiple times, trying to squeeze out a few milliseconds of performance.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Pivot</span>
-    <p>The rendering engine wasn't the problem; <em>doing the rendering synchronously</em> was. Generating a legal PDF document during the critical path of a transaction meant holding the database connection and the worker process hostage until the PDF was finished. We were doing heavy I/O work inside a financial transaction block.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Fix</span>
-    <p>We completely deferred the work. We stopped generating PDFs during the transaction. Instead, we only save the raw data state. The actual PDF is generated <em>on-demand</em> the first time a user clicks "Download," and then cached.</p>
-  </div>
-  
-  <div class="metric">
-    <span class="tag">The Result</span>
-    The purchase step execution time dropped by over 60%, and OOM errors disappeared entirely. The critical path was freed from I/O bounds.
-  </div>
-</section>
 
-<section class="era" id="case-eligibility">
-  <div class="era-head"><h3>The Eligibility & Allocation Bottleneck</h3></div>
-  
-  <div class="incident">
-    <span class="tag">The Symptom</span>
-    <p>As our inventory grew to millions of units, the system struggled to find eligible units for new orders. The database queries to match a customer with valid units were timing out.</p>
-  </div>
-  
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>We tried adding more complex compound indexes to the units table to speed up the runtime search. But scanning millions of rows at runtime, checking multiple eligibility rules (age, supplier, price), is fundamentally unscalable, no matter how many indexes you add.</p>
+    <p>We tried adding more complex compound indexes to the units table to speed up the runtime search. But scanning millions of rows at runtime while checking multiple eligibility rules — age, supplier, price — is fundamentally unscalable no matter how many indexes you add.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>We realized this was an algorithmic problem, not a database tuning problem. Searching for a combination of units to match an exact order value is a variation of the Knapsack problem. Doing this against a live, highly-concurrent table is architectural suicide.</p>
+    <p>This was an algorithmic problem, not a database tuning problem. Searching for a combination of units matching an exact order value is a variation of the knapsack problem, and running it against a live, highly concurrent table is architectural suicide.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We precomputed the data. We built an "Eligibility Ledger" that pre-calculates which orders can use which units asynchronously. When an order arrives, it doesn't search the inventory; it simply claims its pre-allocated units using a highly optimized allocation algorithm.</p>
+    <p>We precomputed the data. We built an eligibility ledger that calculates asynchronously which orders can use which units. When an order arrives it does not search the inventory; it claims its pre-allocated units through a highly optimized allocation algorithm.</p>
   </div>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
     Unit allocation went from a multi-second complex join to a sub-millisecond key lookup.
   </div>
 </section>
 
-<h2>Theme 3: The Unforgiving Infrastructure</h2>
-<p>What happens when the underlying hardware and queue workers reach their breaking point.</p>
+<h2>The infrastructure underneath</h2>
+<p>What happens when the queue workers and the hardware they run on reach their breaking point.</p>
 
-<section class="era" id="case-disk-full">
-  <div class="era-head"><h3>The "Boring" Physical Limits</h3></div>
-  
+<section class="case" id="case-latency-hiding">
+  <div class="case-head"><h3>The seven seconds nobody was running</h3><span class="case-impact">118s wait → ~0</span></div>
+
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>Our very first automated scale test ground to a halt almost immediately. The database queries were painfully slow, jobs were taking minutes instead of seconds, and the entire server felt like it was walking through molasses.</p>
+    <p>Application metrics said the purchase step executed in 0.52 seconds. End-to-end telemetry said it took 7.5. The logs showed a seven-second gap in which nothing was happening at all.</p>
   </div>
-  
-  <div class="attempt">
-    <span class="tag">The Trap</span>
-    <p>We immediately started profiling the application logic. We assumed we had written a fundamentally unscalable sequence. We were looking for complex algorithmic flaws or missing database indexes that were causing the slowdown.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Pivot</span>
-    <p>The code was perfectly fine. The server's disk was 98% full. Because the disk was full, the database couldn't write to its temporary tables or transaction logs, and the operating system was struggling to page memory. It's a humbling reminder: the cloud is still just a computer, and physical limits hit you before algorithmic limits do.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Fix</span>
-    <p>We implemented strict log rotation, set up disk-space monitoring alerts, and resized the volumes. A basic DevOps fix, but a necessary foundation before real software optimization could begin.</p>
-  </div>
-</section>
 
-<section class="era" id="case-silent-jobs">
-  <div class="era-head"><h3>Embracing Failure in Distributed Systems</h3></div>
-  
-  <div class="incident">
-    <span class="tag">The Symptom</span>
-    <p>During a 500-order run, we noticed that a few orders simply vanished from the pipeline. The database showed they had started the 'Purchase' step, but they never completed it. No error logs, no crash reports. The jobs had just died silently.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Trap</span>
-    <p>Our initial instinct was to try and prevent the jobs from dying. We added memory, increased timeout limits, and tried to catch every possible exception to ensure the worker would always finish gracefully.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Pivot</span>
-    <p>In a distributed system, you cannot prevent job death. Workers will be OOM-killed, servers will be restarted mid-execution, and network cables will be unplugged. Trying to make execution perfect is a fool's errand. Instead, you must assume a job will be killed at the worst possible millisecond.</p>
-  </div>
-  
-  <div class="attempt">
-    <span class="tag">The Fix</span>
-    <p>We embraced failure. We made every single job strictly idempotent—meaning it could be run 100 times but only apply its effects once. We implemented expiring locks on the database rows, and added escalating backoff retries. Now, if a job is violently killed by the OS, another worker simply picks it up a minute later, checks what was already done, and finishes the rest seamlessly.</p>
-  </div>
-  
-  <div class="metric">
-    <span class="tag">The Result</span>
-    A failed job stopped meaning a failed transaction. We can now randomly restart our worker fleet during peak load without losing a single order.
-  </div>
-</section>
-
-<section class="era" id="case-latency-hiding">
-  <div class="era-head"><h3>Latency Hiding Between Jobs</h3></div>
-  
-  <div class="incident">
-    <span class="tag">The Symptom</span>
-    <p>According to our application metrics, the purchase step was executing in 0.52 seconds. It was lightning fast. But according to the end-to-end telemetry, the purchase step was taking 7.5 seconds to complete. The logs showed a massive 7-second gap where nothing was happening.</p>
-  </div>
-  
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/queue_wait_iceberg_concept.jpg" width="1376" height="768" alt="Queue Wait Iceberg" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>Service time is just the tip of the iceberg; queue wait time is what sinks the ship.</figcaption>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/queue_wait_iceberg_concept.jpg" width="1376" height="768" alt="Queue wait as an iceberg: service time visible above the water, queue wait time hidden below it" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>Service time is the tip of the iceberg. Queue wait time is what sinks the ship.</figcaption>
   </figure>
-  
+
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>We stared at the 0.52-second execution time and couldn't figure out what to optimize. We were profiling the actual PHP execution line-by-line, looking for milliseconds to shave off.</p>
+    <p>We stared at the 0.52-second execution time with nothing left to optimize, profiling the PHP line by line looking for milliseconds to shave.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>We were optimizing service time when the problem was queue wait time. When you dispatch 5,000 jobs to a pool of 8 workers, the 5,000th job has to wait in line for a very long time before a worker even picks it up to start that "fast" 0.52-second execution.</p>
+    <p>We were optimizing service time when the problem was queue wait time. Dispatch 5,000 jobs to a pool of 8 workers and the 5,000th job waits a very long time before a worker even picks it up to begin that "fast" 0.52-second execution.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We completely restructured our queue topology. We separated fast jobs from slow jobs onto dedicated queues, and scaled the worker processes from 3 up to 122 dedicated workers across different pipelines to ensure there was always a worker ready to consume a job immediately.</p>
+    <p>We restructured the queue topology: fast jobs and slow jobs onto dedicated queues, and worker processes scaled from 3 to 122 across the different pipelines so a worker is always free to consume a job immediately.</p>
   </div>
-  
+
   <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-1.webp" width="1376" height="344" alt="Queue split results" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>Before: jobs shared one queue, wait time peaked at 118 seconds. After: dedicated queues dropped wait time to near zero.</figcaption>
+    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/queue-split.webp" width="1376" height="344" alt="Queue split results: shared queue peaking at 118 seconds wait versus dedicated queues at near zero" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>Before: jobs shared one queue and wait time peaked at 118 seconds. After: dedicated queues dropped wait time to near zero.</figcaption>
   </figure>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
-    The 7-second ghost latency vanished. Queue wait times dropped from minutes under heavy load to near-zero milliseconds.
+    The seven-second ghost latency vanished. Queue wait times dropped from minutes under heavy load to near-zero milliseconds.
   </div>
 </section>
 
-<h2>Theme 4: Observability & Baselines</h2>
-<p>You cannot fix what you cannot see.</p>
+<section class="case" id="case-silent-jobs">
+  <div class="case-head"><h3>Jobs that die mid-transaction</h3><span class="case-impact">0 orders lost</span></div>
 
-<section class="era" id="case-baselines">
-  <div class="era-head"><h3>The Value of a Baseline</h3></div>
-  
   <div class="incident">
     <span class="tag">The Symptom</span>
-    <p>During routine development, a harmless bug fix was deployed. Shortly after, the platform started failing on orders that took longer than 60 seconds to process. At the same time, our performance dashboards showed that the average execution time of a specific step had quietly increased by 2 seconds.</p>
+    <p>During a 500-order run, a few orders simply vanished from the pipeline. The database showed they had started the purchase step and never completed it. No error logs, no crash reports. The jobs had died silently.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Trap</span>
-    <p>It is incredibly easy to brush off a 2-second slowdown or blame it on temporary network latency. And the 60-second failures seemed random, hard to reproduce, and easy to ignore since most orders finished faster than that.</p>
+    <p>Our instinct was to prevent the jobs from dying. We added memory, raised timeout limits, and tried to catch every possible exception so the worker would always finish gracefully.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Pivot</span>
-    <p>Because we had established rigid, automated stress-tests (baselines) that ran on every commit, these "minor" issues lit up our dashboards like a Christmas tree. We discovered that the 60-second failure was a hardcoded load balancer timeout nobody knew existed. And the 2-second slowdown was caused by a redundant API call accidentally introduced in the bug fix.</p>
+    <p>In a distributed system you cannot prevent job death. Workers get OOM-killed, servers restart mid-execution, network cables get unplugged. Making execution perfect is a fool's errand; you have to assume a job will be killed at the worst possible millisecond.</p>
   </div>
-  
+
   <div class="attempt">
     <span class="tag">The Fix</span>
-    <p>We reverted the redundant API call and reconfigured the load balancer timeouts to match the application's actual timeout limits. But the real fix was maintaining the baseline tests themselves.</p>
+    <p>We made every job strictly idempotent — runnable a hundred times but applying its effects once. We added expiring locks on the database rows and escalating backoff retries. If a job is violently killed, another worker picks it up a minute later, checks what was already done, and finishes the rest.</p>
   </div>
-  
+
   <div class="metric">
     <span class="tag">The Result</span>
-    Silent regressions were caught in staging instead of reaching production. We proved that without a continuous baseline, software only gets slower.
+    A failed job stopped meaning a failed transaction. We can restart the worker fleet at random during peak load without losing a single order.
   </div>
 </section>
+
+<section class="case" id="case-disk-full">
+  <div class="case-head"><h3>The boring physical limits</h3><span class="case-impact">prerequisite</span></div>
+
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>Our very first automated scale test ground to a halt almost immediately. Queries were painfully slow, jobs took minutes instead of seconds, and the whole server felt like it was walking through molasses.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We started profiling the application logic, assuming we had written a fundamentally unscalable sequence, hunting for algorithmic flaws or missing indexes.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The code was fine. The server's disk was 98% full. The database could not write temporary tables or transaction logs, and the operating system was struggling to page memory. A humbling reminder: the cloud is still just a computer, and physical limits hit you before algorithmic ones do.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>Strict log rotation, disk-space monitoring alerts, resized volumes. A basic DevOps fix with no headline number attached — but none of the eight measurements above would have been trustworthy while it was outstanding.</p>
+  </div>
+</section>
+
+<h2>Keeping the gains</h2>
+<p>Every number above is reversible. This is the fight that stops them from quietly coming back.</p>
+
+<section class="case" id="case-baselines">
+  <div class="case-head"><h3>The value of a baseline</h3><span class="case-impact">0 silent regressions</span></div>
+
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>A harmless bug fix went out during routine development. Shortly after, the platform started failing on orders that took longer than 60 seconds to process, and the dashboards showed one step's average execution time had quietly grown by 2 seconds.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>It is very easy to brush off a 2-second slowdown as network latency. The 60-second failures looked random, were hard to reproduce, and were easy to ignore because most orders finished well inside the limit.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>Because we had rigid, automated stress tests running on every commit, these "minor" issues lit up the dashboards. The 60-second failure turned out to be a hardcoded load balancer timeout nobody knew existed, and the 2-second slowdown a redundant API call introduced by the bug fix.</p>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We reverted the redundant API call and reconfigured the load balancer timeouts to match the application's own limits. But the real fix was maintaining the baseline tests themselves.</p>
+  </div>
+
+  <div class="metric">
+    <span class="tag">The Result</span>
+    Silent regressions get caught in staging instead of production. Without a continuous baseline, software only ever gets slower.
+  </div>
+</section>
+
+<h2>What the nine fights have in common</h2>
+<p>
+  Read in this order, one pattern is hard to miss: in seven of the nine, the first fix we reached for was
+  the wrong one, and it was wrong in the same way each time. We tried to make the existing work faster —
+  a better PDF engine, more indexes, a bigger instance, more caching — when the actual fix was to stop
+  doing that work there at all. Eager-load it, precompute it, defer it, or accept that it will fail and
+  make it safe to repeat.
+</p>
+<p>
+  The one exception is the disk. That one is a reminder that the ranking above only means anything once
+  the boring things underneath it are true.
+</p>
 
 </div>

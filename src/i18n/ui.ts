@@ -159,26 +159,24 @@ const en = {
     back: '← Blog',
     /** Jump list built from the article's own `h2` headings. */
     onThisPage: 'On this page',
-    /** Series footer. `%n%` is the part number, `%total%` the number of parts. */
-    seriesPartOf: 'Part %n% of %total% · %series%',
+    /** Companion-article footer. The two articles are not numbered episodes. */
+    seriesPartOf: 'Read together · %series%',
     /** Compact form for the kicker above the title. */
-    seriesPartShort: 'Part %n% of %total%',
-    seriesAllParts: 'All parts',
-    seriesPrevious: '← Previous',
-    seriesNext: 'Next →',
+    seriesPartShort: 'Both articles',
+    seriesAllParts: 'Both articles',
+    seriesPrevious: '← Read first',
+    seriesNext: 'Read next →',
     /** Shown above translated articles only; empty in the source language. */
     translationNote: '',
     readOriginal: '',
   },
   series: {
-    eyebrow: 'Series · 3 parts',
+    eyebrow: 'Two articles',
     title: 'Scaling a Commodity Murabaha Platform',
     metaDescription:
-      'Ten automated orders, four stuck. Eighteen months later: 5,200 orders at 99.94%. A three-part series on the database battles and the worker fleet in between.',
+      'Two articles on a Sharia-compliant commodity Murabaha platform: the state machine that makes each trade legal, and the nine fights that took it to 5,200 orders at 99.94%.',
     intro:
-      'In January 2025 a stress test of ten automated orders left four of them stuck. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%, and 5,000-order runs became a daily routine. This is what happened in between — fifteen case files, the failed attempts included.',
-    /** `%n%` is replaced with the part number. */
-    part: 'Part %n%',
+      'Two articles about the same platform, written to be read in either order. The first explains the machine — why a commodity Murabaha is a state machine whose steps cannot be reordered to go faster. The second is what it took to make that machine fast: nine fights in the database, the queue and the hardware, ranked by what each one bought.',
     keywords: [
       'commodity murabaha',
       'scaling fintech',
@@ -338,22 +336,21 @@ const ar: DeepReadonlyLike<typeof en> = {
     authorContact: 'تواصل معي',
     back: '→ المدوّنة',
     onThisPage: 'محتويات المقال',
-    seriesPartOf: 'الجزء %n% من %total% · %series%',
-    seriesPartShort: 'الجزء %n% من %total%',
-    seriesAllParts: 'كل الأجزاء',
-    seriesPrevious: 'السابق →',
-    seriesNext: '← التالي',
+    seriesPartOf: 'يُقرآن معًا · %series%',
+    seriesPartShort: 'المقالان',
+    seriesAllParts: 'المقالان',
+    seriesPrevious: 'اقرأ هذا أولًا →',
+    seriesNext: '← اقرأ بعده',
     translationNote: 'هذا المقال مترجم عن نسخته الإنجليزية الأصلية.',
     readOriginal: 'اقرأ النسخة الإنجليزية →',
   },
   series: {
-    eyebrow: 'سلسلة · ثلاثة أجزاء',
+    eyebrow: 'مقالان',
     title: 'توسيع منصّة مرابحة سلعية',
     metaDescription:
-      'عشرة طلبات آلية، تعثّر منها أربعة. وبعد ثمانية عشر شهرًا: 5,200 طلب بنسبة 99.94%. سلسلة من ثلاثة أجزاء عن معارك قاعدة البيانات وأسطول العمّال بينهما.',
+      'مقالان عن منصّة مرابحة سلعية متوافقة مع الشريعة: آلة الحالات التي تجعل كل صفقة صحيحة شرعًا، والمعارك التسع التي أوصلتها إلى 5,200 طلب بنسبة 99.94%.',
     intro:
-      'في يناير 2025 تعثّرت أربعة من عشرة طلبات آلية في اختبار ضغط. وبعد ثمانية عشر شهرًا نفّذت المنصّة نفسها 5,200 طلب من البداية إلى النهاية بنسبة نجاح 99.94%، وصارت جولات الخمسة آلاف طلب روتينًا يوميًّا. هذا ما جرى بينهما — خمس عشرة حالة موثّقة، بما فيها المحاولات الفاشلة.',
-    part: 'الجزء %n%',
+      'مقالان عن المنصّة نفسها، يمكن قراءتهما بأي ترتيب. الأوّل يشرح الآلة نفسها: لماذا تُمثَّل المرابحة السلعية كآلة حالات لا يمكن إعادة ترتيب خطواتها طلبًا للسرعة. والثاني يروي ما تطلّبه جعل تلك الآلة سريعة: تسع معارك في قاعدة البيانات والطوابير والعتاد، مرتَّبة بحسب ما حقّقته كلٌّ منها.',
     keywords: [
       'المرابحة السلعية',
       'توسيع التقنية المالية',

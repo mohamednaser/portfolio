@@ -482,26 +482,41 @@ import '../../styles/posts/murabaha-platform.css';
     second, the average was 0.26s, 99 of every 100 orders (P99) finished within 1 second, and the single
     worst order of the whole run (Max) took 3 seconds. Borrower Ownership and Sell average 0.03–0.04s with
     even their P99 at 1 second. Two years ago the purchase step alone averaged nearly 12 seconds with a
-    worst case of 65 — Part&nbsp;2 tells that story.</figcaption>
+    worst case of 65 — <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">the scaling article</a>
+    walks through the nine fights that closed that gap.</figcaption>
   </figure>
 </section>
 
-<!-- SECTION 5: the cliffhanger -->
+<!-- SECTION 5: what the constraint actually buys -->
 <section class="section" id="section-05">
-  <div class="section-head"><h2>None of this came easy</h2></div>
+  <div class="section-head"><h2>What the constraint actually buys</h2></div>
   <p style="margin-top:1rem;">
-    Everything described above — five legal steps in seconds, millions of tracked units, four products on
-    one pipeline — is where the platform <em>ended up</em>. It is not where it started. In January 2025,
-    a test of just <span class="k-cost">ten automated orders left four of them stuck</span>. Between that day and
-    today's routine 5,000-order runs stand fifteen hard-won battles — the first ten fought in the code
-    and the database, the last five in the infrastructure underneath it:
+    The uncomfortable part of building this is that almost every property that makes the machine
+    <em>correct</em> is also what makes it <em>slow</em>. The steps cannot be reordered, so they cannot be
+    parallelised. Stock has to exist as individually coded units, so inventory is millions of rows rather
+    than a single balance. Ownership has to be provable at every instant, so nothing may be assumed and
+    written back later. A system designed purely for throughput would violate the contract on its first
+    optimisation.
   </p>
-  <p style="margin-top:1rem;">We fought fifteen hard-won battles to get there. The first ten were fought in the code and the database—deadlocks, missing indexes, and queries that brought MySQL to its knees. The final five were fought in the infrastructure, where we learned what happens when 5,000 jobs hit the queue all at once.</p>
+  <p>
+    What you get in return is a machine where compliance is not a review step bolted on at the end. An
+    order that reaches the final state is legal by construction, because there is no path through the
+    state machine that produces an illegal one. That is worth far more than the speed it costs — and it
+    is the reason the platform runs <span class="k-win">four different products on one pipeline</span>
+    instead of four separate systems each with its own way of being audited.
+  </p>
+  <p>
+    It did not perform like this to begin with. A test of just
+    <span class="k-cost">ten automated orders once left four of them stuck</span>, and getting from there
+    to routine 5,000-order runs meant fighting the database, the queue topology and the hardware in turn
+    — while changing none of the rules above. That is a separate story, and it is told in
+    <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure Battles</a>.
+  </p>
 </section>
 
 <section class="refs" id="further-reading">
   <h2>Further reading</h2>
-  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <p>This article names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
     <li id="ref-contracts"><strong>Murabaha and tawarruq as contracts.</strong> The step order this platform enforces is not
       an implementation preference — it comes from the contract standards themselves, in particular
@@ -526,17 +541,19 @@ import '../../styles/posts/murabaha-platform.css';
     <li id="ref-testing"><strong>What a stress-test program is shaped like.</strong> Smoke, load, stress, soak and spike
       tests, and what each one is for:
       <a href="https://grafana.com/docs/k6/latest/testing-guides/test-types/">Grafana k6, test types</a>.</li>
-    <li><strong>The rest of the series.</strong> Parts 2 and 3 carry their own reading lists — MySQL
-      locking, isolation and indexing in Part 2; queues, worker fleets and deploys in Part 3.</li>
+    <li><strong>What it took to make this fast.</strong> MySQL locking, isolation levels, indexing, queue
+      topology and worker fleets each get their own reading list in
+      <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure
+      Battles</a>.</li>
   </ul>
 </section>
 <div class="next">
-  <span class="tag">Continue the series</span>
-  <p>We had a mathematically perfect state machine that guaranteed Sharia compliance. But when we hit it with just 31 concurrent orders, the entire system choked. The rigid consistency required by the Murabaha contract turned our database into a bottleneck of deadlocks and lock timeouts.</p>
-  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · Scaling Murabaha: The Database and Infrastructure Battles</a></strong> —
-  the battles fought in the code, the database, and the infrastructure. Told the way they happened: the problem in detail,
-  what we tried (including the attempts that failed), and the measured result. From <strong>4-of-10
-  stuck</strong> to <strong>99.94% of 5,200 orders</strong>.
+  <span class="tag">Related</span>
+  <p>This machine is correct. Making it fast was a separate problem: at 31 concurrent orders the rigid
+  consistency the contract demands turned the database into a wall of deadlocks and lock timeouts.</p>
+  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure Battles: Scaling MySQL for Fintech</a></strong> —
+  nine fights in the code, the database and the infrastructure, ranked by what each one bought. From
+  <strong>4-of-10 stuck</strong> to <strong>99.94% of 5,200 orders</strong>.
 </div>
 
 </div>
