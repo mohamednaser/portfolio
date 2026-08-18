@@ -176,7 +176,7 @@ const en = {
     metaDescription:
       'Three articles on a Sharia-compliant commodity Murabaha platform: the state machine, the database battles, and the queue worker fleet that took it to 5,200 orders at 99.94%.',
     intro:
-      'Three articles about the same platform. Part 1 explains the legal machine — why a commodity Murabaha is a state machine whose steps cannot be reordered. Parts 2 and 3 cover the engineering battles that made it fast: database locks, ghost latency, and scaling to 122 queue workers.',
+      'Three articles about a single platform, written to be read in any order. The first explains the machine itself—why a commodity Murabaha is a strict state machine whose steps cannot be reordered for speed. The next two detail the engineering battles required to make that machine fast: fighting MySQL deadlocks, resolving ghost latency, and scaling a fleet of 122 queue workers.',
     keywords: [
       'commodity murabaha',
       'scaling fintech',
@@ -350,7 +350,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     metaDescription:
       'ثلاثة مقالات عن منصّة مرابحة سلعية متوافقة مع الشريعة: آلة الحالات، معارك قاعدة البيانات، وأسطول عمّال الطوابير الذي أوصلها إلى 5,200 طلب بنسبة 99.94%.',
     intro:
-      'ثلاثة مقالات عن المنصّة نفسها. الأوّل يشرح الآلة القانونية — لماذا تُمثَّل المرابحة السلعية كآلة حالات. والثاني والثالث يرويان ما تطلّبه جعل تلك الآلة سريعة: معارك في قاعدة البيانات، ومعالجة أوقات الانتظار الوهمية، والتوسّع إلى 122 عامل طابور.',
+      'ثلاثة مقالات عن منصّة واحدة، يمكن قراءتها بأي ترتيب. الأوّل يشرح الآلة نفسها: لماذا تُمثّل المرابحة السلعية كآلة حالات صارمة لا يمكن اختصار خطواتها طلبًا للسرعة. والمقالان التاليان يرويان المعارك الهندسية التي جعلت تلك الآلة سريعة: من حل اختناقات قاعدة البيانات وأوقات الانتظار الوهمية، إلى التوسّع لتشغيل أسطول من 122 عامل طابور.',
     keywords: [
       'المرابحة السلعية',
       'توسيع التقنية المالية',
