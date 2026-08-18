@@ -527,6 +527,51 @@ fi</code></pre>
 
 
 
+<section class="refs" id="further-reading">
+  <h2>Further reading</h2>
+  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <ul>
+    <li id="ref-queues"><strong>Workers, connections and queues</strong> (Cases <a class="caseref" href="#case-07">07</a>, <a class="caseref" href="#case-09">09</a>) — the vocabulary this whole part
+      is built on, including why one worker process serves one queue list at a time:
+      <a href="https://laravel.com/docs/12.x/queues">Laravel queues</a>.</li>
+    <li id="ref-unique"><strong>Uniqueness is a lock, not a guarantee</strong> (Case <a class="caseref" href="#case-08">08</a>) — what
+      <code>ShouldBeUnique</code> does and, importantly, what it does not promise if the lock expires:
+      <a href="https://laravel.com/docs/12.x/queues#unique-jobs">unique jobs</a>. The self-expiring locks used elsewhere in the flow
+      are <a href="https://laravel.com/docs/12.x/cache#atomic-locks">atomic locks</a>.</li>
+    <li id="ref-retries"><strong>Retries, backoff, and why jitter matters</strong> (Case <a class="caseref" href="#case-08">08</a>) —
+      <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">Laravel's failed-job handling</a> for the mechanics, and
+      the <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">AWS
+      Builders' Library on timeouts, retries and backoff with jitter</a> for why synchronised retries
+      make an overloaded system worse.</li>
+    <li id="ref-deploy"><strong>Deploying without killing in-flight jobs</strong> (Case <a class="caseref" href="#case-10">10</a>) — why a worker keeps running
+      old code until it is told not to: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">queue workers and
+      deployment</a>.</li>
+    <li id="ref-horizon"><strong>The dashboard we did not use.</strong> If you are sizing a Redis-backed fleet today, read
+      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> first — its balancing strategies solve much of Case <a class="caseref" href="#case-09">09</a> for you.</li>
+    <li id="ref-brpop"><strong>What a queue worker is actually doing while it waits</strong> — the blocking pop underneath
+      a Redis queue: <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
+    <li id="ref-queue-wait"><strong>Why 0.52 seconds of work sat inside a 7.5-second step</strong> (Case <a class="caseref" href="#case-07">07</a>) — the difference
+      between service time and queue wait, and how to find saturation:
+      <a href="https://www.brendangregg.com/usemethod.html">Brendan Gregg's USE method</a>. For why
+      adding workers eventually stops helping — and then hurts — see Neil Gunther's
+      <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
+      Law</a>.</li>
+    <li id="ref-connections"><strong>Sizing processes against a connection ceiling</strong> — the knob that was
+      unbounded, and the ceiling it ran into:
+      <a href="https://www.php.net/manual/en/install.fpm.configuration.php">PHP-FPM process manager
+      configuration</a> and MySQL's
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a>.</li>
+    <li id="ref-replicas"><strong>Declaring replica counts</strong> (Case <a class="caseref" href="#case-09">09</a>) — how many copies of a service run,
+      whether that is declared in the compose file or passed as a scale flag at deploy time:
+      <a href="https://docs.docker.com/reference/compose-file/deploy/">Compose deploy specification</a>.</li>
+    <li id="ref-healthcheck"><strong>Health checks that touch the application</strong> — a probe that only proves a
+      port is open will call a dead application healthy:
+      <a href="https://microservices.io/patterns/observability/health-check-api.html">health check API
+      pattern</a>, and <a href="https://12factor.net/disposability">12-factor disposability</a> for why a
+      worker must survive being killed mid-job.</li>
+  </ul>
+</section>
+
 <div class="next">
   <span class="tag">The rest of the series</span>
   <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —

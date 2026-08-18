@@ -534,6 +534,49 @@ private function toMinorUnits(float $value): int
 </section>
 
 
+<section class="refs" id="further-reading">
+  <h2>Further reading</h2>
+  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <ul>
+    <li id="ref-isolation"><strong>Isolation levels, and what READ COMMITTED actually changes</strong> (Case <a class="caseref" href="#case-01">01</a>) — the
+      per-statement snapshot, and the gap locks InnoDB stops taking once you leave REPEATABLE READ:
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html">MySQL 8.0 Reference Manual, 17.7.2.1
+      Transaction Isolation Levels</a>.</li>
+    <li id="ref-anomalies"><strong>What each isolation level is allowed to get wrong.</strong> The anomaly vocabulary comes
+      from Berenson et al.,
+      <a href="https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/">"A
+      Critique of ANSI SQL Isolation Levels"</a>; Martin Kleppmann's
+      <a href="https://github.com/ept/hermitage">Hermitage</a> turns it into runnable tests showing which
+      anomalies each database really permits, and <a href="https://jepsen.io/consistency">Jepsen's
+      consistency map</a> places the whole family in one picture.</li>
+    <li id="ref-locks"><strong>Record locks, gap locks and next-key locks</strong> (Cases <a class="caseref" href="#case-01">01</a>, <a class="caseref" href="#case-03">03</a>) — what is actually
+      being held while an order waits: <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html">MySQL 17.7.1, InnoDB Locking</a>.</li>
+    <li id="ref-locking-reads"><strong>Locking reads</strong> (Case <a class="caseref" href="#case-03">03</a>) — <code>SELECT ... FOR UPDATE</code>, plus
+      <code>NOWAIT</code> and <code>SKIP LOCKED</code>:
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html">MySQL 17.7.2.4</a>; from the application side,
+      <a href="https://laravel.com/docs/12.x/queries#pessimistic-locking">Laravel's pessimistic locking</a>.</li>
+    <li id="ref-deadlocks"><strong>Deadlocks are normal — the question is how you handle them</strong> (Case <a class="caseref" href="#case-01">01</a>). The
+      checklist we worked through, including "use READ COMMITTED" and "add the right index", is
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html">MySQL 17.7.5.3, How to Minimize and Handle
+      Deadlocks</a>.</li>
+    <li id="ref-indexes"><strong>Indexes, and why one missing index cost seconds</strong> (Case <a class="caseref" href="#case-03">03</a>) —
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-indexes.html">MySQL 10.3.1, How MySQL Uses Indexes</a> for the mechanics, and
+      Markus Winand's <a href="https://use-the-index-luke.com/">Use The Index, Luke</a> for the best
+      developer-facing treatment of index design anywhere.</li>
+    <li id="ref-explain"><strong>Reading a query plan before changing anything</strong> —
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/using-explain.html">MySQL 10.8.1, Optimizing Queries with EXPLAIN</a>.</li>
+    <li id="ref-foreign-keys"><strong>Foreign keys, and what dropping them buys and costs</strong> (Case <a class="caseref" href="#case-03">03</a>) — the referential
+      actions we gave up, and the locking behaviour we gave up with them:
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html">MySQL 15.1.20.5, FOREIGN KEY Constraints</a>.</li>
+    <li id="ref-nplusone"><strong>N+1 queries and eager loading</strong> (Case <a class="caseref" href="#case-02">02</a>) — how one query becomes 114,000:
+      <a href="https://laravel.com/docs/12.x/eloquent-relationships#eager-loading">Laravel eager loading</a>. Transaction handling
+      itself is in <a href="https://laravel.com/docs/12.x/database#database-transactions">Laravel's database docs</a>.</li>
+    <li id="ref-ddia"><strong>If you only read one book on this.</strong> Martin Kleppmann,
+      <a href="https://dataintensive.net/">Designing Data-Intensive Applications</a> — Chapter 7
+      (Transactions) covers most of what this article ran into, in order.</li>
+  </ul>
+</section>
+
 <div class="next">
   <span class="tag">Continue to Part 3</span>
   <strong><a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Laravel Queue Workers in a Regulated Trade Pipeline</a></strong> —
