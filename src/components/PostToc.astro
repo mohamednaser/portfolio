@@ -16,15 +16,14 @@ const t = useTranslations(lang);
   Stays `hidden` until the script finds at least two — a one-item contents list
   is worse than none.
 */}
-<nav id="post-toc" class="post-toc mt-10" aria-labelledby="post-toc-label" hidden>
-  <details id="post-toc-details" class="rounded-xl border border-slate-200 dark:border-slate-800">
+<nav class="post-toc mt-10" aria-labelledby="post-toc-label" hidden>
+  <details class="post-toc-details rounded-xl border border-slate-200 dark:border-slate-800">
     <summary
-      id="post-toc-label"
-      class="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-slate-900 marker:content-none dark:text-slate-100"
+      class="post-toc-label cursor-pointer list-none px-5 py-3 text-sm font-semibold text-slate-900 marker:content-none dark:text-slate-100"
     >
       {t.post.onThisPage}
     </summary>
-    <ol id="post-toc-list" class="space-y-2 px-5 pb-4 text-sm"></ol>
+    <ol class="post-toc-list space-y-2 px-5 pb-4 text-sm"></ol>
   </details>
 </nav>
 
@@ -62,17 +61,14 @@ const t = useTranslations(lang);
   }
 
   function buildToc() {
-    const nav = document.getElementById('post-toc');
-    const list = document.getElementById('post-toc-list');
-    const details = document.getElementById('post-toc-details') as HTMLDetailsElement | null;
-    if (!nav || !list || !details) return;
+    const navs = document.querySelectorAll<HTMLElement>('.post-toc');
+    if (navs.length === 0) return;
 
-    list.replaceChildren();
     const headings = [...document.querySelectorAll<HTMLHeadingElement>(HEADING_SELECTOR)];
-
-    // One entry is not a table of contents; leave the block hidden.
+    
+    // One entry is not a table of contents; leave the blocks hidden.
     if (headings.length < 2) {
-      nav.hidden = true;
+      navs.forEach(nav => nav.hidden = true);
       return;
     }
 
@@ -85,23 +81,34 @@ const t = useTranslations(lang);
         heading.id = id;
       }
       used.add(heading.id);
-
-      const link = document.createElement('a');
-      link.href = `#${heading.id}`;
-      link.textContent = text;
-      link.className =
-        'block text-slate-600 transition-colors hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 aria-[current=true]:font-medium aria-[current=true]:text-emerald-600 dark:aria-[current=true]:text-emerald-400';
-
-      const item = document.createElement('li');
-      item.appendChild(link);
-      list.appendChild(item);
     });
 
-    nav.hidden = false;
-    // Open where vertical space is cheap; collapsed on phones.
-    details.open = window.matchMedia('(min-width: 1024px)').matches;
+    navs.forEach(nav => {
+      const list = nav.querySelector<HTMLElement>('.post-toc-list');
+      const details = nav.querySelector<HTMLDetailsElement>('.post-toc-details');
+      if (!list || !details) return;
 
-    trackActiveHeading(headings, list);
+      list.replaceChildren();
+
+      headings.forEach((heading) => {
+        const text = heading.textContent?.trim() ?? '';
+        const link = document.createElement('a');
+        link.href = `#${heading.id}`;
+        link.textContent = text;
+        link.className =
+          'block border-l-2 border-transparent py-1 pl-3 text-slate-600 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 aria-[current=true]:border-emerald-500 aria-[current=true]:font-medium aria-[current=true]:text-emerald-600 dark:aria-[current=true]:border-emerald-400 dark:aria-[current=true]:text-emerald-400';
+
+        const item = document.createElement('li');
+        item.appendChild(link);
+        list.appendChild(item);
+      });
+
+      nav.hidden = false;
+      // Open where vertical space is cheap; collapsed on phones.
+      details.open = window.matchMedia('(min-width: 1024px)').matches;
+
+      trackActiveHeading(headings, list);
+    });
   }
 
   /** Marks the heading currently at the top of the viewport. */

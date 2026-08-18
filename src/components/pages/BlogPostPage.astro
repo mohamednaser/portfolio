@@ -56,7 +56,8 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
   publishedTime={publishedTime}
   modifiedTime={modifiedTime}
 >
-  <article class="mx-auto max-w-3xl px-6 py-16">
+  <article class="mx-auto max-w-5xl px-6 py-16 lg:grid lg:grid-cols-[1fr_240px] lg:items-start lg:gap-12">
+    <div class="min-w-0 max-w-3xl w-full">
     <header>
       <time datetime={publishedTime} class="text-sm text-slate-500">
         {formattedDate}
@@ -140,7 +141,7 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
       }
     </header>
 
-    {!isExternal && <PostToc lang={lang} />}
+    {!isExternal && <div class="lg:hidden"><PostToc lang={lang} /></div>}
 
     {
       !isExternal && (
@@ -224,5 +225,12 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
         {t.post.back}
       </a>
     </p>
+    </div>
+
+    {!isExternal && (
+      <aside class="hidden lg:block lg:sticky lg:top-32 lg:order-last">
+        <PostToc lang={lang} />
+      </aside>
+    )}
   </article>
 </BaseLayout>
