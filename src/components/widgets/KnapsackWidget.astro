@@ -1,0 +1,186 @@
+---
+---
+<div class="knapsack-widget" aria-label="Algorithmic Knapsack Simulator">
+  <div class="widget-header">
+    <h3>The Exact-Change Knapsack Algorithm</h3>
+    <p>Watch a naive search try to perfectly pack commodity units to hit an exact financial target. <strong class="k-rule">One halala over or under makes the trade invalid.</strong></p>
+  </div>
+
+  <div class="ks-controls">
+    <button id="ks-run-btn" class="action-btn">▶ Run Search Algorithm</button>
+    <button id="ks-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="ks-stage">
+    <div class="ks-inventory">
+      <h4>Available Inventory</h4>
+      <div class="ks-blocks">
+        <div class="ks-block" id="blk-a" data-val="20000">SAR 20k</div>
+        <div class="ks-block" id="blk-b" data-val="15000">SAR 15k</div>
+        <div class="ks-block" id="blk-c" data-val="25000">SAR 25k</div>
+        <div class="ks-block" id="blk-d" data-val="10000">SAR 10k</div>
+        <div class="ks-block" id="blk-e" data-val="5000">SAR 5k</div>
+      </div>
+    </div>
+    
+    <div class="ks-basket-area">
+      <div class="ks-target">Target Order: <strong>SAR 50,000</strong></div>
+      <div class="ks-basket" id="ks-basket">
+        <div class="ks-basket-inner" id="ks-basket-inner"></div>
+      </div>
+      <div class="ks-sum">Current Sum: <strong id="ks-sum-val">0</strong></div>
+      <div class="ks-status" id="ks-status">Awaiting search...</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .knapsack-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .ks-controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center; }
+  .action-btn { background-color: #8b5cf6; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #7c3aed; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+  .ks-stage { display: flex; gap: 2rem; }
+  
+  .ks-inventory { flex: 1; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; }
+  .ks-inventory h4 { margin: 0 0 1rem 0; font-size: 0.95rem; color: #374151; }
+  .ks-blocks { display: flex; flex-direction: column; gap: 0.5rem; position: relative; min-height: 200px; }
+  .ks-block { background: #e0e7ff; color: #3730a3; border: 1px solid #818cf8; padding: 0.5rem; border-radius: 4px; text-align: center; font-weight: bold; font-family: monospace; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); position: absolute; width: 100%; box-sizing: border-box; }
+  
+  /* Initial positions */
+  #blk-a { top: 0px; }
+  #blk-b { top: 40px; }
+  #blk-c { top: 80px; }
+  #blk-d { top: 120px; }
+  #blk-e { top: 160px; }
+
+  .ks-basket-area { flex: 1.5; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+  .ks-target { font-size: 1.1rem; color: #111827; }
+  
+  .ks-basket { width: 100%; height: 200px; border: 3px dashed #9ca3af; border-radius: 0 0 8px 8px; border-top: none; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 0.5rem; box-sizing: border-box; transition: all 0.3s; background: rgba(243, 244, 246, 0.5); }
+  .ks-basket.over { border-color: #ef4444; background: #fee2e2; }
+  .ks-basket.exact { border-color: #10b981; background: #d1fae5; }
+  
+  .ks-sum { font-size: 1.1rem; color: #4b5563; }
+  .ks-status { font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+  .ks-status.over { color: #b91c1c; background: #fecaca; }
+  .ks-status.exact { color: #065f46; background: #a7f3d0; }
+  
+  @media (prefers-color-scheme: dark) {
+    .knapsack-widget { background-color: #1f2937; border-color: #374151; }
+    .ks-inventory { background: #111827; border-color: #374151; }
+    .ks-inventory h4, .ks-target { color: #d1d5db; }
+    .ks-sum { color: #9ca3af; }
+    .ks-basket { border-color: #4b5563; background: rgba(17, 24, 39, 0.5); }
+    .ks-block { background: #312e81; color: #a5b4fc; border-color: #4f46e5; }
+    .ks-basket.over { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .ks-basket.exact { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+  }
+</style>
+
+<script>
+  function initKnapsack() {
+    const runBtn = document.getElementById('ks-run-btn') as HTMLButtonElement;
+    const resetBtn = document.getElementById('ks-reset-btn');
+    const basket = document.getElementById('ks-basket');
+    const sumVal = document.getElementById('ks-sum-val');
+    const status = document.getElementById('ks-status');
+
+    if (!runBtn || !basket) return;
+
+    let isRunning = false;
+
+    // We have to move blocks visually into the basket
+    function moveBlock(id: string, indexInBasket: number) {
+      const blk = document.getElementById(id);
+      if(!blk || !basket) return;
+      const bRect = basket.getBoundingClientRect();
+      const blkRect = blk.getBoundingClientRect();
+      
+      // Calculate drop position
+      const dropY = bRect.bottom - blkRect.top - ((indexInBasket + 1) * 40) - 10;
+      const dropX = bRect.left - blkRect.left + 20; // Some padding
+      
+      blk.style.transform = `translate(${dropX}px, ${dropY}px)`;
+      blk.style.width = 'calc(100% - 40px)';
+    }
+
+    function resetBlocks() {
+      ['blk-a','blk-b','blk-c','blk-d','blk-e'].forEach(id => {
+        const blk = document.getElementById(id);
+        if(blk) {
+          blk.style.transform = 'translate(0, 0)';
+          blk.style.width = '100%';
+        }
+      });
+    }
+
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      isRunning = true;
+      runBtn.disabled = true;
+
+      if(status) status.textContent = "Attempt 1: Sequential Pack...";
+      
+      // Attempt 1: A(20) + B(15) + C(25)
+      setTimeout(() => { moveBlock('blk-a', 0); if(sumVal) sumVal.textContent = "20,000"; }, 500);
+      setTimeout(() => { moveBlock('blk-b', 1); if(sumVal) sumVal.textContent = "35,000"; }, 1000);
+      setTimeout(() => { moveBlock('blk-c', 2); if(sumVal) sumVal.textContent = "60,000"; }, 1500);
+      
+      setTimeout(() => {
+        basket.classList.add('over');
+        if(status) { status.textContent = "INVALID: Over by 10,000! Backtracking..."; status.className = "ks-status over"; }
+      }, 2000);
+
+      // Backtrack
+      setTimeout(() => {
+        basket.classList.remove('over');
+        resetBlocks();
+        if(sumVal) sumVal.textContent = "0";
+        if(status) { status.textContent = "Attempt 2: Combinatorial Pack..."; status.className = "ks-status"; }
+      }, 3500);
+
+      // Attempt 2: C(25) + B(15) + D(10) = 50k
+      setTimeout(() => { moveBlock('blk-c', 0); if(sumVal) sumVal.textContent = "25,000"; }, 4500);
+      setTimeout(() => { moveBlock('blk-b', 1); if(sumVal) sumVal.textContent = "40,000"; }, 5000);
+      setTimeout(() => { moveBlock('blk-d', 2); if(sumVal) sumVal.textContent = "50,000"; }, 5500);
+
+      setTimeout(() => {
+        basket.classList.add('exact');
+        if(status) { status.textContent = "EXACT MATCH: Trade valid."; status.className = "ks-status exact"; }
+        runBtn.style.display = 'none';
+        if(resetBtn) resetBtn.style.display = 'inline-block';
+        isRunning = false;
+      }, 6000);
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      resetBlocks();
+      basket.classList.remove('over', 'exact');
+      if(sumVal) sumVal.textContent = "0";
+      if(status) { status.textContent = "Awaiting search..."; status.className = "ks-status"; }
+
+      runBtn.style.display = 'inline-block';
+      runBtn.disabled = false;
+      resetBtn.style.display = 'none';
+    });
+  }
+
+  document.addEventListener('astro:page-load', initKnapsack);
+  document.addEventListener('DOMContentLoaded', initKnapsack);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initKnapsack();
+  }
+</script>

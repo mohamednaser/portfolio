@@ -1,0 +1,263 @@
+---
+---
+<div class="state-machine-widget" aria-label="Murabaha State Machine Interactive Diagram">
+  <div class="widget-header">
+    <h3>The Commodity Murabaha State Machine</h3>
+    <p>Step through the transaction to watch ownership and cash move between the parties. <strong class="k-rule">Each step must complete before the next may begin.</strong></p>
+  </div>
+
+  <div class="sm-controls">
+    <button id="sm-next-btn" class="action-btn">▶ Start Trade</button>
+    <button id="sm-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="sm-progress">
+    <div class="step" id="step-1">1. Created</div>
+    <div class="step" id="step-2">2. Purchase</div>
+    <div class="step" id="step-3">3. Ownership</div>
+    <div class="step" id="step-4">4. Sell</div>
+    <div class="step" id="step-5">5. Complete</div>
+  </div>
+
+  <div class="sm-stage">
+    <div class="actor supplier">
+      <div class="actor-icon">🏢</div>
+      <div class="actor-name">Commodity Market</div>
+      <div class="inventory" id="inv-market">
+        <div class="item commodity" id="item-commodity" title="Real Commodity Units">📦</div>
+        <div class="item cash" id="item-market-cash" style="opacity:0;">💵</div>
+      </div>
+    </div>
+    
+    <div class="actor institution">
+      <div class="actor-icon">🏦</div>
+      <div class="actor-name">Institution</div>
+      <div class="inventory" id="inv-bank">
+        <div class="item cash" id="item-bank-cash">💵</div>
+        <div class="item doc" id="item-debt" style="opacity:0;">📝</div>
+      </div>
+    </div>
+    
+    <div class="actor customer">
+      <div class="actor-icon">👤</div>
+      <div class="actor-name">Customer</div>
+      <div class="inventory" id="inv-customer">
+        <div class="item cash" id="item-cust-cash" style="opacity:0;">💵</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="sm-description" id="sm-desc">
+    <p><strong>Idle:</strong> Awaiting a new financing order.</p>
+  </div>
+</div>
+
+<style>
+  .state-machine-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .sm-controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center; }
+  .action-btn { background-color: #10b981; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #059669; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .ghost-btn:hover { background: #f3f4f6; }
+
+  .sm-progress { display: flex; justify-content: space-between; margin-bottom: 2rem; position: relative; }
+  .sm-progress::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: #e5e7eb; z-index: 1; transform: translateY(-50%); }
+  .step { background: white; border: 2px solid #e5e7eb; border-radius: 99px; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #9ca3af; position: relative; z-index: 2; transition: all 0.3s; }
+  .step.active { border-color: #10b981; color: #10b981; background: #d1fae5; }
+  .step.done { border-color: #10b981; color: white; background: #10b981; }
+
+  .sm-stage { display: flex; justify-content: space-between; align-items: stretch; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem; position: relative; min-height: 150px; }
+  
+  .actor { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; position: relative; }
+  .actor-icon { font-size: 2.5rem; }
+  .actor-name { font-weight: 600; font-size: 0.9rem; color: #374151; }
+  
+  .inventory { display: flex; gap: 0.5rem; margin-top: 1rem; min-height: 40px; position: relative; }
+  .item { font-size: 1.5rem; transition: all 0.5s ease-in-out; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #f3f4f6; border-radius: 8px; position: absolute; }
+  
+  /* Initial positions */
+  #item-commodity { top: 0; left: -20px; }
+  #item-bank-cash { top: 0; left: -20px; }
+  #item-market-cash { top: 0; left: 20px; }
+  #item-debt { top: 0; left: 20px; }
+  #item-cust-cash { top: 0; left: -20px; }
+
+  .sm-description { background: #f9fafb; border-left: 4px solid #10b981; padding: 1rem; border-radius: 0 4px 4px 0; }
+  .sm-description p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: #374151; }
+
+  @media (prefers-color-scheme: dark) {
+    .state-machine-widget { background-color: #1f2937; border-color: #374151; }
+    .sm-stage { background: #111827; border-color: #374151; }
+    .actor-name { color: #d1d5db; }
+    .item { background: #374151; }
+    .sm-progress::before { background: #374151; }
+    .step { background: #1f2937; border-color: #374151; }
+    .sm-description { background: #111827; }
+    .sm-description p { color: #d1d5db; }
+  }
+</style>
+
+<script>
+  function initStateMachine() {
+    const nextBtn = document.getElementById('sm-next-btn');
+    const resetBtn = document.getElementById('sm-reset-btn');
+    if (!nextBtn || !resetBtn) return;
+
+    const desc = document.getElementById('sm-desc');
+    const commodity = document.getElementById('item-commodity');
+    const bankCash = document.getElementById('item-bank-cash');
+    const marketCash = document.getElementById('item-market-cash');
+    const debtDoc = document.getElementById('item-debt');
+    const custCash = document.getElementById('item-cust-cash');
+    
+    let state = 0;
+
+    const states = [
+      {
+        title: "1. Order Created & Approved",
+        desc: "The institution submits the financing order for the customer. A new trade request is born.",
+        action: () => {
+          document.getElementById('step-1')?.classList.add('active');
+          if(debtDoc) debtDoc.style.opacity = '0';
+        }
+      },
+      {
+        title: "2. Purchasing Commodity",
+        desc: "The Institution buys real commodity units from the open market. Sharia requires this ownership to be real — <strong>you cannot sell what you do not own.</strong>",
+        action: () => {
+          document.getElementById('step-1')?.classList.replace('active', 'done');
+          document.getElementById('step-2')?.classList.add('active');
+          
+          // Bank gives cash to Market, Market gives commodity to Bank
+          if(bankCash) {
+            const rect = document.getElementById('inv-market')?.getBoundingClientRect();
+            const startRect = document.getElementById('inv-bank')?.getBoundingClientRect();
+            if(rect && startRect) {
+              const diffX = rect.left - startRect.left + 20;
+              bankCash.style.transform = `translateX(${diffX}px)`;
+            }
+          }
+          if(commodity) {
+            const rect = document.getElementById('inv-bank')?.getBoundingClientRect();
+            const startRect = document.getElementById('inv-market')?.getBoundingClientRect();
+            if(rect && startRect) {
+              const diffX = rect.left - startRect.left - 20;
+              commodity.style.transform = `translateX(${diffX}px)`;
+            }
+          }
+        }
+      },
+      {
+        title: "3. Borrower Ownership",
+        desc: "The institution sells the commodity to the customer at cost plus profit (deferred). Ownership of the units legally transfers to the customer.",
+        action: () => {
+          document.getElementById('step-2')?.classList.replace('active', 'done');
+          document.getElementById('step-3')?.classList.add('active');
+          
+          // Bank gives commodity to Customer, Customer gives debt doc to Bank
+          if(commodity) {
+            const rect = document.getElementById('inv-customer')?.getBoundingClientRect();
+            const startRect = document.getElementById('inv-market')?.getBoundingClientRect();
+            if(rect && startRect) {
+              const diffX = rect.left - startRect.left - 20;
+              commodity.style.transform = `translateX(${diffX}px)`;
+            }
+          }
+          if(debtDoc) {
+            debtDoc.style.opacity = '1';
+          }
+        }
+      },
+      {
+        title: "4. Sale to Market",
+        desc: "The customer sells the commodity back to the open market for cash. This provides the liquidity the customer originally needed.",
+        action: () => {
+          document.getElementById('step-3')?.classList.replace('active', 'done');
+          document.getElementById('step-4')?.classList.add('active');
+          
+          // Customer gives commodity to Market, Market gives cash to Customer
+          if(commodity) {
+            commodity.style.transform = `translateX(0px)`; // Back to start
+          }
+          if(marketCash) {
+            marketCash.style.opacity = '1';
+            const rect = document.getElementById('inv-customer')?.getBoundingClientRect();
+            const startRect = document.getElementById('inv-market')?.getBoundingClientRect();
+            if(rect && startRect) {
+              const diffX = rect.left - startRect.left - 20;
+              marketCash.style.transform = `translateX(${diffX}px)`;
+            }
+          }
+        }
+      },
+      {
+        title: "5. Murabaha Completed",
+        desc: "Funds settle to the customer. The commodity units settle back into the market's books, ready to serve a future order.",
+        action: () => {
+          document.getElementById('step-4')?.classList.replace('active', 'done');
+          document.getElementById('step-5')?.classList.add('done');
+          
+          if(custCash) {
+            custCash.style.opacity = '1';
+          }
+          if(marketCash) {
+            marketCash.style.opacity = '0';
+          }
+          
+          nextBtn.style.display = 'none';
+          resetBtn.style.display = 'inline-block';
+        }
+      }
+    ];
+
+    nextBtn.addEventListener('click', () => {
+      if (state >= states.length) return;
+      
+      const s = states[state];
+      if(desc) desc.innerHTML = `<p><strong>${s.title}:</strong> ${s.desc}</p>`;
+      s.action();
+      
+      state++;
+      if (state < states.length) {
+        nextBtn.textContent = "Next Step ▶";
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      state = 0;
+      nextBtn.style.display = 'inline-block';
+      nextBtn.textContent = "▶ Start Trade";
+      resetBtn.style.display = 'none';
+      if(desc) desc.innerHTML = `<p><strong>Idle:</strong> Awaiting a new financing order.</p>`;
+      
+      // Reset DOM
+      for(let i=1; i<=5; i++) {
+        const el = document.getElementById(`step-${i}`);
+        if(el) el.className = 'step';
+      }
+      
+      if(commodity) commodity.style.transform = `translateX(0)`;
+      if(bankCash) bankCash.style.transform = `translateX(0)`;
+      if(marketCash) { marketCash.style.transform = `translateX(0)`; marketCash.style.opacity = '0'; }
+      if(debtDoc) debtDoc.style.opacity = '0';
+      if(custCash) custCash.style.opacity = '0';
+    });
+  }
+
+  document.addEventListener('astro:page-load', initStateMachine);
+  document.addEventListener('DOMContentLoaded', initStateMachine);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initStateMachine();
+  }
+</script>

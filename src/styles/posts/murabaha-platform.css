@@ -128,11 +128,6 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{--bg: #121815;
     display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
   }
-.lynk-post .refs{ border-top: 1px solid var(--line); margin-top: 3.5rem; padding-top: 1.5rem; font-size: 0.82rem; color: var(--muted); }
-.lynk-post .refs h2{ font-size: 1.1rem; }
-.lynk-post .refs strong{ color: var(--ink); font-weight: 600; }
-.lynk-post .refs p{ max-width: 40rem; }
-.lynk-post .refs li{ margin-bottom: 0.6rem; }
 .lynk-post footer{ margin-top: 2.5rem; font-size: 0.78rem; color: var(--muted); }
 @keyframes growbar{ from { transform: scaleX(0); } }
 @keyframes fadein{ from { opacity: 0; } }
@@ -217,11 +212,6 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
 .lynk-post .refmark:hover, .lynk-post .refmark:focus-visible{
     border-color: var(--accent); background: var(--accent-soft);
   }
-.lynk-post .refs li{ scroll-margin-top: 4.5rem; }
-.lynk-post .refs li:target{
-    background: var(--accent-soft); border-left: 3px solid var(--accent);
-    padding: 0.5rem 0.75rem; margin-left: -0.9rem; border-radius: 0 4px 4px 0;
-  }
 
 /* --- Case teasers: each label deep-links to the real case ------------- */
 .lynk-post .teasers{ list-style: none; padding-left: 0; margin: 1.25rem 0 0; }
@@ -244,3 +234,44 @@ html.dark .lynk-post, html[data-theme='dark'] .lynk-post{
     border-bottom: 1px dotted var(--accent-line); font-variant-numeric: tabular-nums;
   }
 .lynk-post .caseref:hover, .lynk-post .caseref:focus-visible{ border-bottom-style: solid; }
+
+.lynk-post .refs {
+  border-top: 1px solid var(--line);
+  margin-top: 4rem;
+  padding: 2rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+  background-color: var(--card);
+  border-radius: 12px;
+}
+.lynk-post .refs h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  color: var(--ink);
+}
+.lynk-post .refs strong { color: var(--ink); font-weight: 600; }
+.lynk-post .refs p { max-width: 100%; margin-bottom: 1.5rem; }
+.lynk-post .refs ul {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.lynk-post .refs li {
+  margin-bottom: 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--line);
+  scroll-margin-top: 4.5rem;
+}
+.lynk-post .refs li:target {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  padding: 0.75rem 1rem;
+  margin-left: -1rem;
+  border-radius: 0 6px 6px 0;
+}

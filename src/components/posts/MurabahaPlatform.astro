@@ -2,6 +2,8 @@
 // Article body for /blog/murabaha-as-a-state-machine/
 // Generated from murabaha-platform-article.html — edit the canonical HTML, not this file.
 import '../../styles/posts/murabaha-platform.css';
+import MurabahaStateMachineWidget from "../widgets/MurabahaStateMachineWidget.astro";
+import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
 ---
 
 <div class="lynk-post">
@@ -94,38 +96,7 @@ import '../../styles/posts/murabaha-platform.css';
     and <span class="k-rule">each must complete before the next may begin</span>.<a class="refmark" href="#ref-saga">saga ↓</a>
   </p>
 
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/murabaha-as-a-state-machine/process-flow.webp"
-         width="1024" height="559"
-         alt="Five-panel process flow: order created and approved; purchasing commodity on the open market with an institution ownership certificate; borrower ownership at cost plus profit with deferred instalments; sale to market through a wakala agreement to a genuinely different buyer; Murabaha completed with funds disbursed and units settled back to the market."
-         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>The commodity Murabaha (tawarruq) process flow: five steps, each a real transaction with its
-    own legal evidence. Ownership of real commodity units moves market → institution → customer → market,
-    with payment flowing back at each hop — and the sequence cannot be reordered.</figcaption>
-  </figure>
-
-  <ol class="steps">
-    <li><span><span class="st">Order created &amp; approved</span>
-      <span class="sd">The institution submits the financing order — amount, customer, market, commodity
-      preferences. Depending on its roles setup, a supervisor approves it. A trade request is born.</span></span></li>
-    <li><span><span class="st">Purchasing Commodity</span>
-      <span class="sd">The platform finds eligible commodity units on the market that cover the financing
-      amount, places them on hold, and executes the purchase. The institution now genuinely owns specific,
-      identified units of a real commodity. Sharia requires this ownership to be real — <span class="k-rule">you cannot sell
-      what you do not own</span>.</span></span></li>
-    <li><span><span class="st">Borrower Ownership</span>
-      <span class="sd">The institution sells the commodity to the customer at cost plus the agreed profit,
-      payable in instalments — this sale <em>is</em> the Murabaha. Ownership of the units transfers to the
-      customer, evidenced by certificate.</span></span></li>
-    <li><span><span class="st">Sale to market</span>
-      <span class="sd">The customer — typically through a wakala appointing the institution or platform as
-      agent — sells the commodity back to the open market for cash. This provides the liquidity the customer
-      needed. The commodity must move to a genuinely different buyer, which is why trade-rotation rules
-      and, in newer flows, a Specialized Entity govern who may buy it.</span></span></li>
-    <li><span><span class="st">Murabaha Completed &amp; settlement</span>
-      <span class="sd">Funds flow to the customer, certificates are finalized, the order completes, and the
-      commodity units settle back into the market's books, ready to serve a future order.</span></span></li>
-  </ol>
+  <MurabahaStateMachineWidget />
   <figure>
     <img loading="lazy" decoding="async" src="/images/blog/murabaha-as-a-state-machine/figure-1.png" width="1162" height="1572"
          alt="LYNK's Murabaha Details screen showing all five steps completed with green checkmarks: Purchasing Commodity in 1 second with its commodity certificate, Contract Signed in 28 seconds confirmed via API by the lender, Borrower Ownership Certificate in 0 seconds with its certificate, Client Wakala in 0 seconds, and Murabaha Completed in 0 seconds with the sell confirmation certificate — on 15 August 2026."
@@ -161,74 +132,7 @@ import '../../styles/posts/murabaha-platform.css';
     replay its full legal history: supplier → institution → customer → market, order by order.
   </p>
 
-  <figure>
-    <svg viewBox="0 0 720 342" role="img" aria-label="Supplier stock is minted into individually coded units; one unit moves from free, to held by an order, to owned by the customer; every ownership change appends a row to an append-only ledger.">
-      <defs>
-        <marker id="arr-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
-        </marker>
-        <marker id="arr-ua" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
-        </marker>
-      </defs>
-      <!-- Band 1: minting -->
-      <rect x="10" y="18" width="160" height="52" rx="3" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
-      <text x="90" y="40" font-size="12" font-weight="600" fill="currentColor" text-anchor="middle">Supplier stock</text>
-      <text x="90" y="57" font-size="10.5" fill="currentColor" opacity="0.65" text-anchor="middle">e.g. 500 units of steel</text>
-      <line x1="170" y1="44" x2="248" y2="44" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" marker-end="url(#arr-u)"></line>
-      <text x="209" y="32" font-size="10.5" fill="currentColor" opacity="0.7" text-anchor="middle">minted</text>
-      <!-- unit grid: 12 cols x 2 rows, 16px squares gap 6, start x=258 y=26 -->
-      <g fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1">
-        <rect x="258" y="26" width="16" height="16" rx="2"></rect><rect x="280" y="26" width="16" height="16" rx="2"></rect><rect x="302" y="26" width="16" height="16" rx="2"></rect><rect x="324" y="26" width="16" height="16" rx="2"></rect><rect x="346" y="26" width="16" height="16" rx="2"></rect><rect x="368" y="26" width="16" height="16" rx="2"></rect><rect x="390" y="26" width="16" height="16" rx="2"></rect><rect x="412" y="26" width="16" height="16" rx="2"></rect><rect x="434" y="26" width="16" height="16" rx="2"></rect><rect x="456" y="26" width="16" height="16" rx="2"></rect><rect x="478" y="26" width="16" height="16" rx="2"></rect><rect x="500" y="26" width="16" height="16" rx="2"></rect>
-        <rect x="258" y="48" width="16" height="16" rx="2"></rect><rect x="280" y="48" width="16" height="16" rx="2"></rect><rect x="302" y="48" width="16" height="16" rx="2"></rect><rect x="324" y="48" width="16" height="16" rx="2"></rect><rect x="346" y="48" width="16" height="16" rx="2"></rect><rect x="368" y="48" width="16" height="16" rx="2"></rect><rect x="390" y="48" width="16" height="16" rx="2"></rect><rect x="412" y="48" width="16" height="16" rx="2"></rect><rect x="434" y="48" width="16" height="16" rx="2"></rect><rect x="456" y="48" width="16" height="16" rx="2"></rect><rect x="478" y="48" width="16" height="16" rx="2"></rect><rect x="500" y="48" width="16" height="16" rx="2"></rect>
-      </g>
-      <!-- highlighted unit -->
-      <rect x="346" y="48" width="16" height="16" rx="2" fill="var(--accent)" class="unit-pulse"></rect>
-      <text x="530" y="38" font-size="10.5" fill="currentColor" opacity="0.7">one row per unit,</text>
-      <text x="530" y="53" font-size="10.5" fill="currentColor" opacity="0.7">each with a unique code</text>
-      <!-- callout line from highlighted unit down to card 1 -->
-      <line x1="354" y1="64" x2="120" y2="106" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 3"></line>
-      <!-- Band 2: one unit's journey, three cards y=110 h=64 -->
-      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
-        <rect x="18" y="110" width="196" height="64" rx="3"></rect>
-        <rect x="262" y="110" width="196" height="64" rx="3"></rect>
-      </g>
-      <rect x="506" y="110" width="196" height="64" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.5"></rect>
-      <g font-family="ui-monospace, Menlo, monospace" font-size="10.5">
-        <text x="30" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
-        <text x="30" y="147" fill="currentColor" opacity="0.8">status: FREE</text>
-        <text x="30" y="163" fill="currentColor" opacity="0.8">owner: Supplier S-014</text>
-        <text x="274" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
-        <text x="274" y="147" fill="currentColor" opacity="0.8">status: RESERVED · hold_for #812</text>
-        <text x="274" y="163" fill="currentColor" opacity="0.8">owner: Supplier S-014</text>
-        <text x="518" y="130" fill="var(--accent)" font-weight="700">UNIT 8FA3-72</text>
-        <text x="518" y="147" fill="currentColor" opacity="0.8">status: FREE · settled</text>
-        <text x="518" y="163" fill="currentColor" opacity="0.8">owner: Customer C-1042</text>
-      </g>
-      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none">
-        <line x1="214" y1="142" x2="258" y2="142" marker-end="url(#arr-u)"></line>
-      </g>
-      <line x1="458" y1="142" x2="502" y2="142" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr-ua)"></line>
-      <text x="236" y="131" font-size="10" fill="currentColor" opacity="0.7" text-anchor="middle">held</text>
-      <text x="480" y="131" font-size="10" fill="var(--accent)" text-anchor="middle">owned</text>
-      <!-- trigger arrows to ledger -->
-      <g stroke="currentColor" stroke-opacity="0.45" stroke-width="1.2" stroke-dasharray="3 3" fill="none">
-        <line x1="360" y1="174" x2="360" y2="212"></line>
-        <line x1="604" y1="174" x2="604" y2="212"></line>
-      </g>
-      <text x="368" y="198" font-size="10" fill="currentColor" opacity="0.65">every ownership change fires a DB trigger…</text>
-      <!-- Band 3: ledger -->
-      <rect x="18" y="216" width="684" height="92" rx="3" fill="var(--card)" stroke="currentColor" stroke-opacity="0.4"></rect>
-      <text x="34" y="238" font-size="11" font-family="ui-monospace, Menlo, monospace" fill="var(--accent)" letter-spacing="1">OWNERSHIP LEDGER · APPEND-ONLY</text>
-      <g font-family="ui-monospace, Menlo, monospace" font-size="10.5" fill="currentColor" opacity="0.85">
-        <text x="34" y="262" class="ledger-row" style="animation-delay:0.4s">8FA3-72 · Supplier S-014 → Institution L-001 · order #812 · purchase</text>
-        <text x="34" y="280" class="ledger-row" style="animation-delay:1.1s">8FA3-72 · Institution L-001 → Customer C-1042 · order #812 · murabaha sale</text>
-        <text x="34" y="298" class="ledger-row" style="animation-delay:1.8s">8FA3-72 · Customer C-1042 → Open market · order #812 · sale for cash</text>
-      </g>
-      <text x="702" y="330" font-size="10" fill="currentColor" opacity="0.6" text-anchor="end">any code, any time → full legal chain of ownership</text>
-    </svg>
-    <figcaption>Stock as code: supplier inventory is minted into individually coded units. Each unit tracks its status, the order holding it, and its current and previous owner — and a database trigger appends every ownership change to an append-only ledger, so any unit's code replays its complete legal history.</figcaption>
-  </figure>
+  <AppendOnlyLedgerWidget />
 
   <p>
     This design is what makes the platform legally sound — and it is also <strong>one of our hardest
@@ -487,6 +391,27 @@ import '../../styles/posts/murabaha-platform.css';
 </section>
 
 <!-- SECTION 5: the cliffhanger -->
+<section class="section" id="section-architecture">
+  <div class="section-head"><h2>The Platform Architecture</h2></div>
+  <p>
+  <strong>The stack, named once.</strong> <strong>Laravel</strong> on PHP&nbsp;8,
+  <strong>MySQL&nbsp;8 (InnoDB)</strong> as the system of record, <strong>Redis</strong> behind the queues
+  and locks, deployed as Docker Compose services on a handful of Linux VMs. Where a case turns on a
+  specific behaviour of one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling
+  flags — it is named and glossed at the point it matters.
+</p>
+
+<figure>
+  <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/stack.webp"
+       width="1024" height="559"
+       alt="Platform and deployment architecture: a user request reaches the Laravel application on PHP 8, which writes transactional data to MySQL 8 (InnoDB) as the system of record and manages distributed job queues and locks in Redis; queue workers read those jobs and write back into MySQL. The whole thing is deployed as Docker Compose services — app, db, redis and scaled worker replicas — spread across a handful of Linux VMs."
+       style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+  <figcaption>The platform behind every case in this series: one Laravel application, MySQL as the system of
+  record, Redis carrying the queues and locks, and worker replicas scaled per queue across a handful of
+  Linux VMs. Almost every battle across Parts 2 and 3 is a fight between two of these boxes.</figcaption>
+</figure>
+</section>
+
 <section class="section" id="section-05">
   <div class="section-head"><h2>None of this came easy</h2></div>
   <p style="margin-top:1rem;">
@@ -497,17 +422,7 @@ import '../../styles/posts/murabaha-platform.css';
   <p>
     Getting from those stuck orders to today's flawless 5,000-order daily runs required fighting ten hard-won battles across the database and the infrastructure.
   </p>
-  <div style="background: var(--bg-card, #f8f9fa); border: 1px solid var(--border-color, #e5e7eb); padding: 1.5rem; border-radius: 8px; margin-top: 2rem;">
-    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Continue reading the series:</h3>
-    <ul style="list-style: none; padding-left: 0; margin-bottom: 0;">
-      <li style="margin-bottom: 1rem;">
-        <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/" style="text-decoration: underline; color: var(--accent-color, #10b981);">Part 2: MySQL Under Load</a></strong> — See how we survived N+1 queries that DDOSed our own database, algorithmic bottlenecks, and isolation level deadlocks.
-      </li>
-      <li>
-        <strong><a href="/blog/laravel-queue-workers-regulated-trade-pipeline/" style="text-decoration: underline; color: var(--accent-color, #10b981);">Part 3: Laravel Queue Workers</a></strong> — See how we scaled from 3 workers to 122 processes and fought off "ghost latency" to keep the pipeline moving.
-      </li>
-    </ul>
-  </div>
+
   </section>
 
 <section class="refs" id="further-reading">

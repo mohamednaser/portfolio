@@ -1,0 +1,181 @@
+---
+---
+<div class="ledger-widget" aria-label="Append-Only Ledger Simulator">
+  <div class="widget-header">
+    <h3>The Append-Only Ledger Simulator</h3>
+    <p>Watch how the database tracks commodity units. <strong class="k-rule">Rows are never updated, only appended.</strong></p>
+  </div>
+
+  <div class="ledger-controls">
+    <button id="ld-run-btn" class="action-btn">▶ Simulate Orders</button>
+    <button id="ld-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="ledger-stage">
+    <div class="warehouse">
+      <h4>Commodity Units</h4>
+      <div class="unit-box" id="unit-1">
+        <span class="unit-code">8FA3-72</span>
+        <span class="unit-status free" id="stat-1">FREE</span>
+        <span class="unit-owner" id="own-1">Supplier S-014</span>
+      </div>
+      <div class="unit-box" id="unit-2">
+        <span class="unit-code">9B8X-11</span>
+        <span class="unit-status free" id="stat-2">FREE</span>
+        <span class="unit-owner" id="own-2">Supplier S-014</span>
+      </div>
+    </div>
+
+    <div class="database-log">
+      <h4>Ownership Ledger (DB Append-Only)</h4>
+      <div class="log-table">
+        <div class="log-header">
+          <span>Time</span>
+          <span>Unit Code</span>
+          <span>Action</span>
+          <span>New Owner</span>
+        </div>
+        <div class="log-body" id="log-body">
+          <!-- rows injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ledger-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .ledger-controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .action-btn { background-color: #3b82f6; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #2563eb; }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .ghost-btn:hover { background: #f3f4f6; }
+
+  .ledger-stage { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  
+  .warehouse { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 0.75rem; }
+  .warehouse h4, .database-log h4 { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #374151; }
+  
+  .unit-box { background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; transition: all 0.3s; }
+  .unit-box.active { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+  .unit-code { font-family: monospace; font-weight: 700; font-size: 1.1rem; color: #111827; }
+  .unit-status { font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 4px; display: inline-block; width: fit-content; }
+  .unit-status.free { background: #d1fae5; color: #065f46; }
+  .unit-status.held { background: #fef08a; color: #854d0e; }
+  .unit-status.settled { background: #e0e7ff; color: #3730a3; }
+  .unit-owner { font-size: 0.85rem; color: #6b7280; }
+
+  .database-log { flex: 2; min-width: 300px; }
+  .log-table { background: #1f2937; border-radius: 6px; overflow: hidden; font-family: monospace; font-size: 0.85rem; color: #e5e7eb; height: 180px; display: flex; flex-direction: column; }
+  .log-header { display: grid; grid-template-columns: 60px 80px 100px 1fr; gap: 0.5rem; padding: 0.5rem 1rem; background: #111827; font-weight: 600; border-bottom: 1px solid #374151; }
+  .log-body { padding: 0.5rem 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+  .log-row { display: grid; grid-template-columns: 60px 80px 100px 1fr; gap: 0.5rem; animation: slideIn 0.3s ease-out forwards; opacity: 0; transform: translateX(-10px); }
+  
+  .log-row .hl { color: #34d399; font-weight: bold; }
+
+  @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+
+  @media (prefers-color-scheme: dark) {
+    .ledger-widget { background-color: #1f2937; border-color: #374151; }
+    .warehouse h4, .database-log h4 { color: #d1d5db; }
+    .unit-box { background: #111827; border-color: #374151; }
+    .unit-code { color: #f9fafb; }
+    .unit-owner { color: #9ca3af; }
+    .unit-status.free { background: #064e3b; color: #34d399; }
+    .unit-status.held { background: #713f12; color: #facc15; }
+    .unit-status.settled { background: #312e81; color: #818cf8; }
+  }
+</style>
+
+<script>
+  function initLedger() {
+    const runBtn = document.getElementById('ld-run-btn') as HTMLButtonElement;
+    const resetBtn = document.getElementById('ld-reset-btn');
+    const logBody = document.getElementById('log-body');
+    if (!runBtn || !logBody) return;
+
+    let isRunning = false;
+
+    const script = [
+      { t: 500, u: 1, s: 'held', text: 'RESERVED', o: 'Inst L-001', act: 'purchase' },
+      { t: 1500, u: 2, s: 'held', text: 'RESERVED', o: 'Inst L-001', act: 'purchase' },
+      { t: 2500, u: 1, s: 'settled', text: 'OWNED', o: 'Cust C-1042', act: 'murabaha' },
+      { t: 3500, u: 1, s: 'free', text: 'FREE', o: 'Market', act: 'sale' },
+      { t: 4500, u: 2, s: 'settled', text: 'OWNED', o: 'Cust C-1043', act: 'murabaha' },
+    ];
+
+    function appendLog(time: string, code: string, action: string, owner: string) {
+      if(!logBody) return;
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = `<span>${time}</span><span class="hl">${code}</span><span>${action}</span><span>${owner}</span>`;
+      logBody.appendChild(row);
+      logBody.scrollTop = logBody.scrollHeight;
+    }
+
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      isRunning = true;
+      runBtn.disabled = true;
+      runBtn.textContent = "Simulating...";
+
+      let startTime = Date.now();
+      
+      script.forEach(step => {
+        setTimeout(() => {
+          const uBox = document.getElementById(`unit-${step.u}`);
+          const stat = document.getElementById(`stat-${step.u}`);
+          const own = document.getElementById(`own-${step.u}`);
+          const code = step.u === 1 ? '8FA3-72' : '9B8X-11';
+          
+          if(uBox) { uBox.classList.add('active'); setTimeout(() => uBox.classList.remove('active'), 300); }
+          if(stat) { stat.className = `unit-status ${step.s}`; stat.textContent = step.text; }
+          if(own) { own.textContent = step.o; }
+
+          const tStr = `+${step.t}ms`;
+          appendLog(tStr, code, step.act, step.o);
+
+          if (step.t === script[script.length-1].t) {
+            runBtn.style.display = 'none';
+            if(resetBtn) resetBtn.style.display = 'inline-block';
+            isRunning = false;
+          }
+        }, step.t);
+      });
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      if(logBody) logBody.innerHTML = '';
+      
+      [1, 2].forEach(u => {
+        const stat = document.getElementById(`stat-${u}`);
+        const own = document.getElementById(`own-${u}`);
+        if(stat) { stat.className = `unit-status free`; stat.textContent = 'FREE'; }
+        if(own) { own.textContent = 'Supplier S-014'; }
+      });
+
+      runBtn.style.display = 'inline-block';
+      runBtn.disabled = false;
+      runBtn.textContent = "▶ Simulate Orders";
+      resetBtn.style.display = 'none';
+    });
+  }
+
+  document.addEventListener('astro:page-load', initLedger);
+  document.addEventListener('DOMContentLoaded', initLedger);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initLedger();
+  }
+</script>

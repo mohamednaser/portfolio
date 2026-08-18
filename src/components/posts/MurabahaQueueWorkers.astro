@@ -3,6 +3,12 @@
 // Generated from murabaha-fleet-article.html — edit the canonical HTML, not this file.
 import '../../styles/posts/murabaha-queue-workers.css';
 import GhostLatencyWidget from "../widgets/GhostLatencyWidget.astro";
+import GhostLockDiagram from "../widgets/GhostLockDiagram.astro";
+import WorkerTopologyWidget from "../widgets/WorkerTopologyWidget.astro";
+import PhantomDeployDiagram from "../widgets/PhantomDeployDiagram.astro";
+
+
+
 
 ---
 
@@ -42,7 +48,7 @@ import GhostLatencyWidget from "../widgets/GhostLatencyWidget.astro";
 </p>
 
 
-<section class="era" id="case-11">
+<section class="era" id="case-07">
   <div class="era-head"><h2>Case 07 · The Ghost Latency Between Jobs</h2></div>
   <p class="case-hook"><em>Application telemetry told us a job took 0.5 seconds. End-to-end telemetry told us it took 7.5 seconds. We were optimizing service time, completely blind to the silent killer: queue wait time.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">wait ~118s → ≈0 · 5,000 daily</span></p>
@@ -62,38 +68,9 @@ import GhostLatencyWidget from "../widgets/GhostLatencyWidget.astro";
 
     <GhostLatencyWidget />
 
-  <figure>
-    <svg viewBox="0 0 720 180" role="img" aria-label="Bar chart of borrower-ownership queue wait against load: about zero seconds when idle, about 7 seconds at 91 orders per minute, and about 118 seconds at sustained peak.">
-      <g font-size="11.5" fill="currentColor" opacity="0.85" text-anchor="end">
-        <text x="150" y="34">idle</text>
-        <text x="150" y="82">91 orders / min</text>
-        <text x="150" y="130">sustained peak</text>
-      </g>
-      <g>
-        <rect class="bar" style="animation-delay:0.05s" x="160" y="22" width="3" height="18" rx="1.5" fill="var(--accent)"><title>Idle — queue wait about 0 seconds</title></rect>
-        <rect class="bar" style="animation-delay:0.2s" x="160" y="70" width="31" height="18" rx="2" fill="var(--incident)" opacity="0.8"><title>91 orders per minute — about 7 seconds of queue wait</title></rect>
-        <rect class="bar" style="animation-delay:0.35s" x="160" y="118" width="520" height="18" rx="2" fill="var(--incident)"><title>Sustained peak — about 118 seconds of queue wait</title></rect>
-      </g>
-      <g font-size="11.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" class="blabel" style="animation-delay:1s">
-        <text x="172" y="36" opacity="0.75">~0s</text>
-        <text x="200" y="84" opacity="0.85">~7s</text>
-        <text x="668" y="132" text-anchor="end" fill="var(--bg)" font-weight="700">~118s</text>
-      </g>
-      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.55">
-        <text x="160" y="160">The jobs themselves ran in about 1 second at every point on this chart.</text>
-      </g>
-    </svg>
-    <figcaption>Why queue wait is so easy to miss: measured on an idle system it is invisible, and
-    it stays modest at moderate load. The job's own work never changes — about a second — so every
-    profiler pointed at the code kept reporting that nothing was wrong.</figcaption>
-  </figure>
 
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-1.webp" width="400" height="240" alt="Mr. Bean standing in an empty field, checking his watch and waiting."
-         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>Actual footage of a Borrower Ownership job, 0.5 seconds of work done, waiting its turn
-    behind the auto-sell queue.</figcaption>
-  </figure>
+
+
 
   <div class="attempt">
     <span class="tag">What we tried — and the bottleneck that moved</span>
@@ -206,7 +183,7 @@ public function up(): void
   </div>
 </section>
 
-<section class="era" id="case-10">
+<section class="era" id="case-08">
   <div class="era-head"><h2>Case 08 · Idempotency in a Violent Environment</h2></div>
   <p class="case-hook"><em>In a distributed system, you cannot prevent workers from dying. Servers will crash, networks will partition, and jobs will be violently killed in the exact middle of a financial transaction.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">failed job ≠ failed transaction</span></p>
@@ -223,15 +200,17 @@ public function up(): void
     expired: a worker killed mid-job left its lock behind forever, blocking the order with a "max attempts
     exceeded" error whose cause you could never find — because the cause was a ghost.</p>
   </div>
+
+  <GhostLockDiagram />
   <div class="attempt">
     <span class="tag">What we built</span>
     <p>The platform we run now starts from a different assumption: <em>every job will eventually die
     mid-flight</em> — the work is making that boring. Jobs retry on their own, waiting 1, 2, 3, 5, then 30
-    seconds between attempts<a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-retries">retries ↓</a>: patient enough for a transient fault to clear, quick enough that the order
+    seconds between attempts<a class="refmark" href="#ref-retries">retries ↓</a>: patient enough for a transient fault to clear, quick enough that the order
     barely notices. If we had to name the single most important mechanism behind zero failed transactions,
     it is this one — most failures are temporary, and a platform that retries well simply does not lose
     them.</p>
-    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong><a class="refmark" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#ref-unique">unique jobs ↓</a> — Laravel's
+    <p>Critical jobs are declared <strong>unique per order across the whole fleet</strong><a class="refmark" href="#ref-unique">unique jobs ↓</a> — Laravel's
     <code>ShouldBeUnique</code>, backed by the Redis lock store — so a duplicate
     dispatch from any server is refused at the queue itself, not caught after the damage. The locks learned
     to die: they expire shortly after the worker timeout, so a crashed worker's lock heals on its own, and
@@ -289,7 +268,7 @@ class PreventOverlapping extends WithoutOverlapping
   </div>
 </section>
 
-<section class="era" id="case-12">
+<section class="era" id="case-09">
   <div class="era-head"><h2>Case 09 · Designing Dedicated Worker Topologies</h2></div>
   <p class="case-hook"><em>We had enough workers, but they were all stuck waiting behind slow jobs. Restructuring 122 processes across 22 dedicated queues proved that topology matters just as much as raw compute power.</em></p>
     <p class="impact-pill"><span class="lab">Impact</span><span class="val">3 containers → 122 workers · 3 nodes → 2</span></p>
@@ -311,6 +290,8 @@ class PreventOverlapping extends WithoutOverlapping
     fleet develops exactly the problems a city does — congestion in one district, empty streets in another,
     and infrastructure nobody remembers approving.</p>
   </div>
+
+  <WorkerTopologyWidget />
 
   <h3>Every number in the fleet is a decision</h3>
   <div class="tablebox">
@@ -447,7 +428,7 @@ fi</code></pre>
   </div>
 </section>
 
-<section class="era" id="case-13">
+<section class="era" id="case-10">
   <div class="era-head"><h2>Case 10 · The Phantom Deployments</h2></div>
   <p class="case-hook"><em>A perfectly successful deployment left the background workers silently executing the old application state. It was a humbling reminder that persistent memory requires persistent orchestration.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">stale image → every worker on the build</span></p>
@@ -463,6 +444,8 @@ fi</code></pre>
     <p><span class="k-cost">Deploys had been reporting success the whole time.</span><a class="refmark" href="#ref-deploy">deploys ↓</a> The web container picked up new code on every
     release; the workers had not picked up any.</p>
   </div>
+
+  <PhantomDeployDiagram />
   <div class="attempt">
     <span class="tag">What we tried</span>
     <p>Two separate things had to be true before a worker could ever receive a build. The first was that
@@ -560,7 +543,7 @@ fi</code></pre>
 </section>
 
 <div class="next">
-  <span class="tag">The rest of the series</span>
+  <span class="tag">Earlier in this series</span>
   <strong><a href="/blog/murabaha-as-a-state-machine/">Part 1 · Islamic Finance for Engineers: Murabaha as a State Machine</a></strong> —
   the machine itself: the transitions a commodity Murabaha must pass through, why each one is
   legally load-bearing, and why stock has to exist as <strong>individually coded units</strong>.<br>

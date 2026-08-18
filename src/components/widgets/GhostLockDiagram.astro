@@ -1,0 +1,207 @@
+---
+---
+<div class="ghost-lock-widget" aria-label="Ghost Lock Diagram">
+  <div class="widget-header">
+    <h3>The Ghost Lock Problem</h3>
+    <p>Simulate a sudden worker crash and watch how the system handles the orphaned lock.</p>
+  </div>
+  
+  <div class="controls">
+    <button id="triggerCrashBtn" class="crash-btn">⚡ Simulate Worker Crash</button>
+  </div>
+
+  <div class="scenarios">
+    <!-- Scenario 1: The Problem -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <h4>Before: Eternal Lock</h4>
+        <span class="status-badge error" id="statusOld">Vulnerable</span>
+      </div>
+      <div class="animation-stage">
+        <div class="job-container">
+          <div class="worker active" id="workerOld">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <span>Worker A</span>
+          </div>
+          <div class="lock-icon locked" id="lockOld">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span class="lock-text">Locked</span>
+          </div>
+          <div class="order-state" id="orderOld">Processing...</div>
+        </div>
+      </div>
+      <p class="scenario-desc">Worker dies mid-job. The lock never expires. The order is permanently stuck until manual intervention.</p>
+    </div>
+
+    <!-- Scenario 2: The Solution -->
+    <div class="scenario">
+      <div class="scenario-header">
+        <h4>After: Lock Expiration + Retry</h4>
+        <span class="status-badge success" id="statusNew">Resilient</span>
+      </div>
+      <div class="animation-stage">
+        <div class="job-container">
+          <div class="worker active" id="workerNew">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <span id="workerNewName">Worker B</span>
+          </div>
+          <div class="lock-icon locked has-timer" id="lockNew">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span class="lock-text" id="lockNewText">Locked (TTL: 3s)</span>
+          </div>
+          <div class="order-state" id="orderNew">Processing...</div>
+        </div>
+      </div>
+      <p class="scenario-desc">Worker dies. Lock expires automatically. A fresh worker retries the job safely.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ghost-lock-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .controls { text-align: center; margin-bottom: 2rem; }
+  .crash-btn {
+    background-color: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px;
+    font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  }
+  .crash-btn:hover:not(:disabled) { background-color: #dc2626; }
+  .crash-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .scenarios { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .scenario { flex: 1; min-width: 250px; background: white; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; padding: 1.5rem; }
+  .scenario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  .scenario-header h4 { margin: 0; font-size: 1rem; }
+  
+  .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 99px; font-weight: 600; text-transform: uppercase; }
+  .status-badge.error { background: #fee2e2; color: #991b1b; }
+  .status-badge.success { background: #d1fae5; color: #065f46; }
+  .status-badge.neutral { background: #f3f4f6; color: #374151; }
+
+  .animation-stage { height: 160px; display: flex; justify-content: center; align-items: center; background: #f9fafb; border-radius: 6px; margin-bottom: 1rem; border: 1px dashed #d1d5db; position: relative; }
+  
+  .job-container { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+  
+  .worker { display: flex; align-items: center; gap: 0.5rem; background: #e0e7ff; color: #4338ca; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; opacity: 0; transform: translateY(-10px); }
+  .worker.active { opacity: 1; transform: translateY(0); }
+  .worker.crashed { opacity: 0.5; background: #fee2e2; color: #991b1b; text-decoration: line-through; transform: rotate(5deg) translateY(10px); }
+  
+  .lock-icon { display: flex; align-items: center; gap: 0.5rem; color: #9ca3af; font-size: 0.85rem; font-weight: 600; transition: color 0.3s; }
+  .lock-icon.locked { color: #f59e0b; }
+  .lock-icon.orphaned { color: #ef4444; }
+  
+  .order-state { background: #1f2937; color: white; padding: 0.5rem 1rem; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+  .order-state.stuck { background: #ef4444; }
+  .order-state.success { background: #10b981; }
+
+  .scenario-desc { font-size: 0.85rem; color: var(--text-muted, #6b7280); line-height: 1.4; margin: 0; }
+
+  @media (prefers-color-scheme: dark) {
+    .ghost-lock-widget { background-color: #1f2937; border-color: #374151; }
+    .scenario { background: #111827; border-color: #374151; }
+    .animation-stage { background: #1f2937; border-color: #4b5563; }
+    .status-badge.error { background: #450a0a; color: #fca5a5; }
+    .status-badge.success { background: #064e3b; color: #6ee7b7; }
+    .status-badge.neutral { background: #374151; color: #d1d5db; }
+  }
+</style>
+
+<script>
+  function initGhostLock() {
+    const btn = document.getElementById('triggerCrashBtn') as HTMLButtonElement;
+    if (!btn) return;
+    
+    // Old System elements
+    const workerOld = document.getElementById('workerOld');
+    const lockOld = document.getElementById('lockOld');
+    const orderOld = document.getElementById('orderOld');
+    const statusOld = document.getElementById('statusOld');
+
+    // New System elements
+    const workerNew = document.getElementById('workerNew');
+    const workerNewName = document.getElementById('workerNewName');
+    const lockNew = document.getElementById('lockNew');
+    const lockNewText = document.getElementById('lockNewText');
+    const orderNew = document.getElementById('orderNew');
+    const statusNew = document.getElementById('statusNew');
+
+    let isAnimating = false;
+
+    btn.addEventListener('click', () => {
+      if (isAnimating) return;
+      isAnimating = true;
+      btn.disabled = true;
+      btn.textContent = "Crashing Workers...";
+
+      // Reset states
+      if(orderOld) { orderOld.className = 'order-state'; orderOld.textContent = 'Processing...'; }
+      if(orderNew) { orderNew.className = 'order-state'; orderNew.textContent = 'Processing...'; }
+      if(lockOld) { lockOld.className = 'lock-icon locked'; }
+      if(lockNew) { lockNew.className = 'lock-icon locked has-timer'; if(lockNewText) lockNewText.textContent = 'Locked (TTL: 3s)'; }
+      if(workerOld) { workerOld.className = 'worker active'; }
+      if(workerNew) { workerNew.className = 'worker active'; if(workerNewName) workerNewName.textContent = 'Worker B'; }
+      if(statusOld) { statusOld.textContent = 'Crashing...'; statusOld.className = 'status-badge error'; }
+      if(statusNew) { statusNew.textContent = 'Recovering...'; statusNew.className = 'status-badge neutral'; }
+
+      // Step 1: Crash the workers (Wait 1s)
+      setTimeout(() => {
+        if(workerOld) workerOld.className = 'worker crashed';
+        if(workerNew) workerNew.className = 'worker crashed';
+        
+        // Old lock gets orphaned forever
+        if(lockOld) lockOld.className = 'lock-icon orphaned';
+        if(orderOld) { orderOld.className = 'order-state stuck'; orderOld.textContent = 'Stuck Forever'; }
+        if(statusOld) { statusOld.textContent = 'Deadlock'; }
+
+        // Step 2: New lock countdown (Wait 1s, 2s, 3s)
+        if(lockNewText) lockNewText.textContent = 'Locked (TTL: 2s)';
+        
+        setTimeout(() => {
+          if(lockNewText) lockNewText.textContent = 'Locked (TTL: 1s)';
+          
+          setTimeout(() => {
+            // Step 3: Lock expires, new worker spins up
+            if(lockNew) lockNew.className = 'lock-icon';
+            if(lockNewText) lockNewText.textContent = 'Lock Released';
+            
+            setTimeout(() => {
+              // Retry Worker acquires lock
+              if(workerNew) workerNew.className = 'worker active';
+              if(workerNewName) workerNewName.textContent = 'Retry Worker C';
+              if(lockNew) lockNew.className = 'lock-icon locked';
+              if(lockNewText) lockNewText.textContent = 'Locked (TTL: 3s)';
+              if(orderNew) { orderNew.className = 'order-state success'; orderNew.textContent = 'Success!'; }
+              if(statusNew) { statusNew.className = 'status-badge success'; statusNew.textContent = 'Recovered'; }
+              
+              // Reset button
+              setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = "⚡ Reset & Crash Again";
+                isAnimating = false;
+              }, 1500);
+
+            }, 800);
+          }, 1000);
+        }, 1000);
+
+      }, 1000);
+    });
+  }
+
+  document.addEventListener('astro:page-load', initGhostLock);
+  document.addEventListener('DOMContentLoaded', initGhostLock);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initGhostLock();
+  }
+</script>

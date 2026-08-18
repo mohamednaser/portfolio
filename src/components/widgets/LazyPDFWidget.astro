@@ -1,0 +1,262 @@
+---
+---
+<div class="pdf-widget" aria-label="Lazy PDF Rendering Simulator">
+  <div class="widget-header">
+    <h3>The Synchronous I/O Tax: Eager vs Lazy Rendering</h3>
+    <p>Watch how moving a 2-second PDF generation out of the critical path unblocks the worker queue. <strong class="k-rule">Never do synchronous I/O in a transaction.</strong></p>
+  </div>
+
+  <div class="pdf-controls">
+    <button id="pdf-run-btn" class="action-btn">▶ Process 5 Jobs</button>
+    <button id="pdf-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="pdf-stage">
+    <!-- OLD WAY: Eager -->
+    <div class="pdf-panel old-way">
+      <h4>Old: Eager Rendering</h4>
+      <p class="panel-desc">Worker stops to render PDF during the job.</p>
+      
+      <div class="worker-view">
+        <div class="w-icon">🤖</div>
+        <div class="w-status" id="old-w-status">IDLE</div>
+      </div>
+      
+      <div class="queue-view" id="old-queue">
+        <div class="q-item">1</div><div class="q-item">2</div><div class="q-item">3</div><div class="q-item">4</div><div class="q-item">5</div>
+      </div>
+      
+      <div class="render-bar-container">
+        <div class="render-bar" id="old-bar"></div>
+      </div>
+      <div class="render-text" id="old-text">0/5 PDFs Printed</div>
+    </div>
+
+    <!-- NEW WAY: Lazy -->
+    <div class="pdf-panel new-way">
+      <h4>New: Lazy Rendering</h4>
+      <p class="panel-desc">Worker finishes instantly. PDF renders on download.</p>
+      
+      <div class="worker-view">
+        <div class="w-icon">⚡🤖</div>
+        <div class="w-status" id="new-w-status">IDLE</div>
+      </div>
+      
+      <div class="queue-view" id="new-queue">
+        <div class="q-item">1</div><div class="q-item">2</div><div class="q-item">3</div><div class="q-item">4</div><div class="q-item">5</div>
+      </div>
+      
+      <div class="user-portal" id="user-portal" style="opacity:0; pointer-events:none;">
+        <p>Customer needs their certificate!</p>
+        <button id="download-btn" class="dl-btn">Download PDF</button>
+        <div class="render-bar-container">
+          <div class="render-bar" id="new-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pdf-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .pdf-controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center; }
+  .action-btn { background-color: #3b82f6; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #2563eb; }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .dl-btn { background: #10b981; color: white; border: none; padding: 0.4rem 1rem; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 0.5rem; width: 100%; transition: background 0.2s; }
+  .dl-btn:hover { background: #059669; }
+
+  .pdf-stage { display: flex; gap: 1.5rem; }
+  
+  .pdf-panel { flex: 1; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; align-items: center; }
+  .old-way { border-top: 4px solid #ef4444; }
+  .new-way { border-top: 4px solid #10b981; }
+  .pdf-panel h4 { margin: 0 0 0.25rem 0; font-size: 1.1rem; color: #111827; }
+  .panel-desc { font-size: 0.85rem; color: #6b7280; text-align: center; margin: 0 0 1.5rem 0; height: 35px; }
+  
+  .worker-view { display: flex; flex-direction: column; align-items: center; margin-bottom: 1rem; }
+  .w-icon { font-size: 3rem; }
+  .w-status { background: #e5e7eb; color: #4b5563; font-size: 0.75rem; font-weight: bold; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.5rem; width: 120px; text-align: center; transition: all 0.2s; }
+  .w-status.processing { background: #fef08a; color: #854d0e; }
+  .w-status.printing { background: #fee2e2; color: #991b1b; animation: pulse 1s infinite; }
+  .w-status.done { background: #d1fae5; color: #065f46; }
+
+  .queue-view { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; min-height: 30px; }
+  .q-item { background: #f3f4f6; border: 1px solid #d1d5db; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #374151; border-radius: 4px; transition: all 0.3s; }
+  .q-item.done { background: #10b981; color: white; border-color: #059669; transform: scale(0.8); opacity: 0.5; }
+
+  .render-bar-container { width: 100%; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem; }
+  .render-bar { width: 0%; height: 100%; background: #ef4444; transition: width 0.1s linear; }
+  .new-way .render-bar { background: #10b981; }
+  .render-text { font-size: 0.8rem; font-weight: bold; color: #6b7280; }
+
+  .user-portal { background: #f9fafb; border: 1px dashed #9ca3af; padding: 1rem; border-radius: 6px; width: 100%; box-sizing: border-box; transition: opacity 0.3s; }
+  .user-portal p { margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #374151; text-align: center; }
+
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+  @media (prefers-color-scheme: dark) {
+    .pdf-widget { background-color: #1f2937; border-color: #374151; }
+    .pdf-panel { background: #111827; border-color: #374151; }
+    .pdf-panel h4 { color: #f9fafb; }
+    .w-status { background: #374151; color: #9ca3af; }
+    .w-status.processing { background: #713f12; color: #facc15; }
+    .w-status.printing { background: #7f1d1d; color: #fca5a5; }
+    .q-item { background: #1f2937; border-color: #4b5563; color: #d1d5db; }
+    .render-bar-container { background: #374151; }
+    .user-portal { background: #1f2937; border-color: #4b5563; }
+    .user-portal p { color: #d1d5db; }
+  }
+</style>
+
+<script>
+  function initPdfWidget() {
+    const runBtn = document.getElementById('pdf-run-btn') as HTMLButtonElement;
+    const resetBtn = document.getElementById('pdf-reset-btn');
+    const oldStatus = document.getElementById('old-w-status');
+    const newStatus = document.getElementById('new-w-status');
+    const oldBar = document.getElementById('old-bar');
+    const oldText = document.getElementById('old-text');
+    const userPortal = document.getElementById('user-portal');
+    const dlBtn = document.getElementById('download-btn') as HTMLButtonElement;
+    const newBar = document.getElementById('new-bar');
+
+    if (!runBtn || !oldStatus) return;
+
+    let isRunning = false;
+
+    // We process 5 jobs
+    const jobCount = 5;
+
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      isRunning = true;
+      runBtn.disabled = true;
+
+      // NEW WAY (Fast)
+      if(newStatus) { newStatus.textContent = "PROCESSING..."; newStatus.className = "w-status processing"; }
+      
+      let newJob = 0;
+      const newInterval = setInterval(() => {
+        newJob++;
+        const qItems = document.querySelectorAll('#new-queue .q-item');
+        if(qItems[newJob-1]) qItems[newJob-1].classList.add('done');
+        
+        if (newJob >= jobCount) {
+          clearInterval(newInterval);
+          if(newStatus) { newStatus.textContent = "DONE (0.5s)"; newStatus.className = "w-status done"; }
+          if(userPortal) {
+            userPortal.style.opacity = '1';
+            userPortal.style.pointerEvents = 'auto';
+          }
+        }
+      }, 100);
+
+      // OLD WAY (Slow)
+      let oldJob = 0;
+      
+      function processOldJob() {
+        if(oldJob >= jobCount) {
+          if(oldStatus) { oldStatus.textContent = "DONE (10s)"; oldStatus.className = "w-status done"; }
+          runBtn.style.display = 'none';
+          if(resetBtn) resetBtn.style.display = 'inline-block';
+          return;
+        }
+
+        if(oldStatus) { oldStatus.textContent = "PRINTING PDF..."; oldStatus.className = "w-status printing"; }
+        
+        let progress = 0;
+        if(oldBar) oldBar.style.transition = 'none';
+        if(oldBar) oldBar.style.width = '0%';
+        
+        // Take 2 seconds per job
+        const renderInterval = setInterval(() => {
+          progress += 5;
+          if(oldBar) {
+            oldBar.style.transition = 'width 0.1s linear';
+            oldBar.style.width = `${progress}%`;
+          }
+          
+          if(progress >= 100) {
+            clearInterval(renderInterval);
+            oldJob++;
+            const qItems = document.querySelectorAll('#old-queue .q-item');
+            if(qItems[oldJob-1]) qItems[oldJob-1].classList.add('done');
+            if(oldText) oldText.textContent = `${oldJob}/5 PDFs Printed`;
+            
+            setTimeout(processOldJob, 200); // Next job
+          }
+        }, 100);
+      }
+
+      processOldJob();
+    });
+
+    dlBtn?.addEventListener('click', () => {
+      dlBtn.disabled = true;
+      dlBtn.textContent = "Generating...";
+      
+      let progress = 0;
+      if(newBar) newBar.style.transition = 'none';
+      if(newBar) newBar.style.width = '0%';
+      
+      const renderInterval = setInterval(() => {
+        progress += 5;
+        if(newBar) {
+          newBar.style.transition = 'width 0.1s linear';
+          newBar.style.width = `${progress}%`;
+        }
+        
+        if(progress >= 100) {
+          clearInterval(renderInterval);
+          dlBtn.textContent = "✔ Certificate.pdf";
+          dlBtn.style.background = "#1f2937";
+        }
+      }, 100);
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      document.querySelectorAll('.q-item').forEach(el => el.classList.remove('done'));
+      
+      if(oldStatus) { oldStatus.textContent = "IDLE"; oldStatus.className = "w-status"; }
+      if(newStatus) { newStatus.textContent = "IDLE"; newStatus.className = "w-status"; }
+      
+      if(oldBar) { oldBar.style.transition = 'none'; oldBar.style.width = '0%'; }
+      if(newBar) { newBar.style.transition = 'none'; newBar.style.width = '0%'; }
+      if(oldText) oldText.textContent = `0/5 PDFs Printed`;
+      
+      if(userPortal) {
+        userPortal.style.opacity = '0';
+        userPortal.style.pointerEvents = 'none';
+      }
+      if(dlBtn) {
+        dlBtn.disabled = false;
+        dlBtn.textContent = "Download PDF";
+        dlBtn.style.background = "";
+      }
+
+      runBtn.style.display = 'inline-block';
+      runBtn.disabled = false;
+      resetBtn.style.display = 'none';
+      isRunning = false;
+    });
+  }
+
+  document.addEventListener('astro:page-load', initPdfWidget);
+  document.addEventListener('DOMContentLoaded', initPdfWidget);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initPdfWidget();
+  }
+</script>

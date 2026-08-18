@@ -2,6 +2,11 @@
 // Article body for /blog/mysql-under-load-sharia-compliant-pipeline/
 // Generated from murabaha-scaling-article.html — edit the canonical HTML, not this file.
 import '../../styles/posts/murabaha-scaling.css';
+import GapLockWidget from "../widgets/GapLockWidget.astro";
+import RaceConditionWidget from "../widgets/RaceConditionWidget.astro";
+import KnapsackWidget from "../widgets/KnapsackWidget.astro";
+import LazyPDFWidget from "../widgets/LazyPDFWidget.astro";
+
 import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
 
 ---
@@ -28,7 +33,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
   five thousand of them run at once, with every legal constraint intact, is where the last two years went.
 </p>
 <p>
-  Ten battles made the difference, told in the order we fought them — the ones fought inside the code and
+  The first six battles made the difference, told in the order we fought them — the ones fought inside the code and
   the database. The infrastructure battles that came after, once the code had stopped being the
   constraint, are <a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Part 3</a>. We have kept
   the scars visible: each case tells you <strong style="color:var(--incident)">what was actually going
@@ -44,26 +49,10 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
   individually coded units.
 </div>
 
-<p>
-  <strong>The stack, named once.</strong> <strong>Laravel</strong> on PHP&nbsp;8,
-  <strong>MySQL&nbsp;8 (InnoDB)</strong> as the system of record, <strong>Redis</strong> behind the queues
-  and locks, deployed as Docker Compose services on a handful of Linux VMs. Where a case turns on a
-  specific behaviour of one of those — InnoDB gap locks, Laravel's queue defaults, Compose's scaling
-  flags — it is named and glossed at the point it matters.
-</p>
-
-<figure>
-  <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/stack.webp"
-       width="1024" height="559"
-       alt="Platform and deployment architecture: a user request reaches the Laravel application on PHP 8, which writes transactional data to MySQL 8 (InnoDB) as the system of record and manages distributed job queues and locks in Redis; queue workers read those jobs and write back into MySQL. The whole thing is deployed as Docker Compose services — app, db, redis and scaled worker replicas — spread across a handful of Linux VMs."
-       style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-  <figcaption>The platform behind every case below: one Laravel application, MySQL as the system of
-  record, Redis carrying the queues and locks, and worker replicas scaled per queue across a handful of
-  Linux VMs. Almost every battle in this article is a fight between two of these boxes.</figcaption>
-</figure>
 
 
-<section class="era" id="case-02">
+
+<section class="era" id="case-01">
   <div class="era-head"><h2>Case 01 · The Isolation Level Deadlocks</h2></div>
   <p class="case-hook"><em>When 31 concurrent orders triggered a cascading deadlock, we realized our mathematically perfect state machine had collided with the physical reality of InnoDB gap locks.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">P95 28s → 13s · slow tail 21.9% → 0</span></p>
@@ -78,12 +67,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
     concurrency meant more waiting.</span></p>
   </div>
 
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/database_gap_locks_concept.jpg" width="1376" height="768"
-         alt="A conceptual abstract illustration of a database table experiencing 'gap locks' causing deadlocks."
-         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
-    <figcaption>InnoDB's REPEATABLE READ isolation level locks not just rows, but the gaps between them, causing transactions to tangle into deadlocks under high concurrency.</figcaption>
-  </figure>
+  <GapLockWidget />
 
   <div class="attempt">
     <span class="tag">What we tried — three rounds</span>
@@ -162,7 +146,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
 
 </section>
 
-<section class="era" id="case-07">
+<section class="era" id="case-02">
   <div class="era-head"><h2>Case 02 · DDoSing Ourselves with N+1 Queries</h2></div>
   <p class="case-hook"><em>A single missing framework clause turned a linear application into an exponential attack, hammering our database with 114,000 queries per second during a routine 500-order load test.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">database load −85%</span></p>
@@ -174,7 +158,6 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
     <strong>22,400 times</strong>. A single unindexed history lookup had run <strong>114,000 times</strong>.<a class="refmark" href="#ref-nplusone">n+1 ↓</a>
     The first alarm had been, embarrassingly, the monitoring bill: millions of recorded events per day, all
     of them faithfully documenting our own waste.</p>
-    <NPlusOneWidget />
 
     <p>That lookup existed because of how an order remembers itself. Every step an order takes is appended
     to its status history as a new row, and nothing is ever overwritten — in a regulated pipeline the trail
@@ -183,11 +166,8 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
     the newest row. One query, per order, every time — on every screen, in every scheduler sweep, before
     every job decided whether it was allowed to run. A list of a hundred orders asked it a hundred times.</p>
   </div>
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-3.webp" width="400" height="223" alt="Two identical Spider-Men pointing at each other."
-         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>The moment we traced the 228,291 queries back to their source.</figcaption>
-  </figure>
+
+  <NPlusOneWidget />
 
   <div class="attempt">
     <span class="tag">What we tried</span>
@@ -210,7 +190,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
   </div>
 </section>
 
-<section class="era" id="case-09">
+<section class="era" id="case-03">
   <div class="era-head"><h2>Case 03 · Race Conditions in the Financial Ledger</h2></div>
   <p class="case-hook"><em>Caching financial inventory creates a terrifying risk: double-selling the same physical asset. We had to abandon row-based triggers entirely to keep the ledger mathematically pure under heavy load.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">3,300 orders · 100% · ledger intact</span></p>
@@ -223,6 +203,8 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
     ever hold the same unit, the ledger may never miss a row</span>, and finding eligible units among millions has
     to stay fast. Almost every scaling battle we fought eventually landed on this table.</p>
   </div>
+
+  <RaceConditionWidget />
   <div class="attempt">
     <span class="tag">What we tried — including what failed</span>
     <p><strong>Exclusive holds took years of iteration:</strong> counters that tolerate crashes without
@@ -265,7 +247,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
   </div>
 </section>
 
-<section class="era" id="case-06">
+<section class="era" id="case-04">
   <div class="era-head"><h2>Case 04 · The Algorithmic Knapsack Problem</h2></div>
   <p class="case-hook"><em>Finding the exact combination of commodities to fulfill an arbitrary order value isn't just a query—it's a variation of the Knapsack Problem. Running it live against a highly concurrent database was architectural suicide.</em></p>
   <p class="impact-pill"><span class="lab">Impact</span><span class="val">gateway timeouts → milliseconds</span></p>
@@ -293,15 +275,7 @@ import NPlusOneWidget from "../widgets/NPlusOneWidget.astro";
     step of every order queued behind it.</p>
   </div>
 
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/exact-change.webp"
-         width="1024" height="559"
-         alt="Two panels. Left: the dual constraints. Exactness — whole units at fixed prices must add up to precisely the amount, so one halala over or under is no trade. Eligibility — trade-rotation rules, ownership histories and institutional profiles decide which units a given institution may hold, leaving an eligible remainder that is searched for a basket combination; most candidate baskets are wrong and naive solutions explode. Right: the two ways it fails. A search that gives up too early returns no eligible commodities available and the customer's financing is cancelled even though the market could have covered it; a search that refuses to give up runs until the gateway times out and stalls the purchase step of every order queued behind it."
-         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>Both constraints, and both ways of failing them. The search has to satisfy exactness and
-    eligibility at once — and it has to do it inside a time budget, because giving up too early cancels a
-    financing the market could have covered, while never giving up holds up every order behind it.</figcaption>
-  </figure>
+  <KnapsackWidget />
   <div class="attempt">
     <span class="tag">Two algorithms</span>
     <p><strong>The first one lived in the database.</strong> Ask for the eligible inventory that can absorb
@@ -427,10 +401,10 @@ private function toMinorUnits(float $value): int
   </div>
 </section>
 
-<section class="era" id="case-04">
+<section class="era" id="case-06">
   <div class="era-head"><h2>Case 06 · The Synchronous I/O Tax</h2></div>
   <p class="case-hook"><em>Generating a legally binding PDF certificate during a database transaction held the entire worker pool hostage. It taught us a brutal lesson: never do synchronous I/O in the critical path.</em></p>
-  <p class="impact-pill"><span class="lab">Impact</span><span class="val">0 seconds per step</span></p>
+  <p class="impact-pill"><span class="lab">Impact</span><span class="val">PDF rendering → off the critical path</span></p>
   <div class="incident">
     <span class="tag">The problem</span>
     <p>Every legal step of a Murabaha produces its evidence — a commodity certificate, an ownership
@@ -440,11 +414,7 @@ private function toMinorUnits(float $value): int
     till to print each receipt on a printing press in the back room. Under load the press jammed, its queue
     backed up, and whole orders stood still — waiting not for money or commodities, but for paperwork.</p>
   </div>
-  <figure>
-    <img loading="lazy" decoding="async" src="/images/blog/mysql-under-load-sharia-compliant-pipeline/figure-2.webp" width="400" height="266" alt="A letterpress printing machine producing one card at a time."
-         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
-    <figcaption>The certificate press at work: one document at a time, on the critical path of every order.</figcaption>
-  </figure>
+  <LazyPDFWidget />
 
   <div class="attempt">
     <span class="tag">What we tried — three attempts</span>

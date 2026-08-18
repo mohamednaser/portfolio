@@ -1,0 +1,171 @@
+---
+---
+<div class="race-widget" aria-label="Row Locking Race Condition Simulator">
+  <div class="widget-header">
+    <h3>The "SELECT ... FOR UPDATE" Race Condition</h3>
+    <p>Watch how explicit row locks protect a single commodity unit from being double-sold by competing worker processes.</p>
+  </div>
+
+  <div class="race-controls">
+    <button id="race-run-btn" class="action-btn">▶ Simulate Race</button>
+    <button id="race-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="race-stage">
+    <div class="worker-lane" id="lane-a">
+      <div class="worker-icon" id="worker-a">🤖</div>
+      <div class="worker-label">Worker A</div>
+      <div class="worker-log" id="log-wa">Waiting for jobs...</div>
+    </div>
+    
+    <div class="target-center">
+      <div class="target-row" id="target-row">
+        <span class="t-code">UNIT-8FA3</span>
+        <span class="t-stat" id="t-stat">FREE</span>
+        <div class="t-padlock" id="t-padlock">🔒</div>
+      </div>
+    </div>
+
+    <div class="worker-lane" id="lane-b">
+      <div class="worker-icon" id="worker-b">🤖</div>
+      <div class="worker-label">Worker B</div>
+      <div class="worker-log" id="log-wb">Waiting for jobs...</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .race-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .race-controls { display: flex; gap: 1rem; margin-bottom: 2rem; justify-content: center; }
+  .action-btn { background-color: #f59e0b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #d97706; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+  .race-stage { display: flex; align-items: stretch; gap: 1rem; height: 180px; position: relative; }
+  
+  .worker-lane { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .worker-icon { font-size: 3rem; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 2; }
+  .worker-label { font-weight: bold; margin-top: 0.5rem; color: #374151; }
+  .worker-log { margin-top: 1rem; font-family: monospace; font-size: 0.75rem; color: #6b7280; background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px; text-align: center; }
+  
+  .target-center { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+  .target-row { background: white; border: 2px solid #e5e7eb; padding: 1.5rem; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; position: relative; z-index: 1; transition: border-color 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+  .t-code { font-family: monospace; font-weight: 900; font-size: 1.25rem; color: #111827; }
+  .t-stat { background: #d1fae5; color: #065f46; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+  .t-stat.held { background: #fef08a; color: #854d0e; }
+  
+  .t-padlock { position: absolute; top: -15px; right: -15px; font-size: 2rem; background: white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: scale(0); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .t-padlock.locked { transform: scale(1); animation: shake 0.3s ease-in-out; }
+
+  @keyframes shake {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.2) rotate(-15deg); }
+    50% { transform: scale(1.2) rotate(15deg); }
+    75% { transform: scale(1.2) rotate(-15deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .race-widget { background-color: #1f2937; border-color: #374151; }
+    .worker-label { color: #d1d5db; }
+    .worker-log { background: #374151; color: #9ca3af; }
+    .target-row { background: #111827; border-color: #4b5563; }
+    .t-code { color: #f9fafb; }
+    .t-padlock { background: #1f2937; }
+    .t-stat { background: #064e3b; color: #34d399; }
+    .t-stat.held { background: #713f12; color: #facc15; }
+  }
+</style>
+
+<script>
+  function initRace() {
+    const runBtn = document.getElementById('race-run-btn') as HTMLButtonElement;
+    const resetBtn = document.getElementById('race-reset-btn');
+    const wa = document.getElementById('worker-a');
+    const wb = document.getElementById('worker-b');
+    const logA = document.getElementById('log-wa');
+    const logB = document.getElementById('log-wb');
+    const padlock = document.getElementById('t-padlock');
+    const tstat = document.getElementById('t-stat');
+    const trow = document.getElementById('target-row');
+
+    if (!runBtn || !wa) return;
+
+    let isRunning = false;
+
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      isRunning = true;
+      runBtn.disabled = true;
+
+      setTimeout(() => {
+        if(logA) logA.textContent = "SELECT ... FOR UPDATE";
+        if(logB) logB.textContent = "SELECT ... FOR UPDATE";
+        if(wa) wa.style.transform = "translateX(50px)";
+        if(wb) wb.style.transform = "translateX(-50px)";
+      }, 500);
+
+      // Worker A wins the race by 100ms
+      setTimeout(() => {
+        if(padlock) padlock.classList.add('locked');
+        if(trow) trow.style.borderColor = '#3b82f6';
+        if(logA) { logA.textContent = "Lock acquired!"; logA.style.background = "#dbeafe"; logA.style.color = "#1e40af"; }
+      }, 900);
+
+      // Worker B hits the lock
+      setTimeout(() => {
+        if(wb) wb.style.transform = "translateX(10px) rotate(15deg)"; // Bounces off
+        if(logB) { logB.textContent = "Lock wait timeout!"; logB.style.background = "#fee2e2"; logB.style.color = "#991b1b"; }
+      }, 1000);
+
+      // Worker A updates
+      setTimeout(() => {
+        if(logA) logA.textContent = "UPDATE ... status=HELD";
+        if(tstat) { tstat.textContent = "RESERVED"; tstat.className = "t-stat held"; }
+      }, 2000);
+
+      // Commit and release
+      setTimeout(() => {
+        if(padlock) padlock.classList.remove('locked');
+        if(logA) logA.textContent = "COMMIT (Lock released)";
+        if(wa) wa.style.transform = "translateX(0)";
+        
+        runBtn.style.display = 'none';
+        if(resetBtn) resetBtn.style.display = 'inline-block';
+        isRunning = false;
+      }, 3000);
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      if(wa) wa.style.transform = "translateX(0)";
+      if(wb) { wb.style.transform = "translateX(0) rotate(0deg)"; }
+      if(padlock) padlock.classList.remove('locked');
+      if(tstat) { tstat.textContent = "FREE"; tstat.className = "t-stat"; }
+      if(trow) trow.style.borderColor = "";
+      
+      if(logA) { logA.textContent = "Waiting for jobs..."; logA.style.background = ""; logA.style.color = ""; }
+      if(logB) { logB.textContent = "Waiting for jobs..."; logB.style.background = ""; logB.style.color = ""; }
+
+      runBtn.style.display = 'inline-block';
+      runBtn.disabled = false;
+      resetBtn.style.display = 'none';
+    });
+  }
+
+  document.addEventListener('astro:page-load', initRace);
+  document.addEventListener('DOMContentLoaded', initRace);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initRace();
+  }
+</script>

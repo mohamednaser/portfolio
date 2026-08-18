@@ -1,0 +1,217 @@
+---
+---
+<div class="gaplock-widget" aria-label="MySQL Gap Lock Deadlock Simulator">
+  <div class="widget-header">
+    <h3>The REPEATABLE READ Deadlock Simulator</h3>
+    <p>Watch how MySQL's invisible gap locks cause two concurrent transactions to deadlock each other.</p>
+  </div>
+
+  <div class="gl-controls">
+    <button id="gl-run-btn" class="action-btn">▶ Simulate Deadlock</button>
+    <button id="gl-reset-btn" class="ghost-btn" style="display:none;">↺ Reset</button>
+  </div>
+
+  <div class="gl-stage">
+    <!-- Transaction A -->
+    <div class="tx-box" id="tx-a">
+      <h4>Transaction A</h4>
+      <div class="tx-log" id="log-a"></div>
+      <div class="tx-status" id="stat-a">IDLE</div>
+    </div>
+
+    <!-- Database Table -->
+    <div class="db-box">
+      <h4>Table: units</h4>
+      <div class="db-table">
+        <div class="db-row existing">
+          <span class="db-id">ID: 10</span>
+          <span class="db-val">UNIT-A1</span>
+        </div>
+        
+        <div class="db-row gap" id="db-gap">
+          <div class="gap-label">GAP (ID 11)</div>
+          <div class="gap-locks" id="gap-locks"></div>
+        </div>
+        
+        <div class="db-row existing">
+          <span class="db-id">ID: 12</span>
+          <span class="db-val">UNIT-A2</span>
+        </div>
+      </div>
+      <div class="db-explosion" id="db-explosion">💥 DEADLOCK DETECTED</div>
+    </div>
+
+    <!-- Transaction B -->
+    <div class="tx-box" id="tx-b">
+      <h4>Transaction B</h4>
+      <div class="tx-log" id="log-b"></div>
+      <div class="tx-status" id="stat-b">IDLE</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .gaplock-widget {
+    background-color: var(--bg-card, #f8f9fa);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    font-family: inherit;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .widget-header h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem; }
+  .widget-header p { margin: 0 0 1.5rem 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+  
+  .gl-controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center; }
+  .action-btn { background-color: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+  .action-btn:hover { background-color: #dc2626; }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ghost-btn { background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .ghost-btn:hover { background: #f3f4f6; }
+
+  .gl-stage { display: flex; gap: 1rem; position: relative; }
+  
+  .tx-box { flex: 1; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; display: flex; flex-direction: column; }
+  .tx-box h4 { margin: 0 0 0.75rem 0; font-size: 0.95rem; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+  #tx-a h4 { border-color: #3b82f6; }
+  #tx-b h4 { border-color: #f59e0b; }
+  
+  .tx-log { flex: 1; font-family: monospace; font-size: 0.75rem; color: #4b5563; min-height: 120px; display: flex; flex-direction: column; gap: 0.5rem; }
+  .log-entry { background: #f3f4f6; padding: 0.4rem; border-radius: 4px; animation: slideIn 0.2s ease-out; }
+  
+  .tx-status { margin-top: 1rem; font-size: 0.8rem; font-weight: bold; text-align: center; padding: 0.25rem; border-radius: 4px; background: #e5e7eb; color: #6b7280; }
+  .tx-status.active { background: #d1fae5; color: #065f46; }
+  .tx-status.waiting { background: #fef08a; color: #854d0e; animation: pulse 1s infinite; }
+  .tx-status.deadlock { background: #fee2e2; color: #991b1b; }
+
+  .db-box { flex: 1.2; background: #1f2937; border-radius: 6px; padding: 1rem; color: white; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .db-box h4 { margin: 0 0 1rem 0; font-size: 0.95rem; color: #d1d5db; text-align: center; }
+  
+  .db-table { display: flex; flex-direction: column; gap: 0.25rem; }
+  .db-row { border: 1px solid #374151; padding: 0.5rem; border-radius: 4px; display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; }
+  .db-row.existing { background: #374151; }
+  .db-row.gap { background: repeating-linear-gradient(45deg, #111827, #111827 10px, #1f2937 10px, #1f2937 20px); height: 60px; justify-content: center; align-items: center; position: relative; border-style: dashed; }
+  
+  .gap-label { color: #6b7280; font-weight: bold; letter-spacing: 2px; }
+  
+  .gap-locks { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 4px; }
+  .gl-lock { height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; opacity: 0; transform: scale(0.9); transition: all 0.3s; }
+  .gl-lock.visible { opacity: 1; transform: scale(1); }
+  .gl-lock.txa { background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; }
+  .gl-lock.txb { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; }
+
+  .db-explosion { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: #ef4444; color: white; font-weight: 900; padding: 1rem 2rem; border-radius: 8px; box-shadow: 0 10px 25px rgba(239,68,68,0.5); z-index: 10; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; }
+  .db-explosion.show { transform: translate(-50%, -50%) scale(1); }
+
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (prefers-color-scheme: dark) {
+    .gaplock-widget { background-color: #1f2937; border-color: #374151; }
+    .tx-box { background: #111827; border-color: #374151; }
+    .tx-box h4 { color: #d1d5db; border-color: #374151; }
+    .tx-log { color: #9ca3af; }
+    .log-entry { background: #1f2937; }
+    .tx-status { background: #374151; color: #9ca3af; }
+  }
+</style>
+
+<script>
+  function initGapLock() {
+    const runBtn = document.getElementById('gl-run-btn') as HTMLButtonElement;
+    const resetBtn = document.getElementById('gl-reset-btn');
+    const logA = document.getElementById('log-a');
+    const logB = document.getElementById('log-b');
+    const statA = document.getElementById('stat-a');
+    const statB = document.getElementById('stat-b');
+    const gapLocks = document.getElementById('gap-locks');
+    const explosion = document.getElementById('db-explosion');
+
+    if (!runBtn || !logA || !logB) return;
+
+    let isRunning = false;
+
+    function addLog(target: HTMLElement, text: string) {
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      el.textContent = text;
+      target.appendChild(el);
+    }
+
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      isRunning = true;
+      runBtn.disabled = true;
+
+      // Script
+      setTimeout(() => {
+        addLog(logA, "BEGIN;");
+        if(statA) { statA.textContent = "ACTIVE"; statA.className = "tx-status active"; }
+      }, 500);
+
+      setTimeout(() => {
+        addLog(logA, "SELECT * FROM units WHERE id BETWEEN 10 AND 12 FOR UPDATE;");
+        if(gapLocks) {
+          const l = document.createElement('div');
+          l.className = 'gl-lock txa visible';
+          l.textContent = 'Tx A Gap Lock (Shared)';
+          gapLocks.appendChild(l);
+        }
+      }, 1500);
+
+      setTimeout(() => {
+        addLog(logB, "BEGIN;");
+        if(statB) { statB.textContent = "ACTIVE"; statB.className = "tx-status active"; }
+      }, 3000);
+
+      setTimeout(() => {
+        addLog(logB, "SELECT * FROM units WHERE id BETWEEN 10 AND 12 FOR UPDATE;");
+        if(gapLocks) {
+          const l = document.createElement('div');
+          l.className = 'gl-lock txb visible';
+          l.textContent = 'Tx B Gap Lock (Shared)';
+          gapLocks.appendChild(l);
+        }
+      }, 4000);
+
+      setTimeout(() => {
+        addLog(logA, "INSERT INTO units (id, val) VALUES (11, 'UNIT-NEW');");
+        if(statA) { statA.textContent = "WAITING ON TX B"; statA.className = "tx-status waiting"; }
+      }, 6000);
+
+      setTimeout(() => {
+        addLog(logB, "INSERT INTO units (id, val) VALUES (11, 'UNIT-OTHER');");
+        if(statB) { statB.textContent = "WAITING ON TX A"; statB.className = "tx-status waiting"; }
+      }, 8000);
+
+      setTimeout(() => {
+        if(statA) { statA.textContent = "DEADLOCK KILLED"; statA.className = "tx-status deadlock"; }
+        if(statB) { statB.textContent = "DEADLOCK KILLED"; statB.className = "tx-status deadlock"; }
+        if(explosion) explosion.classList.add('show');
+        runBtn.style.display = 'none';
+        if(resetBtn) resetBtn.style.display = 'inline-block';
+        isRunning = false;
+      }, 8500);
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      logA.innerHTML = '';
+      logB.innerHTML = '';
+      if(statA) { statA.textContent = "IDLE"; statA.className = "tx-status"; }
+      if(statB) { statB.textContent = "IDLE"; statB.className = "tx-status"; }
+      if(gapLocks) gapLocks.innerHTML = '';
+      if(explosion) explosion.classList.remove('show');
+      
+      runBtn.style.display = 'inline-block';
+      runBtn.disabled = false;
+      resetBtn.style.display = 'none';
+    });
+  }
+
+  document.addEventListener('astro:page-load', initGapLock);
+  document.addEventListener('DOMContentLoaded', initGapLock);
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initGapLock();
+  }
+</script>
