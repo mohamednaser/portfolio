@@ -141,6 +141,21 @@ const seriesPosition = isExternal ? null : await getSeriesPosition(post, lang);
       />
     </header>
 
+    {
+      post.data.coverImage && (
+        <img
+          src={post.data.coverImage}
+          alt=""
+          width={1200}
+          height={630}
+          class="mt-8 aspect-[1200/630] w-full rounded-xl object-cover"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      )
+    }
+
     {!isExternal && <div class="lg:hidden"><PostToc lang={lang} /></div>}
 
     {
