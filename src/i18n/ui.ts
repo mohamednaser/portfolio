@@ -50,9 +50,9 @@ const en = {
   },
   home: {
     eyebrow: 'Problem solver · Experienced developer · AI for teams & products',
-    headline: 'I solve hard problems across domains — then help teams ship smarter with AI',
+    headline: "I architect systems that don't blink under pressure—and lead the teams that build them",
     introHtml:
-      '10+ years across fintech, mobility, e-commerce, government, and education: untangling complexity, building systems that scale, and leading delivery from <strong>Lynk</strong> to <strong>Carefer</strong>. Today I focus on empowering teams and products with AI-augmented engineering — and I write about that on %medium%.',
+      'Over the last decade, I’ve built everything from high-frequency public transport ticketing to Sharia-compliant fintech engines processing millions. Today, as Technical Lead at <strong>Lynk</strong>, I untangle deep architectural complexity and empower engineering teams to ship faster using AI-augmented workflows — and I write about that on %medium%.',
     ctaProjects: 'View projects',
     ctaBlog: 'Blog',
     ctaContact: 'Get in touch',
@@ -67,14 +67,14 @@ const en = {
   about: {
     title: 'About',
     metaDescription:
-      'Technical Lead with 10+ years — fintech at Lynk, Carefer, Tazhub, and AI-augmented engineering.',
+      'I build the engines that businesses run on. Technical Lead with 10+ years scaling fintech, mobility, and engineering teams.',
     introHtml:
-      'I am an experienced developer and problem solver with 10+ years across fintech, mobility, e-commerce, government, and education — currently leading architecture at Lynk. I am especially interested in empowering teams and products with AI, and I share what I learn on %medium%.',
+      "I don't just write code; I build the engines that businesses run on. With over 10 years of experience across fintech, mobility, and e-commerce, my focus is on strict reliability and scaling engineering cultures. I share what I learn along the way on %medium%.",
     portraitAlt: 'Mohamed Naser',
     bodyHtml: [
-      'My journey spans finance, e-commerce, mobility, education, and government — from network signal analysis and government archiving in Egypt to financial reporting for Johnson &amp; Johnson, notification systems for TOTAL, and the Tazhub public-transport ticketing platform.',
-      'At <strong>Carefer</strong> I led a platform processing 50K+ monthly car-maintenance orders across five applications and scaled the team from 3 to 20+ engineers. At <strong>Lynk</strong> I architect multi-ledger fintech with ZATCA compliance and commodity exchange integrations.',
-      'My foundation in remote collaboration at Microverse shaped how I lead today. I bridge business objectives with technical execution by enforcing rigorous, <strong>AI-augmented SDLC processes</strong>—requiring ticket traceability, automated reviews, and explicit merge approvals.',
+      'My journey started with network signal analysis and government archiving, evolving into building critical financial reporting systems for Johnson &amp; Johnson and notification pipelines for TOTAL.',
+      'When I took the technical helm at <strong>Carefer</strong>, I led a platform processing 50K+ monthly car-maintenance orders across five apps, scaling the engineering team from 3 to 20+ developers. Today at <strong>Lynk</strong>, I design strictly regulated, ZATCA-compliant fintech architectures that seamlessly integrate with commodity exchanges.',
+      'My leadership philosophy was forged through years of remote collaboration. I bridge the gap between business objectives and technical reality by enforcing rigorous, <strong>AI-augmented SDLC processes</strong>—because shipping fast shouldn\'t mean breaking production.',
     ],
     browseProjects: 'Browse all projects →',
     topSkills: 'Top skills',
@@ -99,9 +99,9 @@ const en = {
   projects: {
     title: 'Projects',
     metaDescription:
-      'Products and platforms — stack, achievements, and write-ups for each, from Lynk and Carefer to earlier enterprise work.',
+      'A deep dive into the platforms I\'ve architected and the teams I\'ve led. Real metrics, actual tech stacks, and the engineering stories behind them.',
     intro:
-      'Everything I build or govern — each project has a detail page with stack, achievements, and links.',
+      'A deep dive into the platforms I\'ve architected and the teams I\'ve led. Real metrics, actual tech stacks, and the engineering stories behind them.',
     viewProject: 'View project →',
     deliveredAt: 'Delivered while at',
     /** `%status%` is replaced with a translated status label. */
@@ -236,10 +236,9 @@ const ar: DeepReadonlyLike<typeof en> = {
   },
   home: {
     eyebrow: 'حلّال مشكلات · مطوّر خبير · الذكاء الاصطناعي للفرق والمنتجات',
-    headline:
-      'أحلّ المشكلات الصعبة في مجالات متعدّدة — ثم أساعد الفرق على البناء بذكاء أكبر بالذكاء الاصطناعي',
+    headline: 'أصمم أنظمة لا تنهار تحت الضغط — وأقود الفرق التي تبنيها',
     introHtml:
-      'أكثر من ١٠ سنوات في التقنية المالية والتنقّل والتجارة الإلكترونية والقطاع الحكومي والتعليم: أفكّ تعقيد الأنظمة، وأبني حلولًا قابلة للتوسّع، وأقود التسليم من <strong>Lynk</strong> إلى <strong>Carefer</strong>. أركّز اليوم على تمكين الفرق والمنتجات بهندسة برمجيات معزَّزة بالذكاء الاصطناعي — وأكتب عن ذلك على %medium%.',
+      'على مدار العقد الماضي، بنيت كل شيء؛ من أنظمة تذاكر النقل العام عالية الكثافة، إلى محركات التقنية المالية الإسلامية التي تدير الملايين. واليوم، كقائد تقني في <strong>Lynk</strong>، أعمل على تفكيك التعقيدات الهندسية وتمكين فرق البرمجيات من الإنجاز بذكاء وسرعة باستخدام الذكاء الاصطناعي — وأكتب عن ذلك على %medium%.',
     ctaProjects: 'استعرض المشاريع',
     ctaBlog: 'المدوّنة',
     ctaContact: 'تواصل معي',
@@ -253,14 +252,14 @@ const ar: DeepReadonlyLike<typeof en> = {
   about: {
     title: 'نبذة عني',
     metaDescription:
-      'قائد تقني بخبرة تتجاوز ١٠ سنوات — التقنية المالية في Lynk وCarefer وTazhub، والهندسة المعزَّزة بالذكاء الاصطناعي.',
+      'أبني المحركات التي تعتمد عليها الشركات. قائد تقني بخبرة تزيد عن ١٠ سنوات في قيادة وتوسيع الأنظمة المالية وفرق البرمجيات.',
     introHtml:
-      'أنا مطوّر خبير وحلّال مشكلات بخبرة تتجاوز ١٠ سنوات في التقنية المالية والتنقّل والتجارة الإلكترونية والقطاع الحكومي والتعليم — وأقود حاليًا البنية التقنية في Lynk. يستهويني بشكل خاص تمكين الفرق والمنتجات بالذكاء الاصطناعي، وأشارك ما أتعلّمه على %medium%.',
+      'أنا لا أكتب الكود البرمجي فحسب؛ بل أبني المحركات التي تعتمد عليها الشركات. بخبرة تزيد عن ١٠ سنوات في التقنية المالية والتنقل والتجارة الإلكترونية، ينصب تركيزي على الموثوقية الصارمة وتوسيع قدرات الفرق الهندسية. وأشارك ما أتعلمه خلال هذه الرحلة على %medium%.',
     portraitAlt: 'محمد ناصر',
     bodyHtml: [
-      'امتدت رحلتي عبر التمويل والتجارة الإلكترونية والتنقّل والتعليم والقطاع الحكومي — من تحليل جودة إشارات الشبكات وأرشفة الوثائق الحكومية في مصر، إلى أنظمة التقارير المالية لشركة Johnson &amp; Johnson، وأنظمة الإشعارات لشركة TOTAL، ومنصّة Tazhub لتذاكر النقل العام.',
-      'في <strong>Carefer</strong> قدت منصّة تعالج أكثر من ٥٠ ألف طلب صيانة سيارات شهريًا عبر خمسة تطبيقات، ونمَّيت الفريق من ٣ مهندسين إلى أكثر من ٢٠. وفي <strong>Lynk</strong> أصمّم بنية تقنية مالية متعدّدة السجلّات المحاسبية، متوافقة مع هيئة الزكاة والضريبة والجمارك (ZATCA) ومتكاملة مع بورصات السلع.',
-      'تجربتي في Microverse صقلت مهارات العمل عن بُعد وأسست لطريقتي في القيادة اليوم. أنا أربط بين أهداف العمل والتنفيذ التقني من خلال فرض <strong>دورة تطوير برمجيات معزَّزة بالذكاء الاصطناعي</strong> — والتي تتطلب ربط العمل بتذكرة قبل كتابة الكود، ومراجعة آلية، وموافقة صريحة قبل الدمج.',
+      'بدأت رحلتي بتحليل إشارات الشبكات وأرشفة الوثائق الحكومية، وتطورت لتشمل بناء أنظمة تقارير مالية حساسة لشركة Johnson &amp; Johnson وأنظمة إشعارات لشركة TOTAL.',
+      'عندما توليت القيادة التقنية في <strong>Carefer</strong>، قدت منصة تعالج أكثر من ٥٠ ألف طلب صيانة سيارات شهريًا عبر خمسة تطبيقات، ونمَّيت فريق الهندسة من ٣ إلى أكثر من ٢٠ مطورًا. واليوم في <strong>Lynk</strong>، أصمم بنية تقنية مالية صارمة التنظيم، متوافقة مع هيئة الزكاة (ZATCA)، وتتكامل بسلاسة مع بورصات السلع.',
+      'طريقتي في القيادة تشكلت عبر سنوات من العمل عن بُعد. أنا أربط بين أهداف العمل والواقع التقني من خلال فرض <strong>دورة تطوير برمجيات صارمة ومعزَّزة بالذكاء الاصطناعي</strong> — لأن سرعة الإنجاز لا يجب أبداً أن تعني انهيار النظام.',
     ],
     browseProjects: 'استعرض كل المشاريع ←',
     topSkills: 'أبرز المهارات',
@@ -283,8 +282,8 @@ const ar: DeepReadonlyLike<typeof en> = {
   projects: {
     title: 'المشاريع',
     metaDescription:
-      'منتجات ومنصّات — التقنيات والإنجازات والمقالات لكل مشروع، من Lynk وCarefer إلى أعمال المؤسّسات الأسبق.',
-    intro: 'كل ما أبنيه أو أشرف عليه — لكل مشروع صفحة تفصيلية بالتقنيات والإنجازات والروابط.',
+      'نظرة عميقة على المنصات التي صممتها والفرق التي قدتها. أرقام حقيقية، تقنيات فعلية، والقصص الهندسية وراء كل إنجاز.',
+    intro: 'نظرة عميقة على المنصات التي صممتها والفرق التي قدتها. أرقام حقيقية، تقنيات فعلية، والقصص الهندسية وراء كل إنجاز.',
     viewProject: 'عرض المشروع ←',
     deliveredAt: 'أُنجِز أثناء العمل في',
     statusLine: 'الحالة: %status%',
