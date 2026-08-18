@@ -1,5 +1,4 @@
-# Portfolio CI — lint + build on every PR (issue #3)
-# Lighthouse + axe gates land in #14.
+# Portfolio CI — lint, build, and quality gates on every PR (issues #3, #14).
 
 name: CI
 
@@ -22,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install dependencies
@@ -36,8 +35,58 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Type and content-schema check
+        run: npm run check
+
       - name: Build
         run: npm run build
 
-      - name: Verify CNAME in build output
-        run: test -f dist/CNAME && grep -q 'mnaser.me' dist/CNAME
+      # Markup gates that a browser audit cannot see: these inspect the HTML
+      # that actually ships, before any JavaScript has run.
+      - name: Static build checks
+        run: npm run check:build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  audit:
+    name: Lighthouse and accessibility
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      # Accessibility, SEO and best-practices are hard gates; performance is a
+      # warning so a slow shared runner cannot block an otherwise good change.
+      # Lighthouse's accessibility category runs axe-core.
+      - name: Lighthouse CI
+        run: npm run audit:lighthouse
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          retention-days: 7

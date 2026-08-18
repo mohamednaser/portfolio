@@ -30,7 +30,7 @@ const spokenLanguages = getSpokenLanguages(lang);
 const skillGroups = getSkillGroups(lang);
 const topSkills = getTopSkills(lang);
 
-const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 underline dark:text-emerald-400">Medium</a>`;
+const mediumLink = `<a href="${site.social.medium}" target="_blank" rel="noopener noreferrer" class="text-emerald-700 underline dark:text-emerald-400">Medium</a>`;
 const introHtml = fill(t.about.introHtml, { medium: mediumLink });
 const listSeparator = lang === 'ar' ? '، ' : ', ';
 ---
@@ -59,7 +59,7 @@ const listSeparator = lang === 'ar' ? '، ' : ', ';
         <p>
           <a
             href={localizePath('/projects', lang)}
-            class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+            class="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
           >
             {t.about.browseProjects}
           </a>
@@ -110,7 +110,7 @@ const listSeparator = lang === 'ar' ? '، ' : ', ';
                     href={job.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="hover:text-emerald-600 dark:hover:text-emerald-400"
+                    class="hover:text-emerald-700 dark:hover:text-emerald-400"
                   >
                     {job.company}
                   </a>
@@ -147,7 +147,7 @@ const listSeparator = lang === 'ar' ? '، ' : ', ';
                   href={e.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="hover:text-emerald-600 dark:hover:text-emerald-400"
+                  class="hover:text-emerald-700 dark:hover:text-emerald-400"
                 >
                   {e.school}
                 </a>
