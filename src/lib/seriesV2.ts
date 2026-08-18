@@ -8,8 +8,7 @@ import { localizePath, type Lang } from '../i18n';
  */
 export const SERIES_SLUGS = [
   'building-sharia-compliant-state-machine',
-  'scaling-mysql-fintech-murabaha',
-  'queue-infrastructure-at-scale',
+  'scaling-murabaha-database-and-infrastructure',
 ] as const;
 
 export const SERIES_PATH = '/series/scaling-murabaha-v2';

@@ -9,8 +9,6 @@ import '../../styles/posts/murabaha-scaling.css';
   <div class="stat"><span class="n">99.94%</span><span class="l">end-to-end completion rate</span></div>
   <div class="stat"><span class="n">11.8s → 0.26s</span><span class="l">purchase step execution time</span></div>
   <div class="stat"><span class="n">0</span><span class="l">lost or doubly-assigned units</span></div>
-</div>
-
 <p class="lede">
   In Part 1, we established that a Murabaha order isn't just a row insert—it's a multi-step, multi-party saga that must happen in exact sequence. When we load-tested this sequence, MySQL didn't just slow down; it ground to a halt. What follows is how we fixed it—how we went from four stuck orders out of ten to running <strong>5,200 orders end to end at 99.94%</strong>.
 </p>
@@ -18,8 +16,6 @@ import '../../styles/posts/murabaha-scaling.css';
 <div class="prev">
   <span class="tag">Earlier in this series</span>
   <strong><a href="/blog/building-sharia-compliant-state-machine/">Part 1 · Building a Sharia-Compliant State Machine at Scale</a></strong>
-</div>
-
 <p>
   When you map a strictly ordered financial contract to a relational database, you run into the physical limits of concurrency very quickly. We had a mathematically perfect state machine that guaranteed Sharia compliance. But when we hit it with just 31 concurrent orders, the entire system choked. 
 </p>
@@ -188,11 +184,134 @@ import '../../styles/posts/murabaha-scaling.css';
   </div>
 </section>
 
-<div class="next">
-  <span class="tag">Continue the series</span>
-  <p>The database was finally breathing easy, settling thousands of rows a second. But when we looked at the application layer, our server logs were still filled with killed processes. MySQL was saved, but our worker fleet was drowning.</p>
-  <strong><a href="/blog/queue-infrastructure-at-scale/">Part 3 · The Queue Infrastructure: What Breaks at 5,000 Jobs</a></strong> —
-  the infrastructure half of the story: how three worker containers became <strong>122 processes across 22 queues</strong>, and how the same discipline later took three machines back down to two.
-</div>
+
+
+
+<h2>Theme 3: The Unforgiving Infrastructure</h2>
+<p>What happens when the underlying hardware and queue workers reach their breaking point.</p>
+
+<section class="era" id="case-disk-full">
+  <div class="era-head"><h3>The "Boring" Physical Limits</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>Our very first automated scale test ground to a halt almost immediately. The database queries were painfully slow, jobs were taking minutes instead of seconds, and the entire server felt like it was walking through molasses.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We immediately started profiling the application logic. We assumed we had written a fundamentally unscalable sequence. We were looking for complex algorithmic flaws or missing database indexes that were causing the slowdown.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>The code was perfectly fine. The server's disk was 98% full. Because the disk was full, the database couldn't write to its temporary tables or transaction logs, and the operating system was struggling to page memory. It's a humbling reminder: the cloud is still just a computer, and physical limits hit you before algorithmic limits do.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We implemented strict log rotation, set up disk-space monitoring alerts, and resized the volumes. A basic DevOps fix, but a necessary foundation before real software optimization could begin.</p>
+  </div>
+</section>
+
+<section class="era" id="case-silent-jobs">
+  <div class="era-head"><h3>Embracing Failure in Distributed Systems</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>During a 500-order run, we noticed that a few orders simply vanished from the pipeline. The database showed they had started the 'Purchase' step, but they never completed it. No error logs, no crash reports. The jobs had just died silently.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>Our initial instinct was to try and prevent the jobs from dying. We added memory, increased timeout limits, and tried to catch every possible exception to ensure the worker would always finish gracefully.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>In a distributed system, you cannot prevent job death. Workers will be OOM-killed, servers will be restarted mid-execution, and network cables will be unplugged. Trying to make execution perfect is a fool's errand. Instead, you must assume a job will be killed at the worst possible millisecond.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We embraced failure. We made every single job strictly idempotent—meaning it could be run 100 times but only apply its effects once. We implemented expiring locks on the database rows, and added escalating backoff retries. Now, if a job is violently killed by the OS, another worker simply picks it up a minute later, checks what was already done, and finishes the rest seamlessly.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    A failed job stopped meaning a failed transaction. We can now randomly restart our worker fleet during peak load without losing a single order.
+  </div>
+</section>
+
+<section class="era" id="case-latency-hiding">
+  <div class="era-head"><h3>Latency Hiding Between Jobs</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>According to our application metrics, the purchase step was executing in 0.52 seconds. It was lightning fast. But according to the end-to-end telemetry, the purchase step was taking 7.5 seconds to complete. The logs showed a massive 7-second gap where nothing was happening.</p>
+  </div>
+  
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/queue_wait_iceberg_concept.jpg" width="1376" height="768" alt="Queue Wait Iceberg" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>Service time is just the tip of the iceberg; queue wait time is what sinks the ship.</figcaption>
+  </figure>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>We stared at the 0.52-second execution time and couldn't figure out what to optimize. We were profiling the actual PHP execution line-by-line, looking for milliseconds to shave off.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>We were optimizing service time when the problem was queue wait time. When you dispatch 5,000 jobs to a pool of 8 workers, the 5,000th job has to wait in line for a very long time before a worker even picks it up to start that "fast" 0.52-second execution.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We completely restructured our queue topology. We separated fast jobs from slow jobs onto dedicated queues, and scaled the worker processes from 3 up to 122 dedicated workers across different pipelines to ensure there was always a worker ready to consume a job immediately.</p>
+  </div>
+  
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-1.webp" width="1376" height="344" alt="Queue split results" style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>Before: jobs shared one queue, wait time peaked at 118 seconds. After: dedicated queues dropped wait time to near zero.</figcaption>
+  </figure>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    The 7-second ghost latency vanished. Queue wait times dropped from minutes under heavy load to near-zero milliseconds.
+  </div>
+</section>
+
+<h2>Theme 4: Observability & Baselines</h2>
+<p>You cannot fix what you cannot see.</p>
+
+<section class="era" id="case-baselines">
+  <div class="era-head"><h3>The Value of a Baseline</h3></div>
+  
+  <div class="incident">
+    <span class="tag">The Symptom</span>
+    <p>During routine development, a harmless bug fix was deployed. Shortly after, the platform started failing on orders that took longer than 60 seconds to process. At the same time, our performance dashboards showed that the average execution time of a specific step had quietly increased by 2 seconds.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Trap</span>
+    <p>It is incredibly easy to brush off a 2-second slowdown or blame it on temporary network latency. And the 60-second failures seemed random, hard to reproduce, and easy to ignore since most orders finished faster than that.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Pivot</span>
+    <p>Because we had established rigid, automated stress-tests (baselines) that ran on every commit, these "minor" issues lit up our dashboards like a Christmas tree. We discovered that the 60-second failure was a hardcoded load balancer timeout nobody knew existed. And the 2-second slowdown was caused by a redundant API call accidentally introduced in the bug fix.</p>
+  </div>
+  
+  <div class="attempt">
+    <span class="tag">The Fix</span>
+    <p>We reverted the redundant API call and reconfigured the load balancer timeouts to match the application's actual timeout limits. But the real fix was maintaining the baseline tests themselves.</p>
+  </div>
+  
+  <div class="metric">
+    <span class="tag">The Result</span>
+    Silent regressions were caught in staging instead of reaching production. We proved that without a continuous baseline, software only gets slower.
+  </div>
+</section>
 
 </div>
