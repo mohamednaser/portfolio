@@ -162,8 +162,8 @@ const en = {
     /** Companion-article footer. The two articles are not numbered episodes. */
     seriesPartOf: 'Read together · %series%',
     /** Compact form for the kicker above the title. */
-    seriesPartShort: 'Both articles',
-    seriesAllParts: 'Both articles',
+    seriesPartShort: 'All three parts',
+    seriesAllParts: 'All three parts',
     seriesPrevious: '← Read first',
     seriesNext: 'Read next →',
     /** Shown above translated articles only; empty in the source language. */
@@ -171,12 +171,12 @@ const en = {
     readOriginal: '',
   },
   series: {
-    eyebrow: 'Two articles',
+    eyebrow: 'Three articles',
     title: 'Scaling a Commodity Murabaha Platform',
     metaDescription:
-      'Two articles on a Sharia-compliant commodity Murabaha platform: the state machine that makes each trade legal, and the nine fights that took it to 5,200 orders at 99.94%.',
+      'Three articles on a Sharia-compliant commodity Murabaha platform: the state machine, the database battles, and the queue worker fleet that took it to 5,200 orders at 99.94%.',
     intro:
-      'Two articles about the same platform, written to be read in either order. The first explains the machine — why a commodity Murabaha is a state machine whose steps cannot be reordered to go faster. The second is what it took to make that machine fast: nine fights in the database, the queue and the hardware, ranked by what each one bought.',
+      'Three articles about the same platform. Part 1 explains the legal machine — why a commodity Murabaha is a state machine whose steps cannot be reordered. Parts 2 and 3 cover the engineering battles that made it fast: database locks, ghost latency, and scaling to 122 queue workers.',
     keywords: [
       'commodity murabaha',
       'scaling fintech',
@@ -336,21 +336,21 @@ const ar: DeepReadonlyLike<typeof en> = {
     authorContact: 'تواصل معي',
     back: '→ المدوّنة',
     onThisPage: 'محتويات المقال',
-    seriesPartOf: 'يُقرآن معًا · %series%',
-    seriesPartShort: 'المقالان',
-    seriesAllParts: 'المقالان',
+    seriesPartOf: 'تُقرأ معًا · %series%',
+    seriesPartShort: 'الأجزاء الثلاثة',
+    seriesAllParts: 'الأجزاء الثلاثة',
     seriesPrevious: 'اقرأ هذا أولًا →',
     seriesNext: '← اقرأ بعده',
     translationNote: 'هذا المقال مترجم عن نسخته الإنجليزية الأصلية.',
     readOriginal: 'اقرأ النسخة الإنجليزية →',
   },
   series: {
-    eyebrow: 'مقالان',
+    eyebrow: 'ثلاثة مقالات',
     title: 'توسيع منصّة مرابحة سلعية',
     metaDescription:
-      'مقالان عن منصّة مرابحة سلعية متوافقة مع الشريعة: آلة الحالات التي تجعل كل صفقة صحيحة شرعًا، والمعارك التسع التي أوصلتها إلى 5,200 طلب بنسبة 99.94%.',
+      'ثلاثة مقالات عن منصّة مرابحة سلعية متوافقة مع الشريعة: آلة الحالات، معارك قاعدة البيانات، وأسطول عمّال الطوابير الذي أوصلها إلى 5,200 طلب بنسبة 99.94%.',
     intro:
-      'مقالان عن المنصّة نفسها، يمكن قراءتهما بأي ترتيب. الأوّل يشرح الآلة نفسها: لماذا تُمثَّل المرابحة السلعية كآلة حالات لا يمكن إعادة ترتيب خطواتها طلبًا للسرعة. والثاني يروي ما تطلّبه جعل تلك الآلة سريعة: تسع معارك في قاعدة البيانات والطوابير والعتاد، مرتَّبة بحسب ما حقّقته كلٌّ منها.',
+      'ثلاثة مقالات عن المنصّة نفسها. الأوّل يشرح الآلة القانونية — لماذا تُمثَّل المرابحة السلعية كآلة حالات. والثاني والثالث يرويان ما تطلّبه جعل تلك الآلة سريعة: معارك في قاعدة البيانات، ومعالجة أوقات الانتظار الوهمية، والتوسّع إلى 122 عامل طابور.',
     keywords: [
       'المرابحة السلعية',
       'توسيع التقنية المالية',
