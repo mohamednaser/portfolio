@@ -176,7 +176,7 @@ const en = {
     metaDescription:
       'Three articles on a Sharia-compliant commodity Murabaha platform: the state machine, the database battles, and the queue worker fleet that took it to 5,200 orders at 99.94%.',
     intro:
-      'Three articles about a single platform, written to be read in any order. The first explains the machine itself—why a commodity Murabaha is a strict state machine whose steps cannot be reordered for speed. The next two detail the engineering battles required to make that machine fast: fighting MySQL deadlocks, resolving ghost latency, and scaling a fleet of 122 queue workers.',
+      'The story of a Sharia-compliant Murabaha platform, from a prototype that choked on ten orders to a powerhouse running 5,000 a day. Part 1 explains the unbreakable legal state machine at the core of the trades. Parts 2 and 3 expose the gritty engineering battles that made it fast—slaying MySQL deadlocks, curing silent queue latency, and commanding a 122-worker fleet.',
     keywords: [
       'commodity murabaha',
       'scaling fintech',
@@ -350,7 +350,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     metaDescription:
       'ثلاثة مقالات عن منصّة مرابحة سلعية متوافقة مع الشريعة: آلة الحالات، معارك قاعدة البيانات، وأسطول عمّال الطوابير الذي أوصلها إلى 5,200 طلب بنسبة 99.94%.',
     intro:
-      'ثلاثة مقالات عن منصّة واحدة، يمكن قراءتها بأي ترتيب. الأوّل يشرح الآلة نفسها: لماذا تُمثّل المرابحة السلعية كآلة حالات صارمة لا يمكن اختصار خطواتها طلبًا للسرعة. والمقالان التاليان يرويان المعارك الهندسية التي جعلت تلك الآلة سريعة: من حل اختناقات قاعدة البيانات وأوقات الانتظار الوهمية، إلى التوسّع لتشغيل أسطول من 122 عامل طابور.',
+      'قصة منصة مرابحة متوافقة مع الشريعة، من نموذج أولي تعثر في عشرة طلبات، إلى قوة ضاربة تعالج 5,000 طلب يوميًا. المقال الأول يشرح آلة الحالات القانونية الصارمة التي تحكم الصفقات. والمقالان الثاني والثالث يكشفان عن المعارك الهندسية الطاحنة التي جعلتها سريعة: من سحق اختناقات قاعدة البيانات، وعلاج أوقات الانتظار الصامتة، إلى قيادة أسطول من 122 عامل طابور.',
     keywords: [
       'المرابحة السلعية',
       'توسيع التقنية المالية',
