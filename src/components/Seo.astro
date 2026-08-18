@@ -6,8 +6,10 @@ import {
   isUntranslatedPath,
   langCodes,
   languages,
+  localizePath,
   type Lang,
 } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 import { site, siteMeta } from '../site.config';
 
 interface Props {
@@ -44,6 +46,8 @@ const {
 } = Astro.props;
 
 const meta = siteMeta[lang];
+const t = useTranslations(lang);
+const feedHref = new URL(localizePath('/rss.xml', lang), site.url).href;
 const resolvedTitle = title ?? meta.title;
 const resolvedDescription = description ?? meta.description;
 
@@ -84,8 +88,13 @@ const websiteSchema = {
   description: meta.description,
 };
 
+/**
+ * `datePublished` is required for Article types; without it Google reports a
+ * missing-field error rather than ignoring the block. Pages that cannot supply
+ * one simply do not describe themselves as articles.
+ */
 const articleSchema =
-  type === 'article'
+  type === 'article' && publishedTime
     ? {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
@@ -122,6 +131,12 @@ const articleSchema =
 {alternateUrl && <link rel="alternate" href={alternateUrl} />}
 {noindex && <meta name="robots" content="noindex" />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={`${meta.name} — ${t.blog.title}`}
+  href={feedHref}
+/>
 
 <meta property="og:type" content={type} />
 <meta property="og:url" content={canonical} />
