@@ -32,15 +32,11 @@ export const langCodes = Object.keys(languages) as Lang[];
 
 /**
  * Routes with no translated counterpart, and the nearest page to send a reader
- * to instead. Article bodies and series hubs stay in English — only the blog
- * index around them is localised — so they fall back to the blog index in the
- * target locale.
+ * to instead. Empty since the blog was localised (Aug 2026): every route —
+ * article bodies, the series hub, and the feed — now builds in both locales.
+ * The mechanism stays so a future English-only page can declare its fallback.
  */
-const untranslated: { pattern: RegExp; fallback: string }[] = [
-  { pattern: /^\/blog\/.+/, fallback: '/blog/' },
-  { pattern: /^\/series(\/|$)/, fallback: '/blog/' },
-  { pattern: /^\/rss\.xml$/, fallback: '/blog/' },
-];
+const untranslated: { pattern: RegExp; fallback: string }[] = [];
 
 export function isLang(value: string): value is Lang {
   return value in languages;

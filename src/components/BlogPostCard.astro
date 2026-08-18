@@ -1,18 +1,20 @@
 ---
-import { contentSlug } from '../lib/slug';
-import type { CollectionEntry } from 'astro:content';
+import { type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
+import { blogLang, blogPath, type BlogEntry } from '../lib/blog';
 
 interface Props {
-  post: CollectionEntry<'blog'>;
-  /** Article titles and teasers are English — force LTR inside an RTL page. */
-  isolateLtr?: boolean;
+  post: BlogEntry;
+  lang: Lang;
 }
 
-const { post, isolateLtr = false } = Astro.props;
-const slug = contentSlug(post.id);
-const href = `/blog/${slug}`;
+const { post, lang } = Astro.props;
+const t = useTranslations(lang);
+const href = blogPath(post, lang);
 const teaser = post.data.excerpt ?? post.data.description;
 const hasCover = Boolean(post.data.coverImage);
+/** An untranslated post keeps its English title and teaser — isolate them. */
+const isolateLtr = blogLang(post) !== lang;
 ---
 
 <article
@@ -32,7 +34,7 @@ const hasCover = Boolean(post.data.coverImage);
         class="text-sm text-slate-500 dark:text-slate-400"
       >
         {
-          post.data.pubDate.toLocaleDateString('en-GB', {
+          post.data.pubDate.toLocaleDateString(t.post.dateLocale, {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -40,11 +42,15 @@ const hasCover = Boolean(post.data.coverImage);
         }
         {
           post.data.readingTime && (
-            <span class="before:mx-2 before:content-['·']">{post.data.readingTime}</span>
+            <span class="before:mx-2 before:content-['·']">
+              {post.data.readingTime}
+            </span>
           )
         }
       </time>
-      <h2 class="mt-2 text-xl font-bold leading-snug text-slate-900 dark:text-slate-50 sm:text-2xl">
+      <h2
+        class="mt-2 text-xl font-bold leading-snug text-slate-900 dark:text-slate-50 sm:text-2xl"
+      >
         <a
           href={href}
           class="transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
@@ -52,12 +58,14 @@ const hasCover = Boolean(post.data.coverImage);
           {post.data.title}
         </a>
       </h2>
-      <p class="mt-3 line-clamp-3 text-base leading-relaxed text-slate-600 dark:text-slate-400">
+      <p
+        class="mt-3 line-clamp-3 text-base leading-relaxed text-slate-600 dark:text-slate-400"
+      >
         {teaser}
       </p>
       {
         post.data.keywords.length > 0 && (
-          <ul class="mt-4 flex flex-wrap gap-2" aria-label="Topics">
+          <ul class="mt-4 flex flex-wrap gap-2" aria-label={t.post.topics}>
             {post.data.keywords.slice(0, 5).map((keyword) => (
               <li>
                 <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
@@ -69,8 +77,11 @@ const hasCover = Boolean(post.data.coverImage);
         )
       }
       <div class="mt-5 flex flex-wrap items-center gap-3 text-sm">
-        <a href={href} class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
-          {post.data.external ? 'View summary' : 'Read article'}
+        <a
+          href={href}
+          class="font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+        >
+          {post.data.external ? t.post.viewSummary : t.post.readArticle}
         </a>
         {
           post.data.mediumUrl && (
@@ -80,7 +91,7 @@ const hasCover = Boolean(post.data.coverImage);
               rel="noopener noreferrer"
               class="font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900 dark:text-slate-400 dark:decoration-slate-600 dark:hover:text-slate-200"
             >
-              Medium ↗
+              {t.post.mediumLink}
             </a>
           )
         }
@@ -92,7 +103,7 @@ const hasCover = Boolean(post.data.coverImage);
               rel="noopener noreferrer"
               class="font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900 dark:text-slate-400 dark:decoration-slate-600 dark:hover:text-slate-200"
             >
-              LinkedIn profile ↗
+              {t.post.linkedinLink}
             </a>
           )
         }

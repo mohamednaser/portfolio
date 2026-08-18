@@ -131,6 +131,47 @@ const en = {
     /** Shown to Arabic readers only; empty in English, where it says nothing. */
     languageNote: '',
   },
+  post: {
+    /** BCP-47 tag for `toLocaleDateString`. Arabic keeps Latin digits (`nu-latn`). */
+    dateLocale: 'en-GB',
+    by: 'By',
+    authorRole: 'Technical Lead, Lynk',
+    keywords: 'Keywords',
+    topics: 'Topics',
+    readArticle: 'Read article',
+    viewSummary: 'View summary',
+    mediumLink: 'Medium ↗',
+    linkedinLink: 'LinkedIn profile ↗',
+    /** `%medium%` is substituted with a link to the Medium original. */
+    externalHtml:
+      'The full article is on %medium%. Use the button above for the complete piece, comments, and sharing.',
+    authorBio:
+      'Technical Lead at Lynk, building Sharia-compliant commodity Murabaha infrastructure in Saudi Arabia. Writes about scaling fintech platforms, databases under load, and the unglamorous parts of production.',
+    authorLinkedin: 'LinkedIn',
+    authorContact: 'Get in touch',
+    back: '← Blog',
+    /** Shown above translated articles only; empty in the source language. */
+    translationNote: '',
+    readOriginal: '',
+  },
+  series: {
+    eyebrow: 'Series · 3 parts',
+    title: 'Scaling a Commodity Murabaha Platform',
+    metaDescription:
+      'A three-part engineering series on taking a Sharia-compliant Murabaha platform from ten orders to five thousand: the process, the database battles, and the worker fleet.',
+    intro:
+      'In January 2025 a stress test of ten automated orders left four of them stuck. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%, and 5,000-order runs became a daily routine. This is what happened in between — fifteen case files, the failed attempts included.',
+    /** `%n%` is replaced with the part number. */
+    part: 'Part %n%',
+    keywords: [
+      'commodity murabaha',
+      'scaling fintech',
+      'database performance',
+      'queue workers',
+      'islamic finance technology',
+    ],
+    back: '← Blog',
+  },
   notFound: {
     title: 'Page not found',
     metaDescription: 'The page you requested does not exist.',
@@ -255,7 +296,44 @@ const ar: DeepReadonlyLike<typeof en> = {
       'كتاباتي عن الهندسة المعزَّزة بالذكاء الاصطناعي، وجودة الوكلاء، والقيادة التقنية. الملخّصات هنا، والمقالات كاملةً على Medium.',
     rss: 'خلاصة RSS',
     empty: 'لا توجد مقالات بعد.',
-    languageNote: 'المقالات منشورة باللغة الإنجليزية.',
+    languageNote: 'المقالات متاحة بالعربية والإنجليزية؛ بدّل اللغة من أعلى الصفحة.',
+  },
+  post: {
+    dateLocale: 'ar-EG-u-nu-latn',
+    by: 'بقلم',
+    authorRole: 'قائد تقني في Lynk',
+    keywords: 'الكلمات المفتاحية',
+    topics: 'الموضوعات',
+    readArticle: 'اقرأ المقال',
+    viewSummary: 'اطّلع على الملخّص',
+    mediumLink: 'Medium ↗',
+    linkedinLink: 'ملفّ لينكدإن ↗',
+    externalHtml:
+      'المقال كاملًا منشور على %medium%. استخدم الزرّ أعلاه للنصّ الكامل والتعليقات والمشاركة.',
+    authorBio:
+      'قائد تقني في Lynk، أبني بنية تحتية للمرابحة السلعية المتوافقة مع الشريعة في السعودية. أكتب عن توسيع منصّات التقنية المالية، وقواعد البيانات تحت الحِمل، والجوانب غير البرّاقة من بيئة الإنتاج.',
+    authorLinkedin: 'لينكدإن',
+    authorContact: 'تواصل معي',
+    back: '→ المدوّنة',
+    translationNote: 'هذا المقال مترجم عن نسخته الإنجليزية الأصلية.',
+    readOriginal: 'اقرأ النسخة الإنجليزية →',
+  },
+  series: {
+    eyebrow: 'سلسلة · ثلاثة أجزاء',
+    title: 'توسيع منصّة مرابحة سلعية',
+    metaDescription:
+      'سلسلة هندسية من ثلاثة أجزاء عن نقل منصّة مرابحة متوافقة مع الشريعة من عشرة طلبات إلى خمسة آلاف: العملية، ومعارك قاعدة البيانات، وأسطول العمّال.',
+    intro:
+      'في يناير 2025 تعثّرت أربعة من عشرة طلبات آلية في اختبار ضغط. وبعد ثمانية عشر شهرًا نفّذت المنصّة نفسها 5,200 طلب من البداية إلى النهاية بنسبة نجاح 99.94%، وصارت جولات الخمسة آلاف طلب روتينًا يوميًّا. هذا ما جرى بينهما — خمس عشرة حالة موثّقة، بما فيها المحاولات الفاشلة.',
+    part: 'الجزء %n%',
+    keywords: [
+      'المرابحة السلعية',
+      'توسيع التقنية المالية',
+      'أداء قواعد البيانات',
+      'عمّال الطوابير',
+      'تقنيات التمويل الإسلامي',
+    ],
+    back: '→ المدوّنة',
   },
   notFound: {
     title: 'الصفحة غير موجودة',

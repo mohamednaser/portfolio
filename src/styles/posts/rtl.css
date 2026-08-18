@@ -1,0 +1,161 @@
+/*
+ * RTL layer for translated article bodies. Imported only by the Arabic post
+ * components in `src/components/posts/ar/`, on top of the shared per-article
+ * stylesheet — so the English pages never download or apply any of it.
+ *
+ * Three jobs: mirror the physical-direction rules the original CSS uses
+ * (`border-left`, `padding-left`, `text-align: left`), swap the Latin serif and
+ * mono display faces for one that renders Arabic, and keep the runs that must
+ * stay left-to-right — code, SVG diagrams, figures of numbers — isolated.
+ */
+
+[dir='rtl'] .lynk-post,
+[dir='rtl'] .judge-post {
+  --post-arabic:
+    'IBM Plex Sans Arabic', 'Noto Sans Arabic', 'Geeza Pro', Tahoma, system-ui,
+    sans-serif;
+}
+
+/* --- Display faces: the Latin serif has no Arabic coverage --------------- */
+[dir='rtl'] .lynk-post h1,
+[dir='rtl'] .lynk-post h2,
+[dir='rtl'] .lynk-post h3,
+[dir='rtl'] .lynk-post .serif,
+[dir='rtl'] .lynk-post .lede,
+[dir='rtl'] .judge-post h2,
+[dir='rtl'] .judge-post h3 {
+  font-family: var(--post-arabic);
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+
+/*
+ * Arabic is cursive: letter-spacing breaks the joins. The original uses wide
+ * tracking on every mono label, so reset it wherever Arabic copy can appear.
+ */
+[dir='rtl'] .lynk-post .kicker,
+[dir='rtl'] .lynk-post .tag,
+[dir='rtl'] .lynk-post .era-dates,
+[dir='rtl'] .lynk-post .stat .l,
+[dir='rtl'] .lynk-post th,
+[dir='rtl'] .lynk-post figcaption,
+[dir='rtl'] .lynk-post .impact-pill .lab,
+[dir='rtl'] .lynk-post .codebox .cap,
+[dir='rtl'] .lynk-post .refmark,
+[dir='rtl'] .lynk-post .teasers .cn,
+[dir='rtl'] .lynk-post .caseindex .cn,
+[dir='rtl'] .judge-post .tag,
+[dir='rtl'] .judge-post th {
+  font-family: var(--post-arabic);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* --- Mirrored box models ------------------------------------------------ */
+[dir='rtl'] .lynk-post ul,
+[dir='rtl'] .judge-post ul,
+[dir='rtl'] .judge-post ol {
+  padding-left: 0;
+  padding-right: 1.3rem;
+}
+
+[dir='rtl'] .lynk-post .teasers,
+[dir='rtl'] .lynk-post .caseindex ol {
+  padding-right: 0;
+}
+
+[dir='rtl'] .lynk-post .incident,
+[dir='rtl'] .lynk-post .attempt,
+[dir='rtl'] .lynk-post .metric,
+[dir='rtl'] .lynk-post .constraint,
+[dir='rtl'] .lynk-post .caseindex {
+  border-left: none;
+  border-right-width: 3px;
+  border-right-style: solid;
+}
+
+[dir='rtl'] .lynk-post .incident {
+  border-right-color: var(--incident);
+}
+[dir='rtl'] .lynk-post .attempt {
+  border-right-color: var(--muted);
+}
+[dir='rtl'] .lynk-post .metric {
+  border-right-color: var(--accent);
+}
+[dir='rtl'] .lynk-post .constraint {
+  border-right-color: var(--rule);
+}
+[dir='rtl'] .lynk-post .caseindex {
+  border-right-color: var(--accent);
+}
+
+[dir='rtl'] .lynk-post .refs li:target {
+  border-left: none;
+  border-right: 3px solid var(--accent);
+  margin-left: 0;
+  margin-right: -0.9rem;
+  border-radius: 4px 0 0 4px;
+}
+
+[dir='rtl'] .lynk-post .refmark {
+  margin-left: 0;
+  margin-right: 0.28rem;
+}
+
+[dir='rtl'] .lynk-post .caseindex .cn {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir='rtl'] .lynk-post th,
+[dir='rtl'] .judge-post th,
+[dir='rtl'] .lynk-post figcaption {
+  text-align: right;
+}
+
+/* --- Runs that stay left-to-right --------------------------------------- */
+[dir='rtl'] .lynk-post svg,
+[dir='rtl'] .judge-post svg {
+  direction: ltr;
+}
+
+[dir='rtl'] .lynk-post .codebox,
+[dir='rtl'] .lynk-post .codebox .cap,
+[dir='rtl'] .lynk-post pre,
+[dir='rtl'] .judge-post pre {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+[dir='rtl'] .lynk-post code,
+[dir='rtl'] .lynk-post .mono,
+[dir='rtl'] .lynk-post .tk,
+[dir='rtl'] .judge-post code {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/*
+ * Latin figures inside Arabic sentences: `<span class="num">5,200</span>` and
+ * numeric table cells. Isolation keeps the surrounding punctuation on the
+ * correct side instead of the digits dragging it along.
+ */
+[dir='rtl'] .lynk-post .num,
+[dir='rtl'] .lynk-post td.num,
+[dir='rtl'] .lynk-post .stat .n,
+[dir='rtl'] .lynk-post .impact-pill .val {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+[dir='rtl'] .lynk-post td.num {
+  text-align: right;
+}
+
+/* The Latin-only stat/pill numerals keep the mono face; their labels do not. */
+[dir='rtl'] .lynk-post .stat .l,
+[dir='rtl'] .lynk-post .impact-pill .lab {
+  font-size: 0.8rem;
+}

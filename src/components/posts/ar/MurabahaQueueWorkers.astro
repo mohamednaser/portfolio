@@ -1,0 +1,603 @@
+---
+// Arabic article body for /ar/blog/laravel-queue-workers-regulated-trade-pipeline/
+// Translation of ../MurabahaQueueWorkers.astro — keep both in sync when either changes.
+// SVG diagrams and code listings are copied verbatim from the English original;
+// the translation lives in each aria-label, caption and figcaption.
+import '../../../styles/posts/murabaha-queue-workers.css';
+import '../../../styles/posts/rtl.css';
+---
+
+<div class="lynk-post">
+
+<p class="kicker">هندسة LYNK · منصّة المرابحة · <a href="/ar/series/scaling-murabaha/">الجزء 3 من 3</a></p>
+<div class="stats">
+    <div class="stat"><span class="n">0.52s / 7.5s</span><span class="l">العمل الفعلي داخل خطوة الشراء</span></div>
+    <div class="stat"><span class="n">118s → ~0</span><span class="l">انتظار طابور ملكية المقترض</span></div>
+    <div class="stat"><span class="n">3 → 122</span><span class="l">عمليات العمّال، يناير 2025 ← اليوم</span></div>
+    <div class="stat"><span class="n">3 → 2</span><span class="l">آلات، بالتزامن الكلّي نفسه</span></div>
+  </div>
+
+
+<div class="prev">
+  <span class="tag">سابقًا في هذه السلسلة</span>
+  <strong><a href="/ar/blog/murabaha-as-a-state-machine/">الجزء 1 · التمويل الإسلامي للمهندسين: المرابحة بوصفها آلة حالات</a></strong> — ما LYNK،
+  وكيف تعمل المرابحة السلعية خطوةً خطوة، والهدفان اللذان يؤطّران كل شيء: أقصى عدد من المعاملات
+  المتزامنة، مع الصحّة الشرعية الكاملة قيدًا صارمًا.<br>
+  <strong><a href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/">الجزء 2 · MySQL تحت الحِمل في خطّ متوافق مع الشريعة</a></strong> — المعارك
+  العشر التي خيضت في الكود وقاعدة البيانات، من <strong>4 متعثّرة من 10</strong> إلى <strong>99.94% من
+  5,200 طلب</strong>.
+</div>
+
+<p>
+  ينتهي الجزء 2 حيث يكفّ الكود عن كونه المشكلة. فكل حالة فيه كانت إصلاحًا تستطيع أن تشير إليه في فرق
+  الكود: مستوى عزل، أو فهرس ناقص، أو حدّ معاملة، أو محرّك رسم. وما يلي هو المعارك الخمس التي جاءت بعد —
+  تلك التي خيضت في الفراغ <em>بين</em> المهامّ لا داخلها، حيث يكون الكود بريئًا وتكون البنية هي
+  المنتج.
+</p>
+<p>
+  وتبقى الحالات مرقّمة على اتّصال مع الجزء 2، لأنها وقعت في العامين نفسيهما وفي الأسبوع نفسه أحيانًا.
+  وكل عدد عمّال أدناه هو رقم الإنتاج وما قبل الإنتاج ما لم يُذكر خلاف ذلك: فالملفّ نفسه ينكمش إلى نسخة
+  واحدة لكل طابور في بيئتي التطوير والاختبار، فلا تعني «22 طابورًا» 122 عمليّة في كل مكان. وكما سبق،
+  تخبرك كلٌّ منها <strong style="color:var(--incident)">بما كان يجري فعلًا من خطأ</strong>،
+  و<strong style="color:var(--muted)">بما جرّبناه</strong> — بما فيه المحاولات التي وجب التراجع عنها —
+  و<strong style="color:var(--accent)">بما قالته الأرقام</strong> بعد ذلك.
+</p>
+
+
+<div class="note">
+  <strong>عن هذه الأرقام.</strong> كل رقم في هذه السلسلة مصدره برنامج اختبارات الضغط لدى LYNK في بيئة
+  ما قبل الإنتاج — طلبات اصطناعية على بيانات اختبارية — وليس حركة عملاء، ولا تظهر فيه أي بيانات عملاء
+  إطلاقًا. ولقطات الشاشة من بيئات اختبار. نُشر بعلم LYNK؛ والآراء — وأي أخطاء — تخصّني وحدي.
+</div>
+<nav class="caseindex" aria-label="فهرس الحالات">
+  <span class="tag">الحالات الخمس</span>
+  <ol>
+    <li><a href="#case-11"><span class="cn">الحالة 11</span>الثواني السبع بين المهامّ</a></li>
+    <li><a href="#case-12"><span class="cn">الحالة 12</span>إدارة أسطول، لا خادم</a></li>
+    <li><a href="#case-13"><span class="cn">الحالة 13</span>العمّال كانوا يشغّلون كود الشهر الماضي</a></li>
+    <li><a href="#case-14"><span class="cn">الحالة 14</span>الإخفاقات المملّة</a></li>
+    <li><a href="#case-15"><span class="cn">الحالة 15</span>آلتان بدل ثلاث</a></li>
+    <li><a href="#lessons"><span class="cn">الدروس</span>ما علّمنا إيّاه عامان</a></li>
+  </ol>
+</nav>
+
+<section class="era" id="case-11">
+  <div class="era-head"><h2>الحالة 11 · الثواني السبع بين المهامّ</h2><span class="era-dates">مايو – أغسطس 2026</span></div>
+  <p class="impact-pill"><span class="lab">الأثر</span><span class="val">الانتظار من ~118 ثانية إلى ≈0 · 5,000 يوميًّا</span></p>
+  <div class="incident">
+    <span class="tag">المشكلة</span>
+    <p>بحلول منتصف 2026 صارت جولات الخمسة آلاف طلب معتادة — وأظهر الاختبار اليومي أن خطوة ملكية المقترض
+    تستغرق <strong>نحو دقيقتين</strong> في 4,000 من الطلبات الـ5,000. وجاء المفتاح الحاسم من تمرين يستطيع
+    أي أحد تقليده، وقد أجريناه أولًا على خطوة الشراء المجاورة: اجمع زمن المعالجة الفعلي لكل مهمّة في
+    الخطوة وقارنه بزمن الساعة. فبلغت المهامّ
+    <span class="k-cost">521 جزءًا من الألف من الثانية، داخل خطوة كانت تستغرق سبع ثوانٍ ونصفًا
+    بالمشاهدة</span>. وقالت الحسبة نفسها على ملكية المقترض الشيء نفسه بمقياس أقسى — نحو ثانية من العمل
+    داخل دقيقتين من الزمن المنقضي. <span class="k-rule">فالكود كان بريئًا في الحالتين؛ والفارق وقتٌ قُضي
+    وقوفًا في الطابور.</span><a class="refmark" href="#ref-queue-wait">انتظار الطابور ↓</a> ولانتظار الطابور شخصية قاسية: <span class="k-cost">غير مرئي حين يخلو
+    النظام (~0 ثانية)، وملحوظ تحت الحِمل (~7 ثوانٍ عند 91 طلبًا في الدقيقة)، وكارثي عند الذروة
+    (~118 ثانية)</span>.</p>
+  </div>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/queue_wait_iceberg_concept.jpg"
+         alt="رسم مفاهيمي لجبل جليدي يبيّن التكلفة الخفيّة لزمن انتظار الطابور مقابل العمل الفعلي."
+         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+    <figcaption>يتصرّف زمن انتظار الطابور كجبل جليدي: زمن المعالجة الفعلي مجرّد القمّة الظاهرة، بينما يشكّل الوقت المقضيّ في الطابور تكلفةً هائلة خفيّة تُغرق الأداء تحت الحِمل.</figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 720 180" role="img" aria-label="رسم أعمدة لانتظار طابور ملكية المقترض بحسب الحِمل: نحو صفر ثانية عند الخمول، ونحو 7 ثوانٍ عند 91 طلبًا في الدقيقة، ونحو 118 ثانية عند الذروة المستمرّة.">
+      <g font-size="11.5" fill="currentColor" opacity="0.85" text-anchor="end">
+        <text x="150" y="34">idle</text>
+        <text x="150" y="82">91 orders / min</text>
+        <text x="150" y="130">sustained peak</text>
+      </g>
+      <g>
+        <rect class="bar" style="animation-delay:0.05s" x="160" y="22" width="3" height="18" rx="1.5" fill="var(--accent)"><title>Idle — queue wait about 0 seconds</title></rect>
+        <rect class="bar" style="animation-delay:0.2s" x="160" y="70" width="31" height="18" rx="2" fill="var(--incident)" opacity="0.8"><title>91 orders per minute — about 7 seconds of queue wait</title></rect>
+        <rect class="bar" style="animation-delay:0.35s" x="160" y="118" width="520" height="18" rx="2" fill="var(--incident)"><title>Sustained peak — about 118 seconds of queue wait</title></rect>
+      </g>
+      <g font-size="11.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" class="blabel" style="animation-delay:1s">
+        <text x="172" y="36" opacity="0.75">~0s</text>
+        <text x="200" y="84" opacity="0.85">~7s</text>
+        <text x="668" y="132" text-anchor="end" fill="var(--bg)" font-weight="700">~118s</text>
+      </g>
+      <g font-size="10.5" font-family="ui-monospace, Menlo, monospace" fill="currentColor" opacity="0.55">
+        <text x="160" y="160">The jobs themselves ran in about 1 second at every point on this chart.</text>
+      </g>
+    </svg>
+    <figcaption>لماذا يسهل إغفال انتظار الطابور: فحين يُقاس على نظام خامل يكون غير مرئي، ويبقى متواضعًا
+    عند الحِمل المتوسّط. أمّا عمل المهمّة نفسه فلا يتغيّر — نحو ثانية — ولذلك ظلّ كل مُحلّل أداء موجَّه
+    إلى الكود يبلّغ أن لا شيء خطأ.</figcaption>
+  </figure>
+
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-1.webp" alt="مستر بين واقفًا في حقل خالٍ ينظر إلى ساعته منتظرًا."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>لقطة حقيقية لمهمّة ملكية مقترض أنجزت نصف ثانية من العمل، وتنتظر دورها خلف طابور البيع
+    الآلي.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">ما جرّبناه — والاختناق الذي انتقل</span>
+    <p>كان الإصلاح أن نكفّ عن جعل أعمال لا رابط بينها تتشارك صفًّا واحدًا.<a class="refmark" href="#ref-queues">الطوابير ↓</a> فقد كان نقل الملكية والبيع
+    الآلي يتنافسان على الثمانية عمّال أنفسهم؛ فأخذ كلٌّ طابوره المخصّص على خادمه الخاصّ، فتبخّر انتظار
+    الدقيقتين.</p>
+    <p>ثم ارتدّ الإصلاح — في الأعلى. فبزوال ذلك الضغط المرتدّ، تضاعفت خطوة <em>الشراء</em> ثلاث مرّات
+    تقريبًا، من 3.6 إلى 9.9 ثانية. فكل الإنتاجية التي حرّرناها للتوّ ارتطمت بجدول من 700,000 صفّ
+    <strong>بلا فهرس على العمود الوحيد الذي يبحث فيه كل فحص تكرار</strong> — مسحٌ كامل للجدول كان مختبئًا
+    خلف الطابور طوال الوقت. وبفهرس واحد عادت المهمّة إلى ما دون الثانية.</p>
+    <p>وما بقي تدبير منزلي لا يهمّ إلّا عند هذا الحجم: حذف خمسة عشر سطر سجلّ لكل طلب (نحو
+    100&nbsp;ميجابايت من السجلّات يوميًّا عند 5,000 طلب)، وإسقاط الفهارس غير المستخدَمة لخفض تكلفة
+    الكتابة، وميزانيات اتّصال صريحة بعد أن استنفد أسطول العمّال الكامل اتّصالات قاعدة البيانات.</p>
+<div class="codebox">
+  <span class="cap">ترحيل — الفهرس الذي كان ينقص الاستعلام في الأعلى</span>
+  <pre><code>/**
+ * local_market_orders has ~700k rows and no index on external_order_no, so
+ * every lookup by reference (the duplicate check in CreateLocalMarketOrderAction
+ * and LocalMarketTrait::getLocalMarketOrderByReference used by transfer/sell/
+ * cancel) runs a full table scan. Under the perf-test burst these concurrent
+ * scans thrash the buffer pool and inflate the initiate-order step. A plain
+ * index turns them into single-row lookups (LYNKMRBHA-6509).
+ */
+public function up(): void
+&#123;
+    Schema::table('local_market_orders', function (Blueprint $table) &#123;
+        $table-&gt;index('external_order_no', 'local_market_orders_external_order_no_index');
+    &#125;);
+&#125;</code></pre>
+</div>
+
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 240" role="img" aria-label="قبل: كانت مهامّ ملكية المقترض والبيع الآلي تتشارك طابورًا واحدًا بثمانية عمّال، وينمو انتظار الطابور إلى نحو 118 ثانية عند الذروة. بعد: لكل نوع مهمّة طابوره المخصّص على خادم منفصل، فيهبط الانتظار إلى ما يقارب الصفر.">
+      <defs>
+        <marker id="arr-q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity="0.6"></path>
+        </marker>
+        <marker id="arr-qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+      </defs>
+      <line x1="360" y1="10" x2="360" y2="230" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"></line>
+      <g font-size="11" font-family="ui-monospace, Menlo, monospace" letter-spacing="1">
+        <text x="14" y="26" fill="var(--incident)">BEFORE · ONE SHARED QUEUE</text>
+        <text x="384" y="26" fill="var(--accent)">AFTER · DEDICATED QUEUES</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="14" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="14" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="89" y="70">Borrower Ownership</text>
+        <text x="89" y="130">Auto-sell to market</text>
+      </g>
+      <rect x="204" y="68" width="140" height="56" rx="3" fill="var(--incident-soft)" stroke="var(--incident)" stroke-width="1.5" class="qpulse"></rect>
+      <g fill="currentColor" font-size="11" text-anchor="middle">
+        <text x="274" y="90">shared processing queue</text>
+        <text x="274" y="107" opacity="0.7">8 workers, one host</text>
+      </g>
+      <g stroke="currentColor" stroke-opacity="0.6" stroke-width="1.4" fill="none" class="flow-slow">
+        <line x1="164" y1="66" x2="200" y2="86" marker-end="url(#arr-q)"></line>
+        <line x1="164" y1="126" x2="200" y2="106" marker-end="url(#arr-q)"></line>
+      </g>
+      <text x="274" y="152" font-size="10.5" fill="var(--incident)" text-anchor="middle">both job types compete</text>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="179" y="186" fill="currentColor" opacity="0.75">queue wait: ~0s idle →</text>
+        <text x="179" y="203" fill="var(--incident)" font-weight="700">~118s at sustained peak</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+        <rect x="384" y="48" width="150" height="36" rx="3"></rect>
+        <rect x="384" y="108" width="150" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="11.5" text-anchor="middle">
+        <text x="459" y="70">Borrower Ownership</text>
+        <text x="459" y="130">Auto-sell to market</text>
+      </g>
+      <g fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5">
+        <rect x="572" y="48" width="136" height="36" rx="3"></rect>
+        <rect x="572" y="108" width="136" height="36" rx="3"></rect>
+      </g>
+      <g fill="currentColor" font-size="10" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="640" y="63">ownership queue</text>
+        <text x="640" y="77" opacity="0.7">dedicated workers</text>
+        <text x="640" y="123">sell queue</text>
+        <text x="640" y="137" opacity="0.7">dedicated workers</text>
+      </g>
+      <g stroke="var(--accent)" stroke-width="1.6" fill="none" class="flow-fast">
+        <line x1="534" y1="66" x2="568" y2="66" marker-end="url(#arr-qa)"></line>
+        <line x1="534" y1="126" x2="568" y2="126" marker-end="url(#arr-qa)"></line>
+      </g>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">
+        <text x="546" y="186" fill="currentColor" opacity="0.75">job runtime ~1s ·</text>
+        <text x="546" y="203" fill="var(--accent)" font-weight="700">queue wait ≈ 0</text>
+      </g>
+    </svg>
+    <figcaption>تقسيم الطوابير في قلب الحالة <a class="caseref" href="#case-11">11</a>. فالمهامّ نفسها
+    كانت تعمل في نحو ثانية واحدة؛ وكاد كل زمن الخطوة البالغ دقيقتين أن يكون انتظارًا خلف مهامّ البيع
+    الآلي في طابور واحد مشترك بثمانية عمّال. وقد أزال تقسيمها الانتظار — وكشف فورًا الفهرس الناقص في
+    الأعلى.</figcaption>
+  </figure>
+
+  <div class="metric">
+    <span class="tag">النتيجة</span>
+    صارت جولات الخمسة آلاف طلب <strong>اختبارًا يوميًّا معتادًا</strong>، وواجهة إنشاء الطلب بمتوسّط نحو
+    1.2 ثانية بينما يعمل الخطّ بكامل حِمله. لكن كل تقسيم للطوابير يترك شيئًا جديدًا لتشغيله — وهكذا
+    انتهت منصّة بدأت بثلاث حاويات عمّال إلى أسطول يحتاج إدارة. وتلك هي الحالة التالية.
+  </div>
+</section>
+
+<section class="era" id="case-12">
+  <div class="era-head"><h2>الحالة 12 · إدارة أسطول، لا خادم</h2><span class="era-dates">2025 – 2026</span></div>
+    <p class="impact-pill"><span class="lab">الأثر</span><span class="val">3 حاويات ← 122 عاملًا · 3 عقد ← 2</span></p>
+  <div class="incident">
+    <span class="tag">المشكلة</span>
+    <p>تقسيم الطوابير، كما تبيّن الحالة&nbsp;<a class="caseref" href="#case-11">11</a>، هو كيف تمنع أعمالًا
+    لا رابط بينها من الاصطفاف خلف بعضها. لكن كل تقسيم يتركك بشيء جديد لتشغيله — وبحلول 2026 لم تعد
+    المنصّة «تطبيقًا على خادم». صارت <strong>22 طابورًا، لكلٍّ خدمة عمّال، و122 عمليّة عامل موزّعة على
+    ثلاث آلات</strong>، إضافةً إلى مجدوِل — بحاوية واحدة لكل عمليّة، ولذلك تُستخدم الكلمتان بالتبادل من
+    هنا فصاعدًا. وكل عمليّة من تلك عفريتٌ صغير يحمل اتّصالًا بـMySQL واتّصالًا بـRedis، ويستهلك ذاكرة،
+    وقادر تمامًا على إفساد يوم البقيّة. و122 هو رقم السكون فقط: فالنشر المتدحرج يرفع الجيل الجديد جنبًا
+    إلى جنب مع القديم، فيصير الأسطول لدقائق في كل إصدار <strong>244</strong>.</p>
+    <p>لا أحد يصمّم ذلك في اليوم الأول. بل يتراكم، ويتراكم على نحو غير متماثل: فطابور كان مزدحمًا في مارس
+    يصير خاملًا في يوليو، وطابور لم يتوقّعه أحد يصير الاختناق بين ليلة وضحاها، والآلات التي حدّدت
+    أحجامها متطابقة يتبيّن أنها تؤدّي كميّات عمل شديدة التفاوت. وفي وقت من الأوقات كان خادم يشغّل
+    <strong>63 عمليّة عامل بينما يشغّل آخر 22</strong>. وإن تُرك أسطول العمّال بلا إدارة، طوّر بالضبط
+    مشكلات المدينة — ازدحام في حيّ، وشوارع خالية في آخر، وبنية تحتية لا يتذكّر أحد أنه اعتمدها.</p>
+  </div>
+
+  <h3>كل رقم في الأسطول قرار</h3>
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr><th>التغيير</th><th>لماذا تغيّر</th><th>ماذا فعل</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>طابورا ملكية وبيع آلي مخصّصان<br><span class="tk">يوليو 2026</span></td>
+          <td>كان أكثر نوعَي المهامّ حجمًا يسدّ أحدهما الآخر على ثمانية عمّال مشتركين.</td>
+          <td>4 نسخ لكلٍّ، على آلتين. وانتقل انتظار الـ118 ثانية تقريبًا إلى ~0 (الحالة&nbsp;<a class="caseref" href="#case-11">11</a>).</td>
+        </tr>
+        <tr>
+          <td><code>trader_order_initiation</code> من 5&nbsp;إلى&nbsp;10<br><span class="tk">يوليو 2026</span></td>
+          <td>كشفت إزالة الضغط المرتدّ في الأسفل أن هذا الطابور هو القيد التالي — مهامّ تنتظر لا تعمل.</td>
+          <td class="num">10 عند السكون، و20 أثناء النشر.</td>
+        </tr>
+        <tr>
+          <td>طابور إنشاء الوحدات من 5&nbsp;إلى&nbsp;8<br><span class="tk">يوليو 2026</span></td>
+          <td>صار ذيل خطوة الشراء الجديد بعد أن تسارع كل ما قبله.</td>
+          <td class="num">8 لكل آلة عند السكون، و16 أثناء النشر.</td>
+        </tr>
+        <tr>
+          <td>إعادة توزيع أربعة طوابير بين الآلات<br><span class="tk">يوليو 2026</span></td>
+          <td>خادم يحمل 63 عمليّة عامل بينما يحمل آخر 22.</td>
+          <td>مجاميع كل خادم عند السكون 22&nbsp;/&nbsp;63&nbsp;/&nbsp;28&nbsp;→&nbsp;35&nbsp;/&nbsp;40&nbsp;/&nbsp;36 — أسطول من نحو 111 حينها، رفعته الزيادات أعلاه وبعدها إلى 122 اليوم. ولم يتغيّر التزامن الكلّي لأي طابور؛ بل تغيّرت الآلة التي تشغّله فقط.</td>
+        </tr>
+        <tr>
+          <td>حذف عاملَين ميّتين<br><span class="tk">يوليو 2026</span></td>
+          <td>لا مُنتِج لأيّ منهما في أي موضع من الكود — الأكبر كان بخمس نسخ تستطلع طابورًا لم يكتب فيه شيء قطّ، والآخر بنسخة واحدة.</td>
+          <td>استُرجعت ستّ عمليّات عبر الخدمتين — إضافةً إلى عشر حاويات من عمليات حذف سابقة وُجدت ما تزال تعمل.</td>
+        </tr>
+        <tr>
+          <td>إعادة تسمية <code>…units_logging</code> → <code>…units_creation</code><br><span class="tk">يوليو 2026</span></td>
+          <td>الاسم يقول تسجيلًا؛ والعامل كان يُنشئ وحدات مخزون. ولم يكن أحد يستطيع فهم الأسطول من أسمائه.</td>
+          <td>أُفرغ الطابور القديم إلى الصفر قبل التحويل، فلم تعلق مهمّة تحت الاسم الميّت.</td>
+        </tr>
+        <tr>
+          <td>طابورا شهادات جديدان<br><span class="tk">أغسطس 2026</span></td>
+          <td>كانت مهامّ شهادة العطاء ونتيجة الطلب تتشارك طابورًا عامًّا واحدًا مع كل شيء آخر في ذلك التكامل.</td>
+          <td>5 نسخ لكلٍّ على آلتين — وهو التغيير الذي يرفع الأسطول إلى <strong>142</strong> في بيئة التطوير، حيث يُطلَق أولًا. أمّا الإنتاج والاختبار وما قبل الإنتاج فتبقى عند 122 حتى يصل إليها.</td>
+        </tr>
+        <tr>
+          <td>بدء الطلب مثبَّت عند <strong>1</strong><br><span class="tk">قاعدة دائمة</span></td>
+          <td>التوازي في هذه الخطوة غير آمن: فالعمّال المتزامنون يتسابقون.</td>
+          <td>لا يُوسَّع أبدًا، في أي بيئة، عن قصد.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="attempt">
+    <span class="tag">كيف ندير ذلك</span>
+    <p><strong>الأسطول ملفّ، لا فولكلور.</strong><a class="refmark" href="#ref-horizon">Horizon ↓</a> فعدد عمّال كل طابور، لكل آلة، مُعلَن في سكربت
+    النشر — فتصل البنية كلّها في طلب دمج بدل اكتشافها بالدخول إلى الخوادم عبر SSH، وحين يتغيّر رقم يكون
+    سببه في رسالة الالتزام. والمصيدة أن الطابور يعيش في <em>أربعة</em> مواضع: قائمة ملفّات Compose،
+    وكتلة التوسيع عند السكون، وكتلة التوسيع أثناء النشر المتدحرج، وقائمة الخدمات التي يمرّ عليها النشر.
+    فإن فاتك أحدها، نُشر الطابور دون توسيع، أو وُسّع دون إعادة تشغيل على الصورة الجديدة.</p>
+    <p><strong>و«المجموعات» آلات.</strong> فملفّات Compose الثلاثة تنطبق واحدًا لواحد على خوادم فيزيائية
+    في ما قبل الإنتاج والإنتاج؛ ويشغّل النشر الثلاثة على التوازي، واحدًا لكل عقدة. وفي التطوير والاختبار
+    ينكمش الملفّ نفسه على صندوق واحد بنسخة لكل طابور. وصفٌ واحد، وثلاثة أشكال — وهو السبب الوحيد لبقاء
+    أسطول بهذا الحجم قابلًا للمراجعة.</p>
+    <p><strong>ونضيف حيث يشير القياس، لا حيث يشير القلق.</strong> فكل صفّ في الجدول أعلاه بدأ قياسَ زمنٍ
+    يبيّن طابورًا مهامُّه تنتظر لا تعمل، بالدليل. ولم يبدأ أيٌّ منها بـ«هذا يبدو بطيئًا».</p>
+    <p><strong>ونحذف بالقصد نفسه.</strong> فالعمّال الموتى يُحذفون، والأسماء المضلِّلة تُصحَّح، ويُفرغ
+    الطابور إلى الصفر قبل إعادة تسميته — لأن إعادة تسمية طابور بينما فيه مهامّ هي كيف تفقد معاملات.
+    وطابور واحد مثبَّت على <em>عامل واحد</em> إلى الأبد: الخطوة التي لا يمكن جعل التوازي فيها آمنًا. وفي
+    دراسة حالة مليئة بقرارات التوسيع، يكون أهمّ رقم في الأسطول هو الواحد.</p>
+  </div>
+<div class="codebox">
+  <span class="cap">سكربت النشر — رايات توسيع العمّال، لكل بيئة</span>
+  <pre><code>if [[ "$DEPLOY_ENV" == "sandbox" || "$DEPLOY_ENV" == "dev" ]]; then
+    # Sandbox/Dev: 1 replica per worker type (all groups on 1 server),
+    # except default-worker=4 as the default queue carries the two
+    # sequential client-wakala jobs (ask + proceed) and backs up under load.
+    # Keeps total DB connections ~28 instead of ~86 at full production scale
+    scale_flags="--scale local-market-eligible-quantities-worker=1"
+    # ...
+else
+    # Production/preprod: full scale per group
+    if [[ "$PROFILES" == *"group1"* ]]; then
+        scale_flags="$scale_flags --scale local-market-order-inventories-units-creation=8"
+        scale_flags="$scale_flags --scale local-market-order-initiation=1"
+        scale_flags="$scale_flags --scale trader-order-initiation=10"
+        # ...
+    fi
+
+    if [[ "$PROFILES" == *"group2"* ]]; then
+        scale_flags="$scale_flags --scale local-market-transfer-ownership-worker=4"
+        scale_flags="$scale_flags --scale local-market-sell-to-open-market-worker=4"
+        # ...
+    fi
+fi</code></pre>
+</div>
+
+
+  <div class="incident">
+    <span class="tag">حيث يعضّ الأسطول</span>
+    <p><strong>رايةٌ مكرّرة تنصّف طابورًا بصمت.</strong><a class="refmark" href="#ref-replicas">النسخ ↓</a> فـCompose يحتفظ بالقيمة الأخيرة فقط حين
+    تُوسَّع الخدمة نفسها مرّتين، فيؤدّي دمج مجموعتين على مضيف واحد إلى إسقاط طابور بهدوء من 8 عمّال إلى
+    4 وآخر من 5 إلى 2. لا خطأ، ولا تحذير — مجرّد نظام أبطأ ونتيجة اختبار حِمل لا تعني شيئًا.</p>
+    <p><strong>ومرساة YAML واحدة غير معرَّفة تسدّ كل عمليات النشر.</strong> فقد أشار ملفّ Compose إلى
+    مرساة <code>*graceful-stop</code> لم تُعرَّف قطّ في ذلك الفرع. ففشل <code>docker compose
+    config</code> — ولأن كل أمر نشر يحلّل الملفّ أولًا، انكسرت <em>جميعها</em> دفعةً واحدة.</p>
+    <p><strong>وحذف خدمة لا يوقف حاوياتها.</strong> فإزالة عامل من الملفّ تترك الحاويات العاملة خلفها ما
+    لم يُطلب من النشر صراحةً إزالة الأيتام — وحتى حينها تنجو الحاويات التي لم تعد ملفّاتها مفعَّلة من
+    الكنس. وقد عادت خمسة أيتام من هذه بعد إعادة تشغيل روتينية، أعادها سياسُ إعادة التشغيل الخاصّ بها،
+    تخدم بهدوء صورةً عمرها ثلاثة أسابيع.</p>
+    <p><span class="k-rule">والسقف الحقيقي هو الاتّصالات، لا المعالج.</span><a class="refmark" href="#ref-connections">الاتّصالات ↓</a> ففي يونيو 2026 كانت بيئة أصغر
+    تشغّل المجموعات الثلاث بنسخ الإنتاج على خادم واحد: <strong>86 حاوية عامل مقابل حدّ الاتّصالات
+    الافتراضي في MySQL البالغ 151</strong>، مع مجمّع غير محدود من عمليات الويب تتنافس على ما بقي. وكان
+    الإصلاح ميزانيةً لا قاعدة بيانات أكبر — عمليات الويب محدودة بعشر ويُعاد تدويرها كل 500 طلب، والبيئات
+    الصغيرة مثبَّتة على نسخة لكل طابور، فهبطت البيئة كلّها إلى نحو 28 اتّصالًا بدل 86.</p>
+    <p><strong>وإحالة آلة إلى التقاعد قد تُحيل المجدوِل معها.</strong> فملفّ المجدوِل كان مرتبطًا
+    بمجموعة الخادم الثالثة، فكان تسريح تلك المجموعة سيوقف كل مهمّة مجدوَلة في المنصّة دون أن يوقف شيئًا
+    يراقبه أحد. وقد ضُبط ذلك أثناء التخطيط للدمج؛ فانتقل المُشغِّل معه.</p>
+  </div>
+
+  <div class="metric">
+    <span class="tag">النتيجة</span>
+    نما الأسطول من <span class="k-win">3 حاويات عمّال في يناير 2025 إلى 122 عمليّة عبر 3 آلات</span> —
+    وهو رقم الإنتاج وما قبل الإنتاج — وخلافًا لمنصّة 2024، لكل رقم من تلك الأرقام التزامٌ يشرحه. وبرهان
+    أن هذا الانضباط حقيقي أنه صار يعمل بالاتجاه المعاكس: ففي أغسطس 2026 انتقلت بيئة ما قبل الإنتاج من
+    ثلاث آلات إلى اثنتين مع <strong>بقاء التزامن الكلّي للطوابير كما هو</strong>، وكان الجزء الأصعب
+    إثبات أن الرقم الثاني لم يتحرّك بهدوء (الحالة&nbsp;<a class="caseref" href="#case-15">15</a>). ولم يكن
+    الهدف يومًا «عمّالًا أكثر»، بل <em>العمّال الصحيحين، في الأماكن الصحيحة، لأسباب مكتوبة.</em>
+  </div>
+</section>
+
+<section class="era" id="case-13">
+  <div class="era-head"><h2>الحالة 13 · العمّال كانوا يشغّلون كود الشهر الماضي</h2><span class="era-dates">يونيو 2026</span></div>
+  <p class="impact-pill"><span class="lab">الأثر</span><span class="val">صورة قديمة ← كل عامل على البناء الجديد</span></p>
+  <div class="incident">
+    <span class="tag">المشكلة</span>
+    <p>كانت المهامّ تنتهي ولا تبدأ مهامُّها التالية. فتتوقّف السلسلة ببساطة — لا استثناء، ولا مهمّة
+    فاشلة، ولا شيء في السجلّات تُعلّق عليه اللوم. وكانت مهامّ المتابعة موجودة؛ جالسةً في جدول قاعدة
+    بيانات لا يقرؤه أحد.</p>
+    <p>كان العمّال يشغّلون صورةً من نشر أسبق، ومخبوزًا في تلك الصورة ملفُّ بيئة قديم يسمّي مشغّل الطوابير
+    <em>قاعدةَ البيانات</em> — من قبل انتقال المنصّة إلى Redis. فالتطبيق يرسل إلى Redis. والعمّال، وما
+    زالوا على البناء القديم، يكتبون في جدول قاعدة البيانات ويقرؤون منه. فهبطت كل مهمّة متابعة في كل
+    سلسلة في طابور لا يراقبه أحد.</p>
+    <p><span class="k-cost">وكانت عمليات النشر تبلّغ بالنجاح طوال الوقت.</span><a class="refmark" href="#ref-deploy">النشر ↓</a> فحاوية الويب كانت تلتقط الكود
+    الجديد في كل إصدار؛ والعمّال لم يلتقطوا شيئًا.</p>
+  </div>
+  <div class="attempt">
+    <span class="tag">ما جرّبناه</span>
+    <p>كان على أمرين منفصلين أن يتحقّقا قبل أن يستطيع عامل استقبال بناء أصلًا. الأول أن Compose لا يستطيع
+    كشف تغيّر المحتوى خلف وسم ثابت — فكل خدمة كانت تشير إلى <code>:latest</code>، فلم يرَ
+    <code>docker compose up</code> سببًا لاستبدال حاوية تعمل أصلًا. وجعل بصمة الالتزام وسمًا للصورة يحوّل
+    «كودًا جديدًا» إلى شيء تستطيع الأداة رؤيته فعلًا.</p>
+    <p>ولم يكفِ ذلك وحده. فالنشر المتدحرج كان يوسّع العمّال بـ<code>--no-recreate</code>، وهي تكبح تبديل
+    الصور تمامًا، ولم يكن لغير حاوية الويب إعادة إنشاء قسرية صريحة — فلم يستبدل الرفع والخفض عاملًا
+    واحدًا قطّ. فحصل العمّال على إعادة إنشاء قسرية خاصّة بهم، محصورةً في ملفّات العمّال ومع
+    <code>--no-deps</code>، لأن محاولة سابقة غير محصورة كانت قد أعادت إنشاء قواعد البيانات مع كل شيء آخر
+    ووجب التراجع عنها.</p>
+    <p>وكشف التدقيق نفسه ضريبةً لم يحسبها أحد. فكل عامل كان يأخذ مهلة التوقّف الكاملة البالغة عشر ثوانٍ
+    ثم يُقتل قتلًا في كل نشر — وهي معظم عملية خفض استغرقت نحو 140 ثانية. ولم تكن إضافة
+    <code>pcntl</code> مثبَّتة أصلًا، فلم يكن عامل الطابور يستطيع التقاط إشارات التوقّف إطلاقًا، وإشارة
+    التوقّف الموروثة من الصورة الأساس لم تكن ممّا يعالجه أصلًا. وتثبيت الإضافة وإرسال الإشارة التي
+    يستمع إليها العامل فعلًا خفّض الإطفاء الخامل من نحو عشر ثوانٍ إلى نحو ثانية واحدة.</p>
+<div class="codebox">
+  <span class="cap">سكربت النشر — إعادة تشغيل العمّال المتدحرجة</span>
+  <pre><code># Scale up: new containers alongside old ones
+docker compose -p lynk-backend $PROFILE_FLAGS up -d --no-recreate $SCALE_UP_FLAGS
+
+# ...
+
+# Scale down to target
+docker compose -p lynk-backend $PROFILE_FLAGS up -d $SCALE_FLAGS
+
+# Force-recreate all PHP services to ensure no old image digest survives.
+# We keep this explicit to avoid recreating infrastructure services
+# such as redis/mysql/mailhog when their profile is enabled.
+PHP_SERVICES=$(get_php_service_names)
+PHP_SERVICES=$(filter_existing_services "$PHP_SERVICES")
+if [ -n "$PHP_SERVICES" ]; then
+    docker compose -p lynk-backend $PROFILE_FLAGS up -d --force-recreate --no-deps \
+        $SCALE_FLAGS $PHP_SERVICES
+fi</code></pre>
+</div>
+
+  </div>
+  <div class="metric">
+    <span class="tag">النتيجة</span>
+    صار كل نشر الآن يستبدل كل عامل بالبناء الذي يدّعي أنه نشره، ويتوقّف أسطول من 122 حاوية في نحو الزمن
+    الذي كانت تتوقّف فيه واحدة. والدرس يتجاوز هذه المنظومة التقنية: <strong>النشر الذي لا يتحقّق إلّا من
+    طبقة الويب ليس نشرًا</strong>. ففي منصّة كهذه، طبقة الويب حافّة رقيقة أمام الطوابير — والعمّال هم
+    حيث يعمل الكود فعلًا.
+  </div>
+</section>
+
+<section class="era" id="case-14">
+  <div class="era-head"><h2>الحالة 14 · الإخفاقات المملّة</h2><span class="era-dates">طوال الوقت</span></div>
+  <p class="impact-pill"><span class="lab">الأثر</span><span class="val">نقل المفاجآت خارج بيئة الإنتاج</span></p>
+  <div class="incident">
+    <span class="tag">المشكلة</span>
+    <p>ليس كل إخفاق في التوسّع ذكيًّا. فقد ظلّ برنامج اختبار الضغط يتعثّر بحدود لم يكتبها أحد قطّ: قرص
+    خادم اختبار عند 98% (ديسمبر 2024)، وبيئات اختبار ضغط تملأ أقراصها بالسجلّات مجدّدًا في مارس 2026.
+    وعمود <code>smallint</code> طفح حين تجاوزت بيانات الاختبار <strong>32,000 شركة مسجَّلة</strong> —
+    وهو مكافئ عدّاد المسافة في السيارة حين يدور من جديد. ومهلة المهمّة الافتراضية البالغة 60 ثانية.
+    واليوم الذي استنفد فيه أسطول العمّال الكامل اتّصالات قاعدة البيانات. وعمليات نشر كانت تقتل أي مهامّ
+    عاملة.</p>
+  </div>
+  <figure>
+    <img loading="lazy" decoding="async" src="/images/blog/laravel-queue-workers-regulated-trade-pipeline/figure-2.webp" alt="كلب «هذا بخير» جالسًا بهدوء في غرفة تحترق ممسكًا بفنجان قهوة."
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+    <figcaption>المنصّة عند استهلاك 98% من القرص، قبيل أول تحقيق لنا في الطلبات المتعثّرة.</figcaption>
+  </figure>
+
+  <div class="attempt">
+    <span class="tag">ما جرّبناه</span>
+    <p>حصلت كلٌّ منها على الإصلاح المملّ الذي تستحقّه: تدوير موحّد للسجلّات، وأنواع أعمدة أوسع،
+    وميزانيات اتّصال صريحة لكل بيئة (فالبيئات الأصغر تحمل نحو 28 اتّصالًا بقاعدة البيانات بدل نحو 86
+    عند الحجم الكامل)، وإطفاء رشيق للعمّال. لكن الإصلاح الحقيقي هو العادة المحيطة بها: فاختبارات الضغط
+    تعمل <span class="k-rule">يوميًّا تحديدًا كي يفشل الحدّ التالي الذي لم يكتبه أحد في اختبار، في ما قبل
+    الإنتاج، عند الفجر — بدل أن يفشل في الإنتاج، عند الظهر، والعملاء ينظرون</span>.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">النتيجة</span>
+    انتقلت آخر أصناف المفاجآت من حوادث إنتاج إلى نتائج اختبار. أمّا ما يزال يعلق عند حجم الخمسة آلاف طلب
+    — حفنة طلبات في كل حملة — فيُعالَج تشغيليًّا: إجراء «دفع للأمام» مدقَّق لكل خطوة للمسؤولين، مع
+    انتهاء صلاحية الطلب آليًّا شبكةَ أمان ثانية.
+  </div>
+</section>
+
+<section class="era" id="case-15">
+  <div class="era-head"><h2>الحالة 15 · آلتان بدل ثلاث</h2><span class="era-dates">أغسطس 2026</span></div>
+  <p class="impact-pill"><span class="lab">الأثر</span><span class="val">3 عقد ← 2 · التزامن دون تغيير</span></p>
+  <div class="incident">
+    <span class="tag">المشكلة</span>
+    <p>بحلول أغسطس 2026 صارت مبرّرات وجود ثلاثة خوادم تطبيق في ما قبل الإنتاج تاريخيةً في معظمها.
+    وتصغيرها كان الجزء السهل. أمّا المفاجأة فكانت اكتشاف ما كانت تفعله.</p>
+    <p>كانت عقدة واحدة تخدم <strong>100% من حركة HTTP</strong>. وسجلّ وصول العقدة الثانية فارغ منذ
+    فبراير. والثالثة لا تستقبل إلّا أخطاء 404. فـ«ثلاث عقد ويب» كانت وهمًا: اثنتان منها كانتا للعمّال
+    فقط منذ ستّة أشهر ولم يلحظ أحد، لأن العمّال ظلّوا يعملون والموقع ظلّ يجيب.</p>
+    <p>والسبب بضعة أسطر في إعدادات خادم الويب. ففحص السلامة لدى موزّع الحِمل طلبٌ مجرّد لـ<code>/</code>
+    بلا ترويسة مضيف، فيهبط على أي مضيف افتراضي يعدّه الخادم افتراضيًّا. ولم يكن لغير عقدة واحدة مضيف
+    افتراضي شامل — يخدم صفحة ترحيب ساكنة — فلم تُجب بـ200 إلّا تلك العقدة. أمّا في الأخريات فصار اسم
+    مضيف الواجهة البرمجية هو الافتراضي الضمني فأعاد 404 لفحص لم يسأل عنه قطّ. فصارت غير سليمة دائمًا،
+    وخارج الدوران دائمًا.</p>
+    <p>ويجدر بيان ما <em>لا</em> يفعله ذلك الفحص: فالصفحة التي يصيبها ساكنة. ولا يلمس التطبيق أبدًا.
+    <span class="k-rule">فطبقة تطبيق ميّتة تمامًا كانت ستمضي في الإبلاغ عن سلامتها.</span><a class="refmark" href="#ref-healthcheck">فحوص السلامة ↓</a></p>
+  </div>
+  <div class="attempt">
+    <span class="tag">ما جرّبناه</span>
+    <p>كان الدمج إعادةَ توزيع لا تقليصًا. فطوابير العقدة المتقاعدة أُعيد توزيعها على الناجيتين مع
+    <span class="k-win">إبقاء التزامن الكلّي لكل طابور مطابقًا</span> — العمّال الـ122 أنفسهم، مقسومين
+    66 و56، بترجيح يجعل العقدة التي تخدم HTTP أيضًا تحمل أقلّ.</p>
+    <p>وثلاثة أمور كادت تسوء فضُبطت في المراجعة لا في الإنتاج. فملفّ المجدوِل كان مرتبطًا بالمجموعة
+    المتقاعدة، فكان تسريحها سيوقف بصمت كل مهمّة مجدوَلة في المنصّة؛ فانتقل المُشغِّل أولًا. ودمج
+    مجموعتين على مضيف واحد كان سيمرّر راية توسيع مرّتين للخدمة نفسها — وCompose يحتفظ بالقيمة الأخيرة،
+    فينصّف طابورين بهدوء (الحالة&nbsp;<a class="caseref" href="#case-12">12</a>). وكان على الذاكرة أن
+    تُحدَّد بـ<strong>ذروة النشر المتدحرج لا بأسطول السكون</strong>: فالعمّال يخملون عند نحو
+    82&nbsp;ميبي بايت لكلٍّ، لكن كل نسخة تتضاعف أثناء النشر، فوضع ذلك الذروة قرب 11&nbsp;جيبي بايت على
+    صناديق سعتها 8&nbsp;جيجابايت. فأُعيد تحجيم العقدتين إلى 16&nbsp;جيجابايت قبل أن يتحرّك أي شيء.</p>
+  </div>
+  <div class="metric">
+    <span class="tag">النتيجة</span>
+    <p>تشغّل عقدتان الآن العمّال الـ122 أنفسهم بالتزامن الذي كانت ثلاث تشغّله، على الصورة نفسها، وبعمق
+    صفري لكل طابور — والعقدة التي كانت غير مرئية لموزّع الحِمل منذ فبراير عادت إلى الدوران تخدم
+    الحركة.</p>
+    <p>وتحفّظ أمين واحد، ما دامت هذه السلسلة تُبقي الندوب ظاهرة: فتقسيم العمّال ما يزال 66/56 غير
+    المتماثل الذي رُسم على افتراض ألّا طبقة ويب في العقدة الثانية، وخطّ الأساس ذو العقد الثلاث الذي
+    سيُقارن به كانت فيه عقدة واحدة تمتصّ الحركة كلّها. فأي مقارنة أزمنة عبر ذلك الحدّ تخلط تغييرين معًا.
+    والجولة القادمة هي التي ستعني شيئًا.</p>
+  </div>
+</section>
+
+<section class="era" id="lessons">
+  <div class="era-head"><h2>ما علّمنا إيّاه عامان</h2></div>
+  <ul style="margin-top:1rem;">
+    <li><strong>اجمع أزمنة مهامّك قبل أن تحسّن كودها.</strong> فـ0.52 ثانية من العمل داخل خطوة من 7.5
+      ثانية تعني أن الكود بريء؛ وأن بنية الطوابير هي المنتج (الحالة <a class="caseref" href="#case-11">11</a>).</li>
+    <li><strong>كل إصلاح ينقل الاختناق.</strong> فإزالة الضغط المرتدّ في الأسفل ستكشف الاستعلام غير
+      المفهرَس التالي في الأعلى. فاحسب حساب الأثر الثاني قبل أن تحتفل بالأول (الحالة <a class="caseref" href="#case-11">11</a>).</li>
+    <li><strong>كل مهمّة ستموت في منتصف الطريق يومًا ما.</strong> إعادة المحاولة بتراجع تصاعدي، والتفرّد
+      لكل طلب، والأقفال المنتهية ذاتيًّا، حوّلت «المهمّة الفاشلة» من معاملة عالقة إلى لا حدث — وإحسان
+      إعادة المحاولة هو كيف تبلغ صفر معاملة فاشلة (الجزء 2، الحالة <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>).</li>
+    <li><strong>القياس يسبق الضبط.</strong> فمُدد كل خطوة، والمئينات الأسبوعية، وسجلّات التوقيت، حوّلت
+      المجادلات إلى فروق كود. وقد ضُبط أسوأ انحدار لدينا خلال أسبوع واحد لأن خطّ أساس كان موجودًا
+      (الجزء 2، الحالة <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">08</a>).</li>
+    <li><strong>أفضل تحسين هو ألّا تؤدّي العمل.</strong> فمحاولتان هندسيّتان جعلتا توليد الـPDF أسرع؛
+      وحوارٌ تجاري واحد جعل معظمه غير ضروري (الجزء 2، الحالة <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">04</a>).</li>
+    <li><strong>أسطول العمّال يحتاج مالكًا.</strong> فاثنان وعشرون طابورًا و122 عمليّة عامل لا تبقى
+      عاقلة إلّا إن بُرّر كل عدد في مراجعة الكود وحُذف بالقصد نفسه الذي أُضيف به
+      (الحالة <a class="caseref" href="#case-12">12</a>).</li>
+    <li><strong>النشر الذي لا يتحقّق إلّا من طبقة الويب ليس نشرًا.</strong> فقد شغّل العمّال صورةً قديمة
+      — وبيئةً قديمة داخلها — أسابيع بينما يبلّغ كل إصدار بالنجاح (الحالة <a class="caseref" href="#case-13">13</a>).</li>
+    <li><strong>فحوص السلامة تكذب افتراضيًّا.</strong> فالفحص الذي لا يلمس تطبيقك سيصف تطبيقًا ميّتًا
+      بالسليم، والعقدة الخارجة عن الدوران منذ ستّة أشهر تبدو تمامًا كعقدة تؤدّي عملها
+      (الحالة <a class="caseref" href="#case-15">15</a>).</li>
+    <li><strong>إخفاقات التوسّع مملّة عادةً.</strong> فأقراص ممتلئة (مرّتين)، وطفح smallint، ومهلة
+      افتراضية من 60 ثانية، وحجم السجلّات، أحدثت من الضرر ما أحدثه أي جمود (الحالة <a class="caseref" href="#case-14">14</a>).</li>
+    <li><strong>مستويات العزل والأقفال قرارات منتج متنكّرة.</strong> فـREAD COMMITTED، والمفاتيح الأجنبية
+      المُسقَطة، وتخطّي المُشغِّلات، والطابور أحادي الخيط عمدًا، كانت كلّها مقايضات واعية لصرامة نظرية
+      مقابل صحّة واقعية تحت الحِمل (الجزء 2، الحالتان <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">02</a> و<a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">09</a>).</li>
+    <li><strong>أبقِ التجارب الفاشلة في السجلّ.</strong> فالتخزين المؤقّت الذي أضرّ، والإصلاح الذي سبّب
+      انحدارًا، ورفع المهلة الذي لم يشترِ إلّا وقتًا — المحاولات هي حيث جاء الفهم.</li>
+    <li><strong>الـ0.1% الأخيرة تحتاج جوابًا تشغيليًّا لا كوديًّا.</strong> فعند 5,000 طلب، ما يزال نجاح
+      99.9% يترك خمسة طلبات عالقة. وأداة الدفع للأمام والانتهاء الآلي للصلاحية تُغلقان الحلقة
+      (الحالة <a class="caseref" href="#case-14">14</a>).</li>
+  </ul>
+  <p>
+    عشرة طلبات كسرت هذه المنصّة يومًا. واليوم صارت خمسة آلاف روتينًا يوميًّا — والانضباط نفسه الذي أوصلنا
+    إلى هنا (قِس، وقسّم، وافهرِس، وضع ميزانية، ثم أعد القياس) مصوَّبٌ سلفًا نحو الرتبة التالية من الحجم.
+  </p>
+</section>
+
+<section class="refs" id="further-reading">
+  <h2>قراءات إضافية</h2>
+  <p>تسمّي هذه السلسلة أكثر ممّا تستطيع أن تُعلّم — نوع عقد هنا، ومستوى عزل هناك، وأثر طوابير في موضع ثالث. وحيثما كان مصطلح يحمل ثقلًا حقيقيًّا في النصّ أعلاه، فهذا هو المصدر الأصلي لتقرأه كما ينبغي، بدل ملخّصٍ لملخّص. وقد فُحص كل رابط عند النشر.</p>
+  <ul>
+    <li id="ref-queues"><strong>العمّال والاتّصالات والطوابير</strong> (الحالتان <a class="caseref" href="#case-11">11</a> و<a class="caseref" href="#case-12">12</a>) — المفردات التي بُني عليها
+      هذا الجزء كلّه، بما فيها لماذا تخدم عمليّة عامل واحدة قائمة طوابير واحدة في المرّة:
+      <a href="https://laravel.com/docs/12.x/queues">طوابير Laravel</a>.</li>
+    <li id="ref-unique"><strong>التفرّد قفل لا ضمانة</strong> (الجزء 2، الحالة <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) — ما يفعله
+      <code>ShouldBeUnique</code>، والأهمّ ما لا يعد به إن انتهت صلاحية القفل:
+      <a href="https://laravel.com/docs/12.x/queues#unique-jobs">المهامّ الفريدة</a>. أمّا الأقفال المنتهية ذاتيًّا المستخدَمة في مواضع
+      أخرى من المسار فهي <a href="https://laravel.com/docs/12.x/cache#atomic-locks">الأقفال الذرّية</a>.</li>
+    <li id="ref-retries"><strong>إعادة المحاولة والتراجع، ولماذا يهمّ التشويش الزمني</strong> (الجزء 2، الحالة <a class="caseref" href="/ar/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">10</a>) —
+      <a href="https://laravel.com/docs/12.x/queues#dealing-with-failed-jobs">معالجة المهامّ الفاشلة في Laravel</a> للآليّة، و
+      <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">مكتبة
+      بُناة AWS عن المهلات وإعادة المحاولة والتراجع مع التشويش</a> لبيان لماذا تزيد إعادات المحاولة
+      المتزامنة نظامًا محمَّلًا سوءًا.</li>
+    <li id="ref-deploy"><strong>النشر دون قتل المهامّ الجارية</strong> (الحالة <a class="caseref" href="#case-13">13</a>) — لماذا يظلّ العامل يشغّل الكود
+      القديم حتى يُطلب منه غير ذلك: <a href="https://laravel.com/docs/12.x/queues#queue-workers-and-deployment">عمّال الطوابير
+      والنشر</a>.</li>
+    <li id="ref-horizon"><strong>لوحة التحكّم التي لم نستخدمها.</strong> إن كنت تحدّد اليوم حجم أسطول قائم على Redis، فاقرأ
+      <a href="https://laravel.com/docs/12.x/horizon">Horizon</a> أولًا — فاستراتيجيات موازنته تحلّ لك معظم الحالة <a class="caseref" href="#case-12">12</a>.</li>
+    <li id="ref-brpop"><strong>ماذا يفعل عامل الطابور فعلًا وهو ينتظر</strong> — السحب الحاجب تحت طابور Redis:
+      <a href="https://redis.io/docs/latest/commands/brpop/">Redis BRPOP</a>.</li>
+    <li id="ref-queue-wait"><strong>لماذا جلست 0.52 ثانية من العمل داخل خطوة من 7.5 ثانية</strong> (الحالة <a class="caseref" href="#case-11">11</a>) — الفرق
+      بين زمن الخدمة وانتظار الطابور، وكيف تجد التشبّع:
+      <a href="https://www.brendangregg.com/usemethod.html">طريقة USE لبريندان غريغ</a>. ولبيان لماذا
+      تكفّ إضافة العمّال عن النفع في النهاية — ثم تضرّ — انظر قانون التوسّع الكوني لنيل غانتر
+      <a href="http://www.perfdynamics.com/Manifesto/USLscalability.html">Universal Scalability
+      Law</a>.</li>
+    <li id="ref-connections"><strong>تحديد حجم العمليّات مقابل سقف الاتّصالات</strong> (الحالة <a class="caseref" href="#case-14">14</a>) — المقبض الذي كان بلا
+      حدّ، والسقف الذي ارتطم به:
+      <a href="https://www.php.net/manual/en/install.fpm.configuration.php">إعدادات مدير عمليّات
+      PHP-FPM</a> و
+      <a href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_connections">max_connections</a> في MySQL.</li>
+    <li id="ref-replicas"><strong>إعلان أعداد النسخ</strong> (الحالة <a class="caseref" href="#case-12">12</a>) — كم نسخةً من الخدمة تعمل، سواء أُعلن
+      ذلك في ملفّ compose أو مُرّر رايةَ توسيع عند النشر:
+      <a href="https://docs.docker.com/reference/compose-file/deploy/">مواصفة النشر في Compose</a>.</li>
+    <li id="ref-healthcheck"><strong>فحوص سلامة تلمس التطبيق</strong> (الحالة <a class="caseref" href="#case-15">15</a>) — الفحص الذي لا يثبت إلّا أن منفذًا
+      مفتوح سيصف تطبيقًا ميّتًا بالسليم:
+      <a href="https://microservices.io/patterns/observability/health-check-api.html">نمط واجهة فحص
+      السلامة</a>، و<a href="https://12factor.net/disposability">قابلية التخلّص في 12-factor</a> لبيان
+      لماذا يجب أن ينجو العامل من قتله في منتصف المهمّة.</li>
+  </ul>
+</section>
+
+</div>

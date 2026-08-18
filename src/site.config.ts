@@ -63,10 +63,7 @@ export type NavItem = {
   labelKey: 'home' | 'about' | 'projects' | 'blog' | 'contact';
 };
 
-/**
- * Both locales carry the same nav. The blog index is localised; the article
- * bodies behind it stay in English.
- */
+/** Both locales carry the same nav; every route behind it exists in both. */
 export const navByLang: Record<Lang, readonly NavItem[]> = {
   en: [
     { href: '/', labelKey: 'home' },
