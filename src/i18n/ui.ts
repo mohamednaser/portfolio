@@ -74,7 +74,7 @@ const en = {
     bodyHtml: [
       'My journey spans finance, e-commerce, mobility, education, and government — from network signal analysis and government archiving in Egypt to financial reporting for Johnson &amp; Johnson, notification systems for TOTAL, and the Tazhub public-transport ticketing platform.',
       'At <strong>Carefer</strong> I led a platform processing 50K+ monthly car-maintenance orders across five applications and scaled the team from 3 to 20+ engineers. At <strong>Lynk</strong> I architect multi-ledger fintech with ZATCA compliance and commodity exchange integrations.',
-      'Microverse sharpened remote collaboration and full-stack fundamentals. Today I bridge business objectives and technical implementation — plus <strong>AI-augmented SDLC</strong>: hooks that enforce tickets before code, automated review, and explicit merge approval.',
+      'My foundation in remote collaboration at Microverse shaped how I lead today. I bridge business objectives with technical execution by enforcing rigorous, <strong>AI-augmented SDLC processes</strong>—requiring ticket traceability, automated reviews, and explicit merge approvals.',
     ],
     browseProjects: 'Browse all projects →',
     topSkills: 'Top skills',
@@ -260,7 +260,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     bodyHtml: [
       'امتدت رحلتي عبر التمويل والتجارة الإلكترونية والتنقّل والتعليم والقطاع الحكومي — من تحليل جودة إشارات الشبكات وأرشفة الوثائق الحكومية في مصر، إلى أنظمة التقارير المالية لشركة Johnson &amp; Johnson، وأنظمة الإشعارات لشركة TOTAL، ومنصّة Tazhub لتذاكر النقل العام.',
       'في <strong>Carefer</strong> قدت منصّة تعالج أكثر من ٥٠ ألف طلب صيانة سيارات شهريًا عبر خمسة تطبيقات، ونمَّيت الفريق من ٣ مهندسين إلى أكثر من ٢٠. وفي <strong>Lynk</strong> أصمّم بنية تقنية مالية متعدّدة السجلّات المحاسبية، متوافقة مع هيئة الزكاة والضريبة والجمارك (ZATCA) ومتكاملة مع بورصات السلع.',
-      'صقلت تجربتي في Microverse مهارات العمل عن بُعد وأساسيات التطوير المتكامل. واليوم أصل بين أهداف العمل والتنفيذ التقني — إضافة إلى <strong>دورة تطوير برمجيات معزَّزة بالذكاء الاصطناعي</strong>: أدوات تفرض ربط العمل بتذكرة قبل كتابة الكود، ومراجعة آلية، وموافقة صريحة قبل الدمج.',
+      'تجربتي في Microverse صقلت مهارات العمل عن بُعد وأسست لطريقتي في القيادة اليوم. أنا أربط بين أهداف العمل والتنفيذ التقني من خلال فرض <strong>دورة تطوير برمجيات معزَّزة بالذكاء الاصطناعي</strong> — والتي تتطلب ربط العمل بتذكرة قبل كتابة الكود، ومراجعة آلية، وموافقة صريحة قبل الدمج.',
     ],
     browseProjects: 'استعرض كل المشاريع ←',
     topSkills: 'أبرز المهارات',
