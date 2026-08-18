@@ -1,24 +1,24 @@
 ---
-title: 'The Database and Infrastructure Battles: Scaling MySQL for Fintech'
-kicker: 'LYNK Engineering · Scaling the Murabaha Pipeline'
-searchTitle: 'Scaling MySQL: Deadlocks, N+1 and Queue Saturation'
-description: 'How we fixed deadlocks, N+1 queries, and saturated queues to scale a regulated Murabaha trade pipeline from 10 stuck orders to 5,000 successful ones.'
-excerpt: "At 31 concurrent orders a mathematically correct Sharia-compliant state machine simply froze. Nine fights in the database, the queue and the hardware took it to 5,200 orders at 99.94% — ranked here by what each one actually bought."
+title: 'MySQL Under Load in a Sharia-Compliant Pipeline'
+kicker: 'LYNK Engineering · Murabaha Platform'
+searchTitle: 'MySQL Under Load: Deadlocks and Lock Waits'
+description: 'Ten case files on MySQL under load: deadlocks, lock wait timeouts, a missing index and one self-inflicted DDoS — from 4 stuck orders in 10 to 99.94% of 5,200.'
+excerpt: "The first batch test we ever ran froze three of 31 orders for over twenty minutes; the ten-order retest still lost four. Eighteen months later the same platform ran 5,200 orders end to end at 99.94%. Ten case files on what MySQL did under load, and what it took to keep the pipeline compliant and moving."
 pubDate: 2026-08-15
 coverImage: '/images/blog/mysql-under-load-sharia-compliant-pipeline/cover.jpg'
-readingTime: '25 min read'
+readingTime: '19 min read'
 tags:
-  - System design
+  - MySQL
   - Performance
+  - Concurrency
   - Fintech
-  - Distributed Systems
 keywords:
-  - mysql scaling
+  - sharia compliant pipeline
+  - database bottlenecks
+  - mysql lock contention
+  - read committed isolation
   - database deadlocks
-  - distributed systems
-  - queue saturation
-  - fintech infrastructure
-  - system design
+  - database performance tuning
   - missing index
   - scaling laravel
   - performance engineering

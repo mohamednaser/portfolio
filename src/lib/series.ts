@@ -2,21 +2,21 @@ import { blogSlug, getBlogPosts, type BlogEntry } from './blog';
 import { localizePath, type Lang } from '../i18n';
 
 /**
- * The two Murabaha articles, in suggested reading order. They are ordinary
- * blog entries — nothing in their frontmatter records the pairing — so the
- * order lives here and is shared by the hub and the per-article footer. It is
- * a reading order, not an episode number: neither article depends on the other.
+ * The Murabaha series, in reading order. The parts are three ordinary blog
+ * entries — nothing in their frontmatter records the sequence — so the order
+ * lives here and is shared by the series hub and the per-article prev/next.
  */
 export const SERIES_SLUGS = [
   'murabaha-as-a-state-machine',
   'mysql-under-load-sharia-compliant-pipeline',
+  'laravel-queue-workers-regulated-trade-pipeline',
 ] as const;
 
 export const SERIES_PATH = '/series/scaling-murabaha';
 
 export type SeriesPart = {
   post: BlogEntry;
-  /** 1-based position in the reading order. Not shown to the reader. */
+  /** 1-based position, as shown to the reader ("Part 2"). */
   number: number;
 };
 

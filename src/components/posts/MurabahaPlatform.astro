@@ -482,41 +482,74 @@ import '../../styles/posts/murabaha-platform.css';
     second, the average was 0.26s, 99 of every 100 orders (P99) finished within 1 second, and the single
     worst order of the whole run (Max) took 3 seconds. Borrower Ownership and Sell average 0.03–0.04s with
     even their P99 at 1 second. Two years ago the purchase step alone averaged nearly 12 seconds with a
-    worst case of 65 — <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">the scaling article</a>
-    walks through the nine fights that closed that gap.</figcaption>
+    worst case of 65 — Part&nbsp;2 tells that story.</figcaption>
   </figure>
 </section>
 
-<!-- SECTION 5: what the constraint actually buys -->
+<!-- SECTION 5: the cliffhanger -->
 <section class="section" id="section-05">
-  <div class="section-head"><h2>What the constraint actually buys</h2></div>
+  <div class="section-head"><h2>None of this came easy</h2></div>
   <p style="margin-top:1rem;">
-    The uncomfortable part of building this is that almost every property that makes the machine
-    <em>correct</em> is also what makes it <em>slow</em>. The steps cannot be reordered, so they cannot be
-    parallelised. Stock has to exist as individually coded units, so inventory is millions of rows rather
-    than a single balance. Ownership has to be provable at every instant, so nothing may be assumed and
-    written back later. A system designed purely for throughput would violate the contract on its first
-    optimisation.
+    Everything described above — five legal steps in seconds, millions of tracked units, four products on
+    one pipeline — is where the platform <em>ended up</em>. It is not where it started. In January 2025,
+    a test of just <span class="k-cost">ten automated orders left four of them stuck</span>. Between that day and
+    today's routine 5,000-order runs stand fifteen hard-won battles — the first ten fought in the code
+    and the database, the last five in the infrastructure underneath it:
   </p>
-  <p>
-    What you get in return is a machine where compliance is not a review step bolted on at the end. An
-    order that reaches the final state is legal by construction, because there is no path through the
-    state machine that produces an illegal one. That is worth far more than the speed it costs — and it
-    is the reason the platform runs <span class="k-win">four different products on one pipeline</span>
-    instead of four separate systems each with its own way of being audited.
-  </p>
-  <p>
-    It did not perform like this to begin with. A test of just
-    <span class="k-cost">ten automated orders once left four of them stuck</span>, and getting from there
-    to routine 5,000-order runs meant fighting the database, the queue topology and the hardware in turn
-    — while changing none of the rules above. That is a separate story, and it is told in
-    <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure Battles</a>.
-  </p>
+  <ul class="teasers">
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-01">CASE 01</a><span class="hook"><strong>Everything waited for everything.</strong>
+      The first order couldn't purchase until all 49 others finished searching — and the first "stuck orders"
+      root cause was a disk at <span class="n">98%</span>.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-02">CASE 02</a><span class="hook"><strong>The database fought back.</strong>
+      Deadlocks and lock timeouts that took <span class="n">three rounds</span> of fixes — the last one
+      cut the worst order from <span class="n">65s to 14s</span>.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-03">CASE 03</a><span class="hook"><strong>A timeout nobody knew existed</strong>
+      killed the first 11 orders of a 300-order run — and triggered a summer-long campaign on the purchase
+      path.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-04">CASE 04</a><span class="hook"><strong>Every certificate cost a browser
+      session.</strong> Tuning Chrome bought headroom, a PHP engine bought <span class="n">7×</span> — but
+      the winning move was a business decision: generate on demand, and the cost per step fell to
+      <span class="n">0 seconds</span>.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-05">CASE 05</a><span class="hook"><strong>"Which units can this customer even
+      buy?"</strong> — answering it scanned <span class="n">millions</span> of rows per order, until a
+      settled flag, and finally a precomputed eligibility ledger, made it a
+      <span class="n">0.1s</span> lookup.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-06">CASE 06</a><span class="hook"><strong>Cover 1,000,000 exactly, using only the
+      units this institution is allowed to hold.</strong> Two algorithms and a harness of invented markets
+      later, the search answers in <span class="n">milliseconds</span> — with a hard 3-second stop.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-07">CASE 07</a><span class="hook"><strong>The platform attacked itself:</strong>
+      one job dispatched <span class="n">22,400 times</span> in hours, one query executed
+      <span class="n">114,000 times</span> — fixed for an <span class="n">85%</span> query reduction.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-08">CASE 08</a><span class="hook"><strong>A bug-fix quietly added 2 seconds to every
+      order</strong> — caught within a week, only because a baseline existed.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-09">CASE 09</a><span class="hook"><strong>The unit ledger under siege:</strong>
+      <span class="n">94 million</span> reads on one index, race conditions on exclusive holds, and a caching
+      experiment that had to be rolled back.</span></li>
+    <li><a class="cn" href="/blog/mysql-under-load-sharia-compliant-pipeline/#case-10">CASE 10</a><span class="hook"><strong>Everything is a job — and jobs died
+      silently.</strong> No retries, no overlap guards, locks that never expired: a transient blip froze an
+      order, and two servers could grab the same work. Retry with escalating backoff became the road to
+      <span class="n">0 failed transactions</span>.</span></li>
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-11">CASE 11</a><span class="hook"><strong>0.5 seconds of work inside a 7.5-second
+      step</strong> — the latency was hiding <em>between</em> the jobs, and fixing it made another step
+      <span class="n">3× slower</span> before it made everything faster.</span></li>
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-12">CASE 12</a><span class="hook"><strong>Every split leaves something new to
+      run.</strong> <span class="n">3</span> worker containers became <span class="n">122</span> processes
+      across <span class="n">22</span> queues — including one pinned forever at a single worker, on purpose.</span></li>
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-13">CASE 13</a><span class="hook"><strong>The workers were running last month's
+      code.</strong> Jobs finished, follow-ups never started, and no error was raised anywhere — every deploy
+      had been updating the web tier and <em>none</em> of the workers.</span></li>
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-14">CASE 14</a><span class="hook"><strong>The boring failures:</strong> full disks
+      (twice), a <span class="n">32,000</span>-company integer overflow, and connection exhaustion at full
+      worker scale.</span></li>
+    <li><a class="cn" href="/blog/laravel-queue-workers-regulated-trade-pipeline/#case-15">CASE 15</a><span class="hook"><strong>Three machines became two</strong> at
+      identical queue concurrency — after discovering one node had been serving
+      <span class="n">100%</span> of the traffic while another sat out of rotation for six months.</span></li>
+  </ul>
 </section>
 
 <section class="refs" id="further-reading">
   <h2>Further reading</h2>
-  <p>This article names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
+  <p>This series names more than it can teach — a contract type here, an isolation level there, a queueing effect somewhere else. Where a term is carrying real weight in the text above, this is the primary source to go and read properly, rather than a summary of a summary. Every link was checked when this was published.</p>
   <ul>
     <li id="ref-contracts"><strong>Murabaha and tawarruq as contracts.</strong> The step order this platform enforces is not
       an implementation preference — it comes from the contract standards themselves, in particular
@@ -541,19 +574,20 @@ import '../../styles/posts/murabaha-platform.css';
     <li id="ref-testing"><strong>What a stress-test program is shaped like.</strong> Smoke, load, stress, soak and spike
       tests, and what each one is for:
       <a href="https://grafana.com/docs/k6/latest/testing-guides/test-types/">Grafana k6, test types</a>.</li>
-    <li><strong>What it took to make this fast.</strong> MySQL locking, isolation levels, indexing, queue
-      topology and worker fleets each get their own reading list in
-      <a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure
-      Battles</a>.</li>
+    <li><strong>The rest of the series.</strong> Parts 2 and 3 carry their own reading lists — MySQL
+      locking, isolation and indexing in Part 2; queues, worker fleets and deploys in Part 3.</li>
   </ul>
 </section>
 <div class="next">
-  <span class="tag">Related</span>
-  <p>This machine is correct. Making it fast was a separate problem: at 31 concurrent orders the rigid
-  consistency the contract demands turned the database into a wall of deadlocks and lock timeouts.</p>
-  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">The Database and Infrastructure Battles: Scaling MySQL for Fintech</a></strong> —
-  nine fights in the code, the database and the infrastructure, ranked by what each one bought. From
-  <strong>4-of-10 stuck</strong> to <strong>99.94% of 5,200 orders</strong>.
+  <span class="tag">Continue the series</span>
+  <strong><a href="/blog/mysql-under-load-sharia-compliant-pipeline/">Part 2 · MySQL Under Load in a Sharia-Compliant Pipeline</a></strong> —
+  the ten battles fought in the code and the database, told the way they happened: the problem in detail,
+  what we tried (including the attempts that failed), and the measured result. From <strong>4-of-10
+  stuck</strong> to <strong>99.94% of 5,200 orders</strong>.<br>
+  <strong><a href="/blog/laravel-queue-workers-regulated-trade-pipeline/">Part 3 · Laravel Queue Workers in a Regulated Trade Pipeline</a></strong> —
+  the infrastructure half: how three worker containers became <strong>122 processes across 22
+  queues</strong>, why every one of those numbers changed, what it cost when they changed by accident, and
+  how three machines later became two.
 </div>
 
 </div>
