@@ -11,7 +11,12 @@ interface Props {
 
 const { items, lang = defaultLang } = Astro.props;
 const t = useTranslations(lang);
-const track = [...items, ...items];
+/**
+ * Rendered once. `horizontal-marquee.ts` appends a hidden, inert copy at runtime
+ * to make the scroll loop seamless, so the served HTML carries each entry a
+ * single time.
+ */
+const track = items;
 const uid = `cm-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
