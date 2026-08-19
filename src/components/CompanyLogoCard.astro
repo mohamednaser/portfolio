@@ -1,12 +1,19 @@
 ---
 import type { Company } from '../data/companies';
 
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
 interface Props {
   company: Company & { src: string };
 }
 
 const { company } = Astro.props;
 const label = company.subtitle ? `${company.name} — ${company.subtitle}` : company.name;
+
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/companies/*.{jpeg,jpg,png,gif,webp}');
+const imagePath = `/src${company.src}`;
+const imageSrc = images[imagePath] ? await images[imagePath]() : null;
 ---
 
 <article class="marquee__item w-[11.5rem] shrink-0 sm:w-48">
@@ -28,15 +35,17 @@ const label = company.subtitle ? `${company.name} — ${company.subtitle}` : com
           ]}
           style={company.background ? { backgroundColor: company.background } : undefined}
         >
-          <img
-            src={company.src}
-            alt=""
-            width="140"
-            height="56"
-            class="max-h-14 w-auto max-w-[8.5rem] object-contain"
-            loading="lazy"
-            decoding="async"
-          />
+          {imageSrc && (
+            <Image
+              src={imageSrc.default}
+              alt=""
+              width={140}
+              height={56}
+              class="max-h-14 w-auto max-w-[8.5rem] object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+          )}
         </div>
       </a>
     ) : (
@@ -48,15 +57,17 @@ const label = company.subtitle ? `${company.name} — ${company.subtitle}` : com
         ]}
         style={company.background ? { backgroundColor: company.background } : undefined}
       >
-        <img
-          src={company.src}
-          alt=""
-          width="140"
-          height="56"
-          class="max-h-14 w-auto max-w-[8.5rem] object-contain"
-          loading="lazy"
-          decoding="async"
-        />
+        {imageSrc && (
+          <Image
+            src={imageSrc.default}
+            alt=""
+            width={140}
+            height={56}
+            class="max-h-14 w-auto max-w-[8.5rem] object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        )}
       </div>
     )
   }

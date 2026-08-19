@@ -3,7 +3,9 @@ import ProjectCard from '../ProjectCard.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import type { Lang } from '../../i18n';
 import { useTranslations } from '../../i18n/ui';
-import { getProjects } from '../../lib/projects';
+import { getProjects, projectSlug } from '../../lib/projects';
+import { site } from '../../site.config';
+import { localizePath } from '../../i18n';
 
 interface Props {
   lang: Lang;
@@ -12,6 +14,16 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 const allProjects = await getProjects(lang);
+
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: allProjects.map((project, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    url: new URL(localizePath(`/projects/${projectSlug(project)}`, lang), site.url).href,
+  })),
+};
 ---
 
 <BaseLayout lang={lang} title={t.projects.title} description={t.projects.metaDescription}>
@@ -24,4 +36,5 @@ const allProjects = await getProjects(lang);
       {allProjects.map((project) => <ProjectCard project={project} lang={lang} />)}
     </ul>
   </div>
+  <script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} />
 </BaseLayout>

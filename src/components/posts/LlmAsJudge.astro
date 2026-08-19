@@ -1,9 +1,19 @@
 ---
 // Article body for /blog/stop-breaking-production-llm-judge/
 // Mirrors the Medium original (text and figures) — see mediumUrl in the post frontmatter.
-const base = "/images/blog/stop-breaking-production-llm-judge";
-import '../../styles/posts/llm-as-judge.css';
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/blog/stop-breaking-production-llm-judge/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+function getImage(name: string) {
+  const path = `/src/assets/images/blog/stop-breaking-production-llm-judge/${name}`;
+  return images[path].default;
+}
 ---
+
+<style>
+  @import '../../styles/posts/llm-as-judge.css';
+</style>
 
 <div class="judge-post">
   <p>
@@ -20,8 +30,8 @@ import '../../styles/posts/llm-as-judge.css';
     fine.
   </p>
   <figure>
-    <img
-      src={`${base}/cascading-failure.jpg`}
+    <Image
+      src={getImage('cascading-failure.jpg')}
       alt="A line of dominoes toppling one into the next against a black background."
       width="1363"
       height="478"
@@ -75,8 +85,8 @@ import '../../styles/posts/llm-as-judge.css';
   <h3>The Reactive Trap</h3>
 
   <figure>
-    <img
-      src={`${base}/reactive-trap.jpg`}
+    <Image
+      src={getImage('reactive-trap.jpg')}
       alt="The reactive cycle in four panels: users find bugs, you fix them, you deploy, more bugs emerge — and the cycle repeats."
       width="1363"
       height="903"
@@ -127,8 +137,8 @@ import '../../styles/posts/llm-as-judge.css';
   </ol>
 
   <figure>
-    <img
-      src={`${base}/pipeline.jpg`}
+    <Image
+      src={getImage('pipeline.jpg')}
       alt="Evaluation pipeline: make code changes and create a pull request, then the reference dataset of 500 Q and A pairs and the agent answers both feed an LLM judge, which outputs a pass/fail decision with score and reasoning, and finally an automated report."
       width="1363"
       height="909"
@@ -152,8 +162,8 @@ import '../../styles/posts/llm-as-judge.css';
   <h3>Approach 1: Single Judge</h3>
 
   <figure>
-    <img
-      src={`${base}/single-judge.jpg`}
+    <Image
+      src={getImage('single-judge.jpg')}
       alt="Single judge setup: question, agent answer and reference answer all feed one LLM judge, which returns pass or fail. Speed about 200 milliseconds, cost one API call, trade-off fast but risky."
       width="1363"
       height="710"
@@ -199,8 +209,8 @@ import '../../styles/posts/llm-as-judge.css';
   <h3>Approach 2: Multiple Judges</h3>
 
   <figure>
-    <img
-      src={`${base}/multi-judges.jpg`}
+    <Image
+      src={getImage('multi-judges.jpg')}
       alt="Multiple judges: the question and answers go to GPT-4 (0.92), Claude (0.88), Gemini (0.89) and a local model (0.90) simultaneously; the four scores are averaged to a final score of 0.897, so each model's bias cancels out."
       width="1363"
       height="795"
@@ -263,8 +273,8 @@ import '../../styles/posts/llm-as-judge.css';
   </p>
 
   <figure>
-    <img
-      src={`${base}/multi-turn.jpg`}
+    <Image
+      src={getImage('multi-turn.jpg')}
       alt="A three-turn conversation: turn 1 in finance context asks what Bitcoin is and the agent answers correctly; turn 2 switches to sports and the agent answers correctly; turn 3 switches back to finance and the agent produces a confused, mixed-context answer about the Chiefs using the blockchain."
       width="1363"
       height="1108"

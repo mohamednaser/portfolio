@@ -1,6 +1,6 @@
 ---
 title: 'Lynk'
-description: 'Islamic fintech platform for Sharia-compliant Murabaha commodity trading — multi-ledger architecture, exchange integrations, and ZATCA compliance.'
+description: 'The engine behind Sharia-compliant Murabaha financing—built on a multi-ledger architecture that enforces compliance at the database level.'
 company: lynk
 order: 1
 featured: true
@@ -16,10 +16,11 @@ stack:
   - REST APIs
   - ZATCA e-invoicing
 achievements:
-  - 'Architected multi-database system separating business logic from financial ledger for auditability and compliance'
-  - 'Designed order progression engine driven by queued jobs with DMCC, Bursa Malaysia, and local market integrations'
-  - 'Implemented ZATCA e-invoice integration for Saudi tax compliance'
-  - 'Built multi-tenant request isolation layer and action-based architecture for clean business logic'
+  - 'Architected an air-tight multi-database system that isolates business logic from the immutable financial ledger.'
+  - 'Engineered a highly concurrent, queue-driven order progression state machine deeply integrated with DMCC and Bursa Malaysia.'
+  - 'Embedded ZATCA e-invoicing directly into the core integration design—treating tax compliance as a primitive, not an afterthought.'
+  - 'Designed a robust multi-tenant request isolation layer enforcing strict data boundaries for institutional clients.'
+  - 'Scaled trade processing infrastructure from 3 to over 120 concurrent workers to handle high-frequency commodity orders.'
 links:
   - label: 'Website'
     href: 'https://lynk.sa/'
@@ -30,19 +31,27 @@ tags:
   - Saudi Arabia
 ---
 
-## Overview
+## The Mission
 
-**Lynk** is an Islamic fintech platform specialising in **Murabaha commodity trading**, enabling Sharia-compliant financing for institutional and retail clients in Saudi Arabia.
+**Lynk** is the infrastructure powering Islamic Murabaha commodity trading in Saudi Arabia. When an institution extends financing, the underlying commodities must be genuinely purchased, owned, and sold. My job is to ensure the systems powering these trades are as legally and structurally sound as the contracts themselves.
 
-## What I lead
+## The Architecture & Technical Leadership
 
-End-to-end technical leadership: architecture, team direction, and hands-on delivery on compliance-critical paths — ledger separation, order state machines, exchange connectivity, and tax reporting.
+As Technical Lead, I own the end-to-end technical execution on the most critical, high-stakes paths of the platform. I direct the engineering team and personally architect the infrastructure that cannot fail. 
 
-## Highlights
+This isn't just about moving data—it's about moving millions in capital with zero room for race conditions or state corruption. Here is what I built and scaled to make that happen:
 
-- Financial and operational data stay auditable through deliberate database boundaries
-- Commodity order flows scale via queue-driven progression across multiple exchange backends
-- Regulatory requirements (ZATCA) are first-class in the integration design, not bolted on later
+### 1. Immutable Ledger Boundaries
+Financial data and operational states are physically separated into different databases. By completely isolating the business logic from the financial truth, we guarantee strict auditability and ensure that a bug in a feature can never corrupt the financial ledger.
+
+### 2. Scaling the Execution Pipeline
+To handle massive spikes in concurrent commodity orders, I modeled the entire trade lifecycle as an uncompromising state machine. I re-architected our Laravel queue infrastructure, scaling from 3 to over 120 distributed workers. This allowed us to process thousands of simultaneous trades while safely throttling requests to respect external exchange rate limits (like DMCC and Bursa Malaysia).
+
+### 3. Database Concurrency & Deadlock Elimination
+Financial pipelines are unforgiving when it comes to race conditions. Under extreme load, I redesigned our MySQL locking strategies to handle massive concurrency without sacrificing data integrity. I implemented deterministic locking orders and optimized transaction boundaries, entirely eliminating deadlocks while ensuring 100% Sharia compliance across every row.
+
+### 4. First-Class Compliance 
+Regulatory constraints are baked into the core architecture, not patched on at the end. Complex requirements, such as Saudi ZATCA e-invoicing and strict multi-tenant data isolation for institutional clients, were treated as foundational primitives during the system design phase.
 
 ## Further Reading
 

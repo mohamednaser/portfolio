@@ -1,0 +1,88 @@
+---
+import { type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<div id="search-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0 mt-[10vh]">
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" aria-hidden="true" id="search-backdrop"></div>
+    <span class="hidden sm:inline-block sm:align-top sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-top sm:max-w-2xl sm:w-full border border-slate-200 dark:border-slate-800">
+      <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div id="search-ui"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+<style is:global>
+  :root {
+    --pagefind-ui-scale: 1;
+    --pagefind-ui-primary: #10b981;
+    --pagefind-ui-text: #334155;
+    --pagefind-ui-background: #ffffff;
+    --pagefind-ui-border: #e2e8f0;
+    --pagefind-ui-tag: #f1f5f9;
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 12px;
+    --pagefind-ui-image-border-radius: 8px;
+    --pagefind-ui-image-box-ratio: 3 / 2;
+    --pagefind-ui-font: inherit;
+  }
+  .dark {
+    --pagefind-ui-primary: #34d399;
+    --pagefind-ui-text: #cbd5e1;
+    --pagefind-ui-background: #0f172a;
+    --pagefind-ui-border: #334155;
+    --pagefind-ui-tag: #1e293b;
+  }
+  
+  .pagefind-ui__search-input {
+    font-weight: normal !important;
+  }
+</style>
+<script is:inline src="/pagefind/pagefind-ui.js" onerror="console.warn('Pagefind UI script not found. Run a build to generate search index.')"></script>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    if (typeof PagefindUI !== 'undefined') {
+      // @ts-ignore
+      new PagefindUI({ element: "#search-ui", showSubResults: true, showImages: false });
+    }
+    
+    const modal = document.getElementById('search-modal');
+    const backdrop = document.getElementById('search-backdrop');
+    
+    document.addEventListener('open-search', () => {
+      modal?.classList.remove('hidden');
+      setTimeout(() => {
+        const input = document.querySelector('.pagefind-ui__search-input') as HTMLInputElement;
+        input?.focus();
+      }, 100);
+    });
+
+    backdrop?.addEventListener('click', () => {
+      modal?.classList.add('hidden');
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        modal?.classList.add('hidden');
+      }
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        modal?.classList.remove('hidden');
+        setTimeout(() => {
+          const input = document.querySelector('.pagefind-ui__search-input') as HTMLInputElement;
+          input?.focus();
+        }, 100);
+      }
+    });
+  });
+</script>

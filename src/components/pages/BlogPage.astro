@@ -3,7 +3,8 @@ import BlogPostCard from '../BlogPostCard.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { defaultLang, localizePath, type Lang } from '../../i18n';
 import { useTranslations } from '../../i18n/ui';
-import { getBlogPosts } from '../../lib/blog';
+import { getBlogPosts, blogPath } from '../../lib/blog';
+import { site } from '../../site.config';
 
 interface Props {
   lang: Lang;
@@ -15,6 +16,16 @@ const t = useTranslations(lang);
 const posts = await getBlogPosts(lang);
 const feed = localizePath('/rss.xml', lang);
 const seriesHref = localizePath('/series/scaling-murabaha', lang);
+
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: posts.map((post, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    url: new URL(blogPath(post, lang), site.url).href,
+  })),
+};
 ---
 
 <BaseLayout
@@ -84,4 +95,5 @@ const seriesHref = localizePath('/series/scaling-murabaha', lang);
       )
     }
   </div>
+  <script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} />
 </BaseLayout>

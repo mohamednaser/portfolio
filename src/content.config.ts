@@ -2,7 +2,7 @@ import { defineCollection, z } from 'astro:content';
 
 const blog = defineCollection({
   type: 'content',
-  schema: z.object({
+  schema: ({ image }) => z.object({
     title: z.string(),
     /** Listing snippet and meta description (keep under ~160 chars for SEO). */
     description: z.string(),
@@ -18,8 +18,8 @@ const blog = defineCollection({
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     draft: z.boolean().optional().default(false),
-    /** Path under /public, e.g. /images/blog/my-post.png */
-    coverImage: z.string().optional(),
+    /** Resolved via Astro assets. */
+    coverImage: image().optional(),
     /**
      * Publication line shown above the title, e.g. "LYNK Engineering · Murabaha
      * Platform". The series position ("Part 2 of 3") is appended from the series

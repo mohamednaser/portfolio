@@ -2,6 +2,7 @@
 import { type Lang } from '../i18n';
 import { useTranslations } from '../i18n/ui';
 import { blogLang, blogPath, type BlogEntry } from '../lib/blog';
+import { Image } from 'astro:assets';
 
 interface Props {
   post: BlogEntry;
@@ -117,8 +118,8 @@ const isolateLtr = blogLang(post) !== lang;
           aria-hidden="true"
           tabindex="-1"
         >
-          <img
-            src={post.data.coverImage}
+          <Image
+            src={post.data.coverImage!}
             alt=""
             width={260}
             height={137}

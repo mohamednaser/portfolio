@@ -4,6 +4,8 @@ import { localizePath, type Lang } from '../../i18n';
 import { useTranslations } from '../../i18n/ui';
 import { blogLang, blogPath } from '../../lib/blog';
 import { getSeriesParts } from '../../lib/series';
+import { Image } from 'astro:assets';
+import seriesCoverImg from '@/assets/images/blog/series-cover.jpg';
 
 interface Props {
   lang: Lang;
@@ -21,7 +23,7 @@ const parts = await getSeriesParts(lang);
   title={t.series.title}
   seoTitle={t.series.title}
   description={t.series.metaDescription}
-  image="/images/blog/series-cover.jpg"
+  image={seriesCoverImg.src}
   keywords={t.series.keywords}
 >
   <div class="mx-auto max-w-3xl px-6 py-16">
@@ -48,8 +50,8 @@ const parts = await getSeriesParts(lang);
               class="group flex flex-col gap-5 rounded-xl border border-slate-200 p-5 transition hover:border-emerald-500 dark:border-slate-800 dark:hover:border-emerald-500 sm:flex-row"
             >
               {post.data.coverImage && (
-                <img
-                  src={post.data.coverImage}
+                <Image
+                  src={post.data.coverImage!}
                   alt=""
                   width={200}
                   height={105}

@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Analytics from '../components/Analytics.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import Search from '../components/Search.astro';
 import Seo from '../components/Seo.astro';
 import { defaultLang, getLangFromUrl, languages, type Lang } from '../i18n';
 import { useTranslations } from '../i18n/ui';
@@ -137,6 +138,7 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
     >
       {t.common.skipToContent}
     </a>
+    <Search lang={lang} />
     <Header lang={lang} />
     <main id="main" data-copy-label={t.common.copyCode} data-copied-label={t.common.copied}>
       <slot />
