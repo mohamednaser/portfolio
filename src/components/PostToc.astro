@@ -134,5 +134,5 @@ const t = useTranslations(lang);
     headings.forEach((heading) => observer.observe(heading));
   }
 
-  document.addEventListener('astro:page-load', buildToc);
+  buildToc();
 </script>

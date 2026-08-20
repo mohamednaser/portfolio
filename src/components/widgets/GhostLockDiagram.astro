@@ -199,8 +199,7 @@
     });
   }
 
-  document.addEventListener('astro:page-load', initGhostLock);
-  document.addEventListener('DOMContentLoaded', initGhostLock);
+  // Deferred module: the document is always parsed by the time this runs.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     initGhostLock();
   }

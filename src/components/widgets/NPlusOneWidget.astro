@@ -174,10 +174,7 @@
     updateWidget(); // init
   }
 
-  // Handle Astro page transitions if they exist
-  document.addEventListener('astro:page-load', initWidget);
-  document.addEventListener('DOMContentLoaded', initWidget);
-  
+  // Deferred module: the document is always parsed by the time this runs.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     initWidget();
   }

@@ -118,9 +118,9 @@ function isActive(href: string, root: boolean): boolean {
 
 <script>
   /*
-   * Rebound on every navigation: the ClientRouter swaps the header DOM but does
-   * not re-run this module, so binding once left the button dead from the second
-   * page onward.
+   * Every navigation is a full document load, so this module re-runs and binds
+   * afresh each time. The `menuBound` guard stays: it costs nothing and keeps
+   * the binding idempotent if this is ever called twice.
    */
   function bindMobileMenu() {
     const btn = document.getElementById('mobile-menu-btn');
@@ -147,5 +147,5 @@ function isActive(href: string, root: boolean): boolean {
     });
   }
 
-  document.addEventListener('astro:page-load', bindMobileMenu);
+  bindMobileMenu();
 </script>

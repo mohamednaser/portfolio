@@ -9,6 +9,8 @@ const tailwindConfig = fileURLToPath(new URL('./tailwind.config.mjs', import.met
 // https://astro.build/config
 export default defineConfig({
   site: 'https://mnaser.me',
+  // Navigations are full document loads now; warm them on hover/focus.
+  prefetch: { prefetchAll: true },
   i18n: {
     locales: ['en', 'ar'],
     defaultLocale: 'en',

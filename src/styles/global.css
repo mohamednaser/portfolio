@@ -3,6 +3,25 @@
 @tailwind utilities;
 
 /*
+ * Cross-document view transitions: the browser animates between real page
+ * loads, so back/forward, Safari's edge-swipe gesture and scroll restoration
+ * all stay native. Browsers without support just navigate instantly.
+ *
+ * This replaced Astro's `<ClientRouter />` (Aug 2026): same-document pushState
+ * routing broke the iOS back-swipe — Safari previews the previous entry, finds
+ * the DOM unchanged, and snaps back as though nothing happened.
+ */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+/*
  * IBM Plex Sans Arabic, self-hosted (see `public/fonts/`). Only the Arabic and
  * Latin subsets are shipped; other scripts fall back to the system stack.
  * Applied to `html[lang='ar']` only, so English pages download nothing.

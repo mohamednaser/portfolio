@@ -254,8 +254,7 @@
     });
   }
 
-  document.addEventListener('astro:page-load', initPdfWidget);
-  document.addEventListener('DOMContentLoaded', initPdfWidget);
+  // Deferred module: the document is always parsed by the time this runs.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     initPdfWidget();
   }

@@ -184,8 +184,7 @@ const node3 = [
     });
   }
 
-  document.addEventListener('astro:page-load', initTopology);
-  document.addEventListener('DOMContentLoaded', initTopology);
+  // Deferred module: the document is always parsed by the time this runs.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     initTopology();
   }

@@ -38,7 +38,6 @@ function initMarquee(root: HTMLElement) {
   const rtl = getComputedStyle(viewport).direction === 'rtl';
   const sign = rtl ? -1 : 1;
   let paused = false;
-  let rafId = 0;
 
   const getStep = () => {
     const item = track.querySelector<HTMLElement>('.marquee__item');
@@ -70,7 +69,7 @@ function initMarquee(root: HTMLElement) {
       viewport.scrollLeft += sign * AUTO_SPEED;
       normalizeScroll();
     }
-    rafId = requestAnimationFrame(tick);
+    requestAnimationFrame(tick);
   };
 
   root.addEventListener('mouseenter', () => {
@@ -96,16 +95,8 @@ function initMarquee(root: HTMLElement) {
   });
 
   if (!reducedMotion) {
-    rafId = requestAnimationFrame(tick);
+    requestAnimationFrame(tick);
   }
-
-  document.addEventListener(
-    'astro:before-swap',
-    () => {
-      cancelAnimationFrame(rafId);
-    },
-    { once: true },
-  );
 }
 
 function initAll() {
@@ -113,4 +104,3 @@ function initAll() {
 }
 
 initAll();
-document.addEventListener('astro:page-load', initAll);

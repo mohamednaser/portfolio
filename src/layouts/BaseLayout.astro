@@ -8,7 +8,6 @@ import Seo from '../components/Seo.astro';
 import { defaultLang, getLangFromUrl, languages, type Lang } from '../i18n';
 import { useTranslations } from '../i18n/ui';
 import { siteMeta } from '../site.config';
-import { ClientRouter } from 'astro:transitions';
 interface Props {
   /** Defaults to the locale implied by the URL; pass explicitly on 404. */
   lang?: Lang;
@@ -51,7 +50,6 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
 <!doctype html>
 <html lang={htmlLang} dir={dir}>
   <head>
-    <ClientRouter />
     <Seo
       lang={lang}
       title={pageTitle}
@@ -118,16 +116,6 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
         } else {
           bindToggle();
         }
-
-        // The ClientRouter swaps in the freshly fetched document's <html>
-        // attributes, dropping `dark`/`js` and reverting the theme. This inline
-        // script does not re-run, so re-apply before the new page paints.
-        document.addEventListener('astro:after-swap', () => {
-          document.documentElement.classList.add('js');
-          applyTheme(readStoredTheme());
-        });
-
-        document.addEventListener('astro:page-load', bindToggle);
       })();
     </script>
     <Analytics />
@@ -263,14 +251,12 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
 
       window.addEventListener('scroll', updateReadingProgress, { passive: true });
 
-      // `astro:page-load` fires on the first load as well as after every view
-      // transition, so calling the initializers here alone avoids double-init.
-      document.addEventListener('astro:page-load', () => {
-        initZoom();
-        initScrollAnimations();
-        initCopyButtons();
-        updateReadingProgress();
-      });
+      // This module is deferred, so the DOM is parsed by the time it runs and
+      // every navigation re-runs it — no navigation event to wait for.
+      initZoom();
+      initScrollAnimations();
+      initCopyButtons();
+      updateReadingProgress();
     </script>
   </body>
 </html>
