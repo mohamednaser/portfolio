@@ -131,8 +131,6 @@
       runBtn.disabled = true;
       runBtn.textContent = "Simulating...";
 
-      let startTime = Date.now();
-      
       script.forEach(step => {
         setTimeout(() => {
           const uBox = document.getElementById(`unit-${step.u}`);

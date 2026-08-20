@@ -1,11 +1,13 @@
 ---
 import { type Lang } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 
 interface Props {
   lang: Lang;
 }
 
 const { lang } = Astro.props;
+const t = useTranslations(lang);
 ---
 
 <div id="search-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -14,6 +16,7 @@ const { lang } = Astro.props;
     <span class="hidden sm:inline-block sm:align-top sm:h-screen" aria-hidden="true">&#8203;</span>
     <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-top sm:max-w-2xl sm:w-full border border-slate-200 dark:border-slate-800">
       <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <h2 id="modal-title" class="sr-only">{t.common.search}</h2>
         <div id="search-ui"></div>
       </div>
     </div>
@@ -52,7 +55,7 @@ const { lang } = Astro.props;
 <script>
   window.addEventListener('DOMContentLoaded', () => {
     if (typeof PagefindUI !== 'undefined') {
-      // @ts-ignore
+      // @ts-expect-error — PagefindUI is a global from the inlined script above.
       new PagefindUI({ element: "#search-ui", showSubResults: true, showImages: false });
     }
     

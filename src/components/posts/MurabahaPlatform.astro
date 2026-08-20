@@ -1,6 +1,5 @@
 ---
 import { Image } from 'astro:assets';
-import coverImg from '@/assets/images/blog/murabaha-as-a-state-machine/cover.jpg';
 import fig1 from '@/assets/images/blog/murabaha-as-a-state-machine/figure-1.png';
 import fig2 from '@/assets/images/blog/murabaha-as-a-state-machine/figure-2.webp';
 import fig3 from '@/assets/images/blog/murabaha-as-a-state-machine/figure-3.webp';
@@ -31,7 +30,7 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
   <figure>
     <Image loading="lazy" decoding="async" src={conceptImg} width="1376" height="768"
          alt="A conceptual illustration demonstrating the difference between a standard loan and a Murabaha trade."
-         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;">
+         style="width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin: 2rem 0;" />
     <figcaption>Unlike a standard loan, a Murabaha trade requires actual physical commodities to be purchased, owned, and sold.</figcaption>
   </figure>
 
@@ -106,7 +105,7 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
   <figure>
     <Image loading="lazy" decoding="async" src={fig1} width="1162" height="1572"
          alt="LYNK's Murabaha Details screen showing all five steps completed with green checkmarks: Purchasing Commodity in 1 second with its commodity certificate, Contract Signed in 28 seconds confirmed via API by the lender, Borrower Ownership Certificate in 0 seconds with its certificate, Client Wakala in 0 seconds, and Murabaha Completed in 0 seconds with the sell confirmation certificate — on 15 August 2026."
-         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;" />
     <figcaption>The process as users see it: a real order completing every legal step, with a downloadable
     certificate generated at each transfer of ownership. The platform's own steps are near-instant —
     Purchasing Commodity in 1 second, Borrower Ownership, Client Wakala, and Murabaha Completed in 0 seconds
@@ -126,7 +125,7 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
 
   <figure>
     <Image loading="lazy" decoding="async" src={fig2} width="440" height="247" alt="A busy commodity warehouse with tall racks of stock and workers moving pallets."
-         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+         style="max-width: 26rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;" />
     <figcaption>A commodity market is a real warehouse before it is a database. LYNK's job is to give every
     unit on those shelves a code, an owner, and a history.</figcaption>
   </figure>
@@ -279,7 +278,7 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
   </p>
   <figure>
     <Image loading="lazy" decoding="async" src={fig3} width="340" height="340" alt="A presenter pointing at a large bar chart on an easel."
-         style="max-width: 20rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+         style="max-width: 20rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;" />
     <figcaption>Every test run ends the same way: someone pointing at a chart. The numbers below are what
     we point at.</figcaption>
   </figure>
@@ -387,7 +386,7 @@ import AppendOnlyLedgerWidget from "../widgets/AppendOnlyLedgerWidget.astro";
   <figure>
     <Image loading="lazy" decoding="async" src={fig4} width="702" height="1560"
          alt="Step Performance Results from a stress-test run. Purchase: min 0, avg 0.26, max 3 seconds; P25 and P50 are 0.0 and P75 through P99 are 1.0. Borrower Ownership: min 0, avg 0.03, max 1; every percentile 0.0 except P99 at 1.0. Sell: min 0, avg 0.04, max 1; every percentile 0.0 except P99 at 1.0."
-         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;">
+         style="max-width: 22rem; width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px;" />
     <figcaption>A real run's report card. Reading Purchase: the typical order (P50) finished in under a
     second, the average was 0.26s, 99 of every 100 orders (P99) finished within 1 second, and the single
     worst order of the whole run (Max) took 3 seconds. Borrower Ownership and Sell average 0.03–0.04s with

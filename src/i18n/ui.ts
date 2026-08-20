@@ -19,6 +19,7 @@ const en = {
     switchLanguage: 'اقرأ بالعربية',
     copyCode: 'Copy code',
     copied: 'Copied',
+    search: 'Search',
   },
   nav: {
     home: 'Home',
@@ -228,6 +229,7 @@ const ar: DeepReadonlyLike<typeof en> = {
     switchLanguage: 'Read in English',
     copyCode: 'انسخ الكود',
     copied: 'تم النسخ',
+    search: 'بحث',
   },
   nav: {
     home: 'الرئيسية',
