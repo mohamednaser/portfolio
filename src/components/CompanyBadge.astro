@@ -1,6 +1,9 @@
 ---
 import { getCompany, type CompanyId } from '../data/companies';
 
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
 interface Props {
   companyId: CompanyId;
   size?: 'sm' | 'md';
@@ -15,12 +18,20 @@ const boxClass =
     : 'h-11 min-w-[2.75rem] rounded-xl px-3';
 
 const imgClass = size === 'sm' ? 'max-h-6' : 'max-h-8';
+
+// `company.src` is a `/assets/...` path into `src/`, not a public URL — it only
+// resolves through the asset pipeline, the same way CompanyLogoCard does it.
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/images/companies/*.{jpeg,jpg,png,gif,webp}',
+);
+const imagePath = company.src ? `/src${company.src}` : null;
+const imageSrc = imagePath && images[imagePath] ? await images[imagePath]() : null;
 const textClass = size === 'sm' ? 'text-xs' : 'text-sm';
 ---
 
 <div class="flex items-center gap-3">
   {
-    company.src ? (
+    imageSrc ? (
       <div
         class:list={[
           boxClass,
@@ -30,11 +41,11 @@ const textClass = size === 'sm' ? 'text-xs' : 'text-sm';
         ]}
         style={company.background ? { backgroundColor: company.background } : undefined}
       >
-        <img
-          src={company.src}
+        <Image
+          src={imageSrc.default}
           alt=""
-          width="80"
-          height="32"
+          width={80}
+          height={32}
           class:list={[imgClass, 'w-auto max-w-[5rem] object-contain']}
           loading="lazy"
           decoding="async"
