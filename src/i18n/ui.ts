@@ -23,6 +23,7 @@ const en = {
   nav: {
     home: 'Home',
     about: 'About',
+    services: 'Services',
     projects: 'Projects',
     blog: 'Blog',
     contact: 'Contact',
@@ -50,13 +51,20 @@ const en = {
   },
   home: {
     eyebrow: 'Problem solver · Experienced developer · AI for teams & products',
-    headline: "I architect systems that don't blink under pressure—and lead the teams that build them",
+    headline:
+      "I architect systems that don't blink under pressure—and lead the teams that build them",
     introHtml:
       'Over the last decade, I’ve built everything from high-frequency public transport ticketing to Sharia-compliant fintech engines processing millions. Today, as Technical Lead at <strong>Lynk</strong>, I untangle deep architectural complexity and empower engineering teams to ship faster using AI-augmented workflows — and I write about that on %medium%.',
     ctaProjects: 'View projects',
     ctaBlog: 'Blog',
     ctaContact: 'Get in touch',
     portraitAlt: 'Mohamed Naser',
+    /** Labels the proof band under the hero for screen readers. */
+    statsLabel: 'Career in numbers',
+    howIHelp: 'How I help',
+    howIHelpIntro:
+      'Four kinds of problem I get called for — and the engagements built around them.',
+    howIHelpCta: 'Ways to work together →',
     selectedProjects: 'Selected projects',
     selectedProjectsIntro: 'Stack, achievements, and write-ups for each product I ship or govern.',
     allProjects: 'View all projects →',
@@ -74,7 +82,7 @@ const en = {
     bodyHtml: [
       'My journey started with network signal analysis and government archiving, evolving into building critical financial reporting systems for Johnson &amp; Johnson and notification pipelines for TOTAL.',
       'When I took the technical helm at <strong>Carefer</strong>, I led a platform processing 50K+ monthly car-maintenance orders across five apps, scaling the engineering team from 3 to 20+ developers. Today at <strong>Lynk</strong>, I design strictly regulated, ZATCA-compliant fintech architectures that seamlessly integrate with commodity exchanges.',
-      'My leadership philosophy was forged through years of remote collaboration. I bridge the gap between business objectives and technical reality by enforcing rigorous, <strong>AI-augmented SDLC processes</strong>—because shipping fast shouldn\'t mean breaking production.',
+      "My leadership philosophy was forged through years of remote collaboration. I bridge the gap between business objectives and technical reality by enforcing rigorous, <strong>AI-augmented SDLC processes</strong>—because shipping fast shouldn't mean breaking production.",
     ],
     browseProjects: 'Browse all projects →',
     topSkills: 'Top skills',
@@ -96,12 +104,26 @@ const en = {
     emailCta: 'Email %email%',
     connect: 'Connect',
   },
+  services: {
+    title: 'Work with me',
+    metaDescription:
+      'Architecture reviews, fractional technical leadership, and mentoring — from a technical lead who has scaled fintech platforms under real load.',
+    lead: 'Three ways I work with teams. Each one starts with the same conversation: what is actually breaking, and what does it cost you.',
+    /** Column headings inside every offering card. */
+    audienceLabel: 'Good fit if',
+    outcomeLabel: 'You get',
+    testimonials: 'What people say',
+    ctaHeading: 'Start with a conversation',
+    ctaBody:
+      'Tell me what you are building and where it hurts. If I am not the right person, I will say so and point you at someone who is.',
+    ctaBooking: 'Book a session',
+  },
   projects: {
     title: 'Projects',
     metaDescription:
-      'A deep dive into the platforms I\'ve architected and the teams I\'ve led. Real metrics, actual tech stacks, and the engineering stories behind them.',
+      "A deep dive into the platforms I've architected and the teams I've led. Real metrics, actual tech stacks, and the engineering stories behind them.",
     intro:
-      'A deep dive into the platforms I\'ve architected and the teams I\'ve led. Real metrics, actual tech stacks, and the engineering stories behind them.',
+      "A deep dive into the platforms I've architected and the teams I've led. Real metrics, actual tech stacks, and the engineering stories behind them.",
     viewProject: 'View project →',
     deliveredAt: 'Delivered while at',
     /** `%status%` is replaced with a translated status label. */
@@ -210,6 +232,7 @@ const ar: DeepReadonlyLike<typeof en> = {
   nav: {
     home: 'الرئيسية',
     about: 'نبذة عني',
+    services: 'الخدمات',
     projects: 'المشاريع',
     blog: 'المدوّنة',
     contact: 'تواصل معي',
@@ -243,6 +266,10 @@ const ar: DeepReadonlyLike<typeof en> = {
     ctaBlog: 'المدوّنة',
     ctaContact: 'تواصل معي',
     portraitAlt: 'محمد ناصر',
+    statsLabel: 'المسيرة بالأرقام',
+    howIHelp: 'كيف أساعد',
+    howIHelpIntro: 'أربعة أنواع من المشكلات أُستدعى لها — والخدمات المبنيّة حولها.',
+    howIHelpCta: 'طرق العمل معًا ←',
     selectedProjects: 'مشاريع مختارة',
     selectedProjectsIntro: 'التقنيات والإنجازات والمقالات لكل منتج أبنيه أو أشرف عليه.',
     allProjects: 'استعرض كل المشاريع ←',
@@ -279,11 +306,25 @@ const ar: DeepReadonlyLike<typeof en> = {
     emailCta: 'راسلني على %email%',
     connect: 'تواصل عبر',
   },
+  services: {
+    title: 'اعمل معي',
+    metaDescription:
+      'مراجعات معمارية، وقيادة تقنية بدوام جزئي، وإرشاد فردي — من قائد تقني وسّع منصّات مالية تحت حِمل حقيقي.',
+    lead: 'ثلاث طرق أعمل بها مع الفرق. وكلّها تبدأ بالحديث نفسه: ما الذي يتعطّل فعلًا، وكم يكلّفك.',
+    audienceLabel: 'مناسب لك إذا',
+    outcomeLabel: 'ما تحصل عليه',
+    testimonials: 'ماذا يقول من عملوا معي',
+    ctaHeading: 'لنبدأ بحديث',
+    ctaBody:
+      'أخبرني بما تبنيه وأين يؤلمك. وإن لم أكن الشخص المناسب، سأقولها لك وأدلّك على من يناسبك.',
+    ctaBooking: 'احجز جلسة',
+  },
   projects: {
     title: 'المشاريع',
     metaDescription:
       'نظرة عميقة على المنصات التي صممتها والفرق التي قدتها. أرقام حقيقية، تقنيات فعلية، والقصص الهندسية وراء كل إنجاز.',
-    intro: 'نظرة عميقة على المنصات التي صممتها والفرق التي قدتها. أرقام حقيقية، تقنيات فعلية، والقصص الهندسية وراء كل إنجاز.',
+    intro:
+      'نظرة عميقة على المنصات التي صممتها والفرق التي قدتها. أرقام حقيقية، تقنيات فعلية، والقصص الهندسية وراء كل إنجاز.',
     viewProject: 'عرض المشروع ←',
     deliveredAt: 'أُنجِز أثناء العمل في',
     statusLine: 'الحالة: %status%',

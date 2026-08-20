@@ -1,0 +1,90 @@
+---
+import TestimonialsMarquee from '../TestimonialsMarquee.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getOfferings, getTestimonials } from '../../data/i18n';
+import type { Lang } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import { bookingUrl, site } from '../../site.config';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const offerings = getOfferings(lang);
+const testimonials = getTestimonials(lang);
+
+const mailto = `mailto:${site.email}?subject=${encodeURIComponent(t.contact.mailSubject)}`;
+/** `<bdi>` keeps the Latin address from flipping inside the RTL sentence. */
+const [ctaBefore, ctaAfter = ''] = t.contact.emailCta.split('%email%');
+---
+
+<BaseLayout lang={lang} title={t.services.title} description={t.services.metaDescription}>
+  <div class="mx-auto max-w-5xl px-6 py-16">
+    <h1 class="section-heading">{t.services.title}</h1>
+    <p class="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+      {t.services.lead}
+    </p>
+
+    <ul class="mt-12 grid gap-6 lg:grid-cols-3">
+      {
+        offerings.map((offering) => (
+          <li id={offering.id} class="card flex scroll-mt-24 flex-col">
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">
+              {offering.title}
+            </h2>
+            <p class="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              {offering.tagline}
+            </p>
+
+            <h3 class="mt-6 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              {t.services.audienceLabel}
+            </h3>
+            <ul class="mt-3 space-y-2">
+              {offering.audience.map((item) => (
+                <li class="flex gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <span aria-hidden="true" class="text-emerald-700 dark:text-emerald-400">
+                    ·
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <h3 class="mt-6 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              {t.services.outcomeLabel}
+            </h3>
+            <p class="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+              {offering.outcome}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <section
+    class="fade-up border-t border-slate-200 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900/40"
+  >
+    <div class="mx-auto max-w-5xl px-6">
+      <h2 class="section-heading">{t.services.testimonials}</h2>
+      <TestimonialsMarquee items={testimonials} lang={lang} />
+    </div>
+  </section>
+
+  <section class="fade-up mx-auto max-w-2xl px-6 py-16 text-center">
+    <h2 class="section-heading">{t.services.ctaHeading}</h2>
+    <p class="mt-6 text-slate-600 dark:text-slate-300">{t.services.ctaBody}</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-4">
+      <a href={mailto} class="btn-primary">{ctaBefore}<bdi>{site.email}</bdi>{ctaAfter}</a>
+      {
+        bookingUrl && (
+          <a href={bookingUrl} class="btn-secondary" target="_blank" rel="noopener noreferrer">
+            {t.services.ctaBooking}
+          </a>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>

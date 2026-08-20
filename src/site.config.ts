@@ -58,9 +58,16 @@ export const siteMeta: Record<Lang, SiteMeta> = {
   },
 };
 
+/**
+ * Optional scheduling link (Cal.com, ADPList, …). An empty string keeps the
+ * services CTA on email — no third-party script, and no link to a booking page
+ * that does not exist yet.
+ */
+export const bookingUrl: string = '';
+
 export type NavItem = {
   href: string;
-  labelKey: 'home' | 'about' | 'projects' | 'blog' | 'contact';
+  labelKey: 'home' | 'about' | 'services' | 'projects' | 'blog' | 'contact';
 };
 
 /** Both locales carry the same nav; every route behind it exists in both. */
@@ -68,6 +75,7 @@ export const navByLang: Record<Lang, readonly NavItem[]> = {
   en: [
     { href: '/', labelKey: 'home' },
     { href: '/about', labelKey: 'about' },
+    { href: '/services', labelKey: 'services' },
     { href: '/projects', labelKey: 'projects' },
     { href: '/blog', labelKey: 'blog' },
     { href: '/contact', labelKey: 'contact' },
@@ -75,6 +83,7 @@ export const navByLang: Record<Lang, readonly NavItem[]> = {
   ar: [
     { href: '/', labelKey: 'home' },
     { href: '/about', labelKey: 'about' },
+    { href: '/services', labelKey: 'services' },
     { href: '/projects', labelKey: 'projects' },
     { href: '/blog', labelKey: 'blog' },
     { href: '/contact', labelKey: 'contact' },
