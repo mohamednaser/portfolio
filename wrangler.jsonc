@@ -1,0 +1,16 @@
+{
+  // The site is fully prerendered — 41 static pages, no server routes. This
+  // config deploys `dist/` as Workers static assets with no Worker script, so
+  // Cloudflare never runs an SSR build. That matters: an SSR build pulls the
+  // OG-image route (satori + @resvg/resvg-js) into rollup, which cannot bundle
+  // resvg's native `.node` binary and fails with "Unexpected character '\u{7f}'".
+  //
+  // `name` must match the Worker in the Cloudflare dashboard — a mismatch
+  // creates a second Worker instead of updating the one serving mnaser.me.
+  "name": "portfolio",
+  "compatibility_date": "2026-08-20",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

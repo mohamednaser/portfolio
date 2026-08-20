@@ -1,8 +1,8 @@
 # mnaser.me — portfolio & blog
 
 Personal site of Mohamed Naser. Astro 5 + Tailwind 3, TypeScript, MDX content
-collections. Static output, deployed to GitHub Pages on push to `master`
-(custom domain `mnaser.me` via `public/CNAME`).
+collections. Static output, deployed to Cloudflare on push to `master`
+(custom domain `mnaser.me`).
 
 ## Commands
 
@@ -16,8 +16,21 @@ npm run format     # prettier --write .
 ```
 
 CI (`.github/workflows/ci.yml`) runs `lint` + `build` and asserts
-`dist/CNAME` contains `mnaser.me`. `deploy.yml` publishes `dist/` to Pages.
-A red build means the site does not deploy — always build locally first.
+`dist/CNAME` contains `mnaser.me`. Deployment is Cloudflare's own build,
+driven by `wrangler.jsonc`: it uploads `dist/` as Workers static assets and
+runs no Worker script. A red build means the site does not deploy — always
+build locally first.
+
+**Never add an SSR adapter.** Every route is prerendered, and an SSR build
+drags `src/pages/og/[lang]/[slug].png.ts` into rollup, which cannot bundle
+`@resvg/resvg-js`'s native binary — the build dies on
+`Unexpected character '\u{7f}'`. That route is Node-only by design: it reads
+a font with `node:fs/promises` and renders through a native addon, both of
+which run at build time and neither of which works on Workers.
+
+`npm run format` rewrites the whole repo unless you pass the settings the
+committed code actually uses: `npx prettier --write --single-quote
+--print-width 100 .`
 
 ## Layout
 
