@@ -55,7 +55,6 @@ const t = useTranslations(lang);
 <script>
   window.addEventListener('DOMContentLoaded', () => {
     if (typeof PagefindUI !== 'undefined') {
-      // @ts-expect-error — PagefindUI is a global from the inlined script above.
       new PagefindUI({ element: "#search-ui", showSubResults: true, showImages: false });
     }
     

@@ -1,3 +1,4 @@
+import type { APIRoute } from 'astro';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { html } from 'satori-html';
@@ -22,7 +23,7 @@ export async function getStaticPaths() {
   return paths;
 }
 
-export const GET = async ({ props }) => {
+export const GET: APIRoute = async ({ props }) => {
   const { title, lang } = props;
   
   // Read font file (using relative path from project root for reliability in prod)
@@ -75,7 +76,7 @@ export const GET = async ({ props }) => {
 
   const image = resvg.render();
 
-  return new Response(image.asPng(), {
+  return new Response(new Uint8Array(image.asPng()), {
     headers: {
       'Content-Type': 'image/png',
       'Cache-Control': 'public, max-age=31536000, immutable',
