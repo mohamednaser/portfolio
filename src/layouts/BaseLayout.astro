@@ -119,6 +119,14 @@ const pageTitle = title ? `${title} · ${meta.name}` : meta.title;
           bindToggle();
         }
 
+        // The ClientRouter swaps in the freshly fetched document's <html>
+        // attributes, dropping `dark`/`js` and reverting the theme. This inline
+        // script does not re-run, so re-apply before the new page paints.
+        document.addEventListener('astro:after-swap', () => {
+          document.documentElement.classList.add('js');
+          applyTheme(readStoredTheme());
+        });
+
         document.addEventListener('astro:page-load', bindToggle);
       })();
     </script>
