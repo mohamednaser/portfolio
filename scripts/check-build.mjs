@@ -56,7 +56,7 @@ for (const file of pages) {
     // Every img needs alt (a11y) and intrinsic dimensions (CLS).
     for (const tag of html.match(/<img\b[^>]*>/g) ?? []) {
       const src = attr(tag, 'src') ?? '(inline)';
-      if (!/\salt=/.test(tag)) fail(page, 'img-alt', src);
+      if (!/\salt(?:[=\s>]|\/>)/.test(tag)) fail(page, 'img-alt', src);
       if (!/\swidth=/.test(tag) || !/\sheight=/.test(tag)) fail(page, 'img-dimensions', src);
     }
 
